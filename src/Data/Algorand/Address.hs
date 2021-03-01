@@ -17,9 +17,8 @@ module Data.Algorand.Address
 import Prelude hiding (length)
 
 import Control.Monad (guard)
-import Crypto.Hash (Digest, hash)
-import Crypto.Hash.Algorithms (SHA512t_256)
 import Data.ByteArray (Bytes, ByteArrayAccess, View, convert, eq, length, view)
+import Data.ByteArray.Sized (unSizedByteArray)
 import Data.ByteString (ByteString)
 import Data.ByteString.Base32 (decodeBase32Unpadded, encodeBase32Unpadded)
 import Data.String (IsString (fromString))
@@ -27,6 +26,7 @@ import Data.Text (Text)
 import qualified Data.Text as T
 import Data.Text.Encoding (encodeUtf8)
 
+import Crypto.Algorand.Hash (hash32)
 import Crypto.Algorand.Signature (PublicKey, pkFromBytes, pkSize)
 import Data.Algorand.MessagePack (NonZeroValue (isNonZero), MessagePack (fromObject, toObject))
 
@@ -102,7 +102,5 @@ toPublicKey (Address pk) = pk
 
 
 -- | Compute the checksum of a public key.
-checksum :: ByteArrayAccess bs => bs -> View (Digest SHA512t_256)
-checksum pk = view digest (length digest - checksumSize) checksumSize
-  where
-    digest = hash pk
+checksum :: ByteArrayAccess bs => bs -> View Bytes
+checksum pk = view (unSizedByteArray $ hash32 pk) (32 - checksumSize) checksumSize

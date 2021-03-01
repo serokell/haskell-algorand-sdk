@@ -19,11 +19,14 @@ module Data.Algorand.Transaction
   , signTransaction
   , verifyTransaction
   , getUnverifiedTransaction
+
+  , transactionId
   ) where
 
 import Data.ByteArray (Bytes)
-import Data.ByteArray.Sized (SizedByteArray)
+import Data.ByteArray.Sized (SizedByteArray, unSizedByteArray)
 import Data.ByteString (ByteString)
+import Data.ByteString.Base32 (encodeBase32Unpadded)
 import Data.ByteString.Lazy (toStrict)
 import Data.Default.Class (Default (def))
 import Data.MessagePack (MessagePack (fromObject, toObject), pack)
@@ -32,6 +35,7 @@ import qualified Data.Text as T
 import Data.Word (Word64)
 import GHC.Generics (Generic)
 
+import Crypto.Algorand.Hash (hash32)
 import Crypto.Algorand.Signature (SecretKey, Signature, sign, verify)
 import Data.Algorand.Address (Address, toPublicKey)
 import Data.Algorand.Amount (Microalgos)
@@ -168,6 +172,10 @@ verifyTransaction SignedTransaction{..} =
 -- | Dangerous: returns a transaction without verifying the signature.
 getUnverifiedTransaction :: SignedTransaction -> Transaction
 getUnverifiedTransaction = stTransaction
+
+
+transactionId :: Transaction -> Text
+transactionId = encodeBase32Unpadded . unSizedByteArray . hash32 . serialiseTx
 
 {-
  - What comes below is pretty annoying. Basically, it is a ton of boilerplate

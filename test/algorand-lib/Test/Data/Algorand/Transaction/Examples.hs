@@ -18,7 +18,7 @@ import Test.Tasty.HUnit (Assertion, (@?=), assertFailure)
 
 import Data.Algorand.Address (Address)
 import Data.Algorand.MessagePack (Canonical (Canonical, unCanonical))
-import Data.Algorand.Transaction (GenesisHash, StateSchema (..), Transaction (..), TransactionType (..), getUnverifiedTransaction, verifyTransaction, OnComplete (..))
+import Data.Algorand.Transaction (GenesisHash, StateSchema (..), Transaction (..), TransactionType (..), getUnverifiedTransaction, verifyTransaction, OnComplete (..), transactionId)
 
 
 sender :: Address
@@ -70,6 +70,11 @@ unit_example_21_encoding =
     example_21_encoded :: ByteString
     example_21_encoded = result
       "iqRhcGFhkcQEdGVzdKRhcGF0ksQgACoyATtqMON+4ohUJO59fQVV6uCTn7aa/GvfndL+5/7EIAAHBAuPYqMysOAF8ALIwKUWNGgBCjFYJ8bPUnx4aXnnpGFwZmGSzRWzzRoKpGFwaWRko2ZlZc0E0qJmds0jKKJnaMQgMf0h6zjkEIEZPtNM3zsrg+iHQFS0fZxhgr7w35I464OibHbNIzKjc25kxCAJ+9J2LAj4bFrmv23Xp6kB3mZ111Dgfoxcdphkfbbh/aR0eXBlpGFwcGw="
+
+-- Another extra test.
+unit_example_21_id :: Assertion
+unit_example_21_id =
+  transactionId example_21 @?= "2YIWKLZ2ZOJLINMGNKX3YIT67PUPVMIL72L3VBLDNJVEQAA6ZCWQ"
 
 example_21_expected :: ByteString
 example_21_expected = result

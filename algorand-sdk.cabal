@@ -28,6 +28,7 @@ source-repository head
 
 library
   exposed-modules:
+      Crypto.Algorand.Hash
       Crypto.Algorand.Signature
       Data.Algorand.Address
       Data.Algorand.Amount
