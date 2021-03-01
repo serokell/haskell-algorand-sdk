@@ -9,6 +9,9 @@ module Crypto.Algorand.Signature
   , keypair
   , toPublic
 
+  , skToText
+  , skFromText
+
   , pkSize
   , pkFromBytes
 
@@ -20,8 +23,13 @@ module Crypto.Algorand.Signature
   , verify
   ) where
 
+import Control.Monad (guard)
 import Data.ByteArray (ByteArrayAccess, Bytes, convert)
+import qualified Data.ByteString as BS
+import Data.ByteString.Base64 (decodeBase64, encodeBase64)
 import Data.MessagePack (MessagePack (fromObject, toObject))
+import Data.Text (Text)
+import Data.Text.Encoding (encodeUtf8)
 import Control.Monad.IO.Class (MonadIO, liftIO)
 import Crypto.Error (CryptoFailable (CryptoFailed, CryptoPassed))
 import qualified Crypto.PubKey.Ed25519 as Sig
@@ -48,6 +56,31 @@ keypair = do
 -- | Compute the public key corresponding to the given secret key.
 toPublic :: SecretKey -> PublicKey
 toPublic (SecretKey _ pk) = pk
+
+
+-- | Export a secret key in base64.
+--
+-- The output of this function contains raw unprotected key material!
+skToText :: SecretKey -> Text
+skToText (SecretKey sk pk) = encodeBase64 (convert sk <> convert pk)
+
+-- | Import a secret key in base64.
+--
+-- This is the opposite of 'skToText'.
+--
+-- The encoding used by Algorand is base64 of the concatenation of
+-- sk and pk bytes, so this function will fail if the pk and sk
+-- do not match.
+skFromText :: Text -> Maybe SecretKey
+skFromText t = do
+  bs <- case decodeBase64 (encodeUtf8 t) of
+    Left _ -> Nothing
+    Right r -> Just r
+  let (skBytes, pkBytes) = BS.splitAt skSize bs
+  sk <- skFromBytes skBytes
+  pk <- pkFromBytes pkBytes
+  guard $ pk == toPublic sk
+  pure sk
 
 
 -- | Size of a 'PublicKey' in bytes.
