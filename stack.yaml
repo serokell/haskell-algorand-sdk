@@ -1,0 +1,18 @@
+# SPDX-FileCopyrightText: 2021 Serokell <https://serokell.io/>
+#
+# SPDX-License-Identifier: CC0-1.0
+
+resolver: lts-16.5
+
+packages:
+- .
+
+extra-deps:
+  - base32-0.2.0.0  # Includes a crytical bugfix
+
+  # Not in the snapshot
+  - msgpack-binary-0.0.14
+  - msgpack-types-0.0.4
+
+nix:
+  packages: [ zlib ]

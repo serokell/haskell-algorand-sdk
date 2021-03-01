@@ -1,0 +1,89 @@
+cabal-version: 1.12
+
+-- This file has been generated from package.yaml by hpack version 0.34.2.
+--
+-- see: https://github.com/sol/hpack
+
+name:           algorand-sdk
+version:        0.0.0.1
+synopsis:       A Haskell SDK for the Algorand blockchain
+description:    Tools for working with transactions on the Algorand blockchain
+                and interacting with algod through its REST API.
+category:       Algorand, Finance, Blockchain
+homepage:       https://github.com/serokell/haskell-algorand#readme
+bug-reports:    https://github.com/serokell/haskell-algorand/issues
+author:         Kirill Elagin <kirelagin@serokell.io>
+maintainer:     Kirill Elagin <kirelagin@serokell.io>
+copyright:      2021 Serokell
+license:        MPL-2.0
+license-file:   LICENSES/MPL-2.0.txt
+build-type:     Simple
+extra-source-files:
+    CHANGELOG.md
+    README.md
+
+source-repository head
+  type: git
+  location: https://github.com/serokell/haskell-algorand
+
+library
+  exposed-modules:
+      Crypto.Algorand.Signature
+      Data.Algorand.Address
+      Data.Algorand.Amount
+      Data.Algorand.MessagePack
+      Data.Algorand.Transaction
+  other-modules:
+      Paths_algorand_sdk
+  hs-source-dirs:
+      src
+  default-extensions: AllowAmbiguousTypes BangPatterns ConstraintKinds DataKinds DefaultSignatures DeriveDataTypeable DeriveGeneric DerivingStrategies DuplicateRecordFields EmptyCase FlexibleContexts FlexibleInstances FunctionalDependencies GADTs GeneralizedNewtypeDeriving LambdaCase MultiParamTypeClasses MultiWayIf NamedFieldPuns OverloadedStrings OverloadedLabels PatternSynonyms RankNTypes RecordWildCards ScopedTypeVariables StandaloneDeriving TemplateHaskell TupleSections TypeFamilies TypeOperators UndecidableInstances ViewPatterns TypeApplications
+  ghc-options: -Wall -Wcompat -Wincomplete-record-updates -Wincomplete-uni-patterns -Wredundant-constraints
+  build-depends:
+      aeson >=1.3 && <1.5
+    , base >=4.7 && <4.15
+    , base32 >=0.2 && <0.3
+    , base64 >=0.0.1.0 && <0.5
+    , bytestring >=0.9 && <0.11
+    , containers >=0.5 && <0.7
+    , cryptonite >=0.1
+    , data-default-class >=0.1.2 && <0.2
+    , memory >=0.1 && <0.16
+    , msgpack-binary >=0.0.14 && <0.1
+    , msgpack-types >=0.0.4 && <0.1
+    , servant >=0.14 && <0.17
+    , servant-client-core >=0.14 && <0.17
+    , text >=0.1 && <1.3
+  default-language: Haskell2010
+
+test-suite algorand-lib-test
+  type: exitcode-stdio-1.0
+  main-is: Main.hs
+  other-modules:
+      Test.Crypto.Algorand.Signature
+      Test.Data.Algorand.Address
+      Test.Data.Algorand.Transaction
+      Test.Data.Algorand.Transaction.Examples
+      Test.Util
+      Paths_algorand_sdk
+  hs-source-dirs:
+      test/algorand-lib
+  default-extensions: AllowAmbiguousTypes BangPatterns ConstraintKinds DataKinds DefaultSignatures DeriveDataTypeable DeriveGeneric DerivingStrategies DuplicateRecordFields EmptyCase FlexibleContexts FlexibleInstances FunctionalDependencies GADTs GeneralizedNewtypeDeriving LambdaCase MultiParamTypeClasses MultiWayIf NamedFieldPuns OverloadedStrings OverloadedLabels PatternSynonyms RankNTypes RecordWildCards ScopedTypeVariables StandaloneDeriving TemplateHaskell TupleSections TypeFamilies TypeOperators UndecidableInstances ViewPatterns TypeApplications
+  ghc-options: -Wall -Wcompat -Wincomplete-record-updates -Wincomplete-uni-patterns -Wredundant-constraints
+  build-tool-depends:
+      tasty-discover:tasty-discover
+  build-depends:
+      HUnit
+    , algorand-sdk
+    , base >=4.7 && <4.15
+    , base32
+    , base64
+    , bytestring >=0.9 && <0.11
+    , hedgehog
+    , memory >=0.1 && <0.16
+    , msgpack-binary
+    , tasty
+    , tasty-hedgehog
+    , tasty-hunit
+    , text >=0.1 && <1.3
+  default-language: Haskell2010
