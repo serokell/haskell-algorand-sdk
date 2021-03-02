@@ -44,7 +44,21 @@ library:
     - servant-client-core >= 0.14 && < 0.17
 
 executables:
-  {}
+  halgo:
+    source-dirs: app/halgo
+    main: Main.hs
+
+    dependencies:
+      - algorand-sdk
+
+      - directory >= 1.2.7.0 && < 1.4
+      - filepath >= 1.0 && < 1.5
+      - mtl >= 1.0 && < 2.3
+      - optparse-applicative >= 0.15 && < 0.17  # the lower bound is not tight
+      - safe-exceptions >= 0.1 && < 0.2
+      - text
+      - unliftio >= 0.1 && < 0.3
+      - with-utf8 >= 1.0 && < 1.1
 
 tests:
   algorand-lib-test:

@@ -12,6 +12,13 @@ packages:
   original:
     hackage: base32-0.2.0.0
 - completed:
+    hackage: filepath-bytestring-1.4.2.1.2@sha256:beae216350dfd881d79e0cf5b8fc51b0cd055b9c01ea7969c41be751248e5eed,2442
+    pantry-tree:
+      size: 822
+      sha256: 3d629557ba59fb3ece10b46b5f02eb1dff0b0188ba15f04d744dd7b8f416f464
+  original:
+    hackage: filepath-bytestring-1.4.2.1.2
+- completed:
     hackage: msgpack-binary-0.0.14@sha256:46c3cf9090ad07d45c79cb74a94c05548ce9f2b5e9d78a497de80ceb5bf55014,2383
     pantry-tree:
       size: 812

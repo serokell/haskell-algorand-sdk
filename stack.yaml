@@ -11,6 +11,7 @@ extra-deps:
   - base32-0.2.0.0  # Includes a crytical bugfix
 
   # Not in the snapshot
+  - filepath-bytestring-1.4.2.1.2
   - msgpack-binary-0.0.14
   - msgpack-types-0.0.4
 
