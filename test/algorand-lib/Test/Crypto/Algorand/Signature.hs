@@ -7,6 +7,7 @@ module Test.Crypto.Algorand.Signature where
 
 import Data.ByteString (ByteString)
 import qualified Data.Text as T
+import Data.Text.Encoding (encodeUtf8)
 
 import Hedgehog (MonadGen, Property, forAll, property, tripping)
 import qualified Hedgehog.Gen as G
@@ -41,7 +42,7 @@ unit_example_sk_base64 = do
 hprop_secret_base64_encode_decode :: Property
 hprop_secret_base64_encode_decode = property $ do
   Just sk <- skFromBytes <$> forAll genSecretKeyBytes
-  tripping sk skToText skFromText
+  tripping sk skToText (skFromText . encodeUtf8)
 
 -- | This is here only to make @tripping@ work.
 instance Show SecretKey where

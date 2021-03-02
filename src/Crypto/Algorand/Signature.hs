@@ -25,11 +25,11 @@ module Crypto.Algorand.Signature
 
 import Control.Monad (guard)
 import Data.ByteArray (ByteArrayAccess, Bytes, convert)
+import Data.ByteString (ByteString)
 import qualified Data.ByteString as BS
 import Data.ByteString.Base64 (decodeBase64, encodeBase64)
 import Data.MessagePack (MessagePack (fromObject, toObject))
 import Data.Text (Text)
-import Data.Text.Encoding (encodeUtf8)
 import Control.Monad.IO.Class (MonadIO, liftIO)
 import Crypto.Error (CryptoFailable (CryptoFailed, CryptoPassed))
 import qualified Crypto.PubKey.Ed25519 as Sig
@@ -71,9 +71,9 @@ skToText (SecretKey sk pk) = encodeBase64 (convert sk <> convert pk)
 -- The encoding used by Algorand is base64 of the concatenation of
 -- sk and pk bytes, so this function will fail if the pk and sk
 -- do not match.
-skFromText :: Text -> Maybe SecretKey
+skFromText :: ByteString -> Maybe SecretKey
 skFromText t = do
-  bs <- case decodeBase64 (encodeUtf8 t) of
+  bs <- case decodeBase64 t of
     Left _ -> Nothing
     Right r -> Just r
   let (skBytes, pkBytes) = BS.splitAt skSize bs
