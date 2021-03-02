@@ -8,6 +8,7 @@ module Data.Algorand.Amount
   , microAlgos
   ) where
 
+import Data.Aeson (FromJSON (..), ToJSON (..))
 import Data.Default.Class (Default)
 import Data.Word (Word64)
 import GHC.Generics (Generic)
@@ -23,6 +24,13 @@ newtype Microalgos = Microalgos Word64
 instance MessagePack Microalgos where
   toObject (Microalgos a) = toObject a
   fromObject = fmap Microalgos . fromObject
+
+instance ToJSON Microalgos where
+  toEncoding (Microalgos w) = toEncoding w
+  toJSON (Microalgos w) = toJSON w
+
+instance FromJSON Microalgos where
+  parseJSON o = Microalgos <$> parseJSON o
 
 
 -- | Create an amount of 'Microalgos'.

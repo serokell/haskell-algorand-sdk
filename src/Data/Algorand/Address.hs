@@ -16,7 +16,9 @@ module Data.Algorand.Address
 
 import Prelude hiding (length)
 
+import Control.Applicative (empty)
 import Control.Monad (guard)
+import Data.Aeson (FromJSON (..), ToJSON (..))
 import Data.ByteArray (Bytes, ByteArrayAccess, View, convert, eq, length, view)
 import Data.ByteArray.Sized (unSizedByteArray)
 import Data.ByteString (ByteString)
@@ -25,6 +27,7 @@ import Data.String (IsString (fromString))
 import Data.Text (Text)
 import qualified Data.Text as T
 import Data.Text.Encoding (encodeUtf8)
+import Servant.API (ToHttpApiData (toQueryParam))
 
 import Crypto.Algorand.Hash (hash32)
 import Crypto.Algorand.Signature (PublicKey, pkFromBytes, pkSize)
@@ -61,6 +64,18 @@ instance MessagePack Address where
     case pkFromBytes bs of
       Nothing -> fail "Invalid address (public key)"
       Just pk -> pure $ Address pk
+
+instance ToHttpApiData Address where
+  toQueryParam = toText
+
+instance ToJSON Address where
+  toEncoding = toEncoding . toText
+  toJSON = toJSON . toText
+
+instance FromJSON Address where
+  parseJSON o = parseJSON o >>= \t -> case fromText t of
+    Just a -> pure a
+    Nothing -> empty
 
 -- | Try to interpret raw bytes as 'Address'.
 --

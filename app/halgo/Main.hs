@@ -10,23 +10,31 @@ module Main
 
 import Options.Applicative
 
-import Control.Exception.Safe (handle, throwIO)
+import Control.Exception.Safe (MonadThrow, handle, throwIO)
 import Control.Monad ((>=>))
-import Control.Monad.Reader (MonadReader, ReaderT, runReaderT)
+import Control.Monad.Reader (MonadReader, ReaderT, asks, runReaderT)
+import Data.Aeson (ToJSON)
+import Data.Aeson.Encode.Pretty (encodePretty)
 import qualified Data.ByteString as BS
+import Data.ByteString.Lazy (toStrict)
 import Data.Text (Text)
 import qualified Data.Text as T
+import Data.Text.Encoding (decodeUtf8)
 import qualified Data.Text.IO as T
 import Main.Utf8 (withUtf8)
-import System.Exit (die)
+import Servant.Client.Generic (AsClientT)
+import qualified System.Exit
 import qualified System.IO.Error as IOE
-import UnliftIO (MonadUnliftIO, liftIO)
+import UnliftIO (MonadIO, MonadUnliftIO, liftIO)
 import UnliftIO.Directory (doesPathExist)
 import UnliftIO.IO (IOMode (ReadMode, WriteMode), withFile)
 
 import Crypto.Algorand.Signature (SecretKey)
 import qualified Crypto.Algorand.Signature as S
 import qualified Data.Algorand.Address as A
+import Network.Algorand.Node (NodeUrl, connect)
+import Network.Algorand.Node.Api (ApiV2)
+import qualified Network.Algorand.Node.Api as Api
 
 
 -- | CLI options applicable to all commands.
@@ -35,7 +43,7 @@ data GlobalOptions = GlobalOptions
   }
 
 type Subcommand = ReaderT GlobalOptions IO ()
-type MonadSubcommand m = (MonadUnliftIO m, MonadReader GlobalOptions m)
+type MonadSubcommand m = (MonadUnliftIO m, MonadThrow m, MonadReader GlobalOptions m)
 
 
 opts :: Parser (GlobalOptions, Subcommand)
@@ -46,7 +54,7 @@ opts = (,) <$> optsGlobal <*> hsubparser optsCommand
             ( long "network"
            <> metavar "GENESIS-ID"
            <> help "Genesis ID of the Algorand network to work in"
-           <> value "testnet-1.0"
+           <> value "testnet-v1.0"
            <> showDefaultWith T.unpack
             )
 
@@ -54,6 +62,9 @@ opts = (,) <$> optsGlobal <*> hsubparser optsCommand
       [ command "acc" $ info
           accountOpts
           (progDesc "Manage accounts (public and secret keys)")
+      , command "node" $ info
+          nodeOpts
+          (progDesc "Communicate with algod")
       ]
 
 -- | Main.
@@ -64,27 +75,35 @@ main = withUtf8 $ do
   (globalOptions, act) <- customExecParser p $ info (opts <**> helper) infoMod
   runReaderT act globalOptions
 
+die :: MonadIO m => String -> m a
+die = liftIO . System.Exit.die
+
+putTextLn :: MonadIO m => Text -> m ()
+putTextLn = liftIO . T.putStrLn
+
+printJson :: (MonadIO m, ToJSON a) => a -> m ()
+printJson = putTextLn . decodeUtf8 . toStrict . encodePretty
 
 
 accountOpts :: Parser Subcommand
 accountOpts = hsubparser $ mconcat
     [ command "new" $ info
-        (cmdAccNew <$> skFile)
+        (cmdAccNew <$> argSkFile)
         (progDesc "Create a new account")
     , command "show" $ info
-        (cmdAccShow <$> skFile)
+        (cmdAccShow <$> argSkFile)
         (progDesc "Show account address")
     , command "export" $ info
-        (cmdAccExport <$> skFile)
+        (cmdAccExport <$> argSkFile)
         (progDesc "Display SECRET key in the standard Algorand base64 representation")
     ]
-  where
-    skFile :: Parser FilePath
-    skFile = strArgument
-      ( metavar "<keyfile>"
-     <> help "Path to a file of the account."
-     <> action "file"
-      )
+
+argSkFile :: Parser FilePath
+argSkFile = strArgument $ mconcat
+  [ metavar "<keyfile>"
+  , help "Path to a file of the account"
+  , action "file"
+  ]
 
 -- | Generate a new account.
 cmdAccNew :: MonadSubcommand m => FilePath -> m ()
@@ -96,7 +115,7 @@ cmdAccNew skFile = liftIO $ do
         sk <- S.keypair
         T.hPutStr h (S.skToText sk)
         pure sk
-      T.putStrLn (A.toText . A.fromPublicKey . S.toPublic $ sk)
+      putTextLn (A.toText . A.fromPublicKey . S.toPublic $ sk)
 
 -- | Helper that loads a secret key from the file (or crashes).
 loadAccount :: MonadSubcommand m => FilePath -> m SecretKey
@@ -114,8 +133,81 @@ loadAccount skFile = liftIO $ handle showError $
 
 -- | Display an account in base64.
 cmdAccShow :: MonadSubcommand m => FilePath -> m ()
-cmdAccShow = loadAccount >=> liftIO . T.putStrLn . A.toText . A.fromPublicKey . S.toPublic
-
+cmdAccShow = loadAccount >=> putTextLn . A.toText . A.fromPublicKey . S.toPublic
 -- | Display an account in base64.
 cmdAccExport :: MonadSubcommand m => FilePath -> m ()
-cmdAccExport = loadAccount >=> liftIO . T.putStrLn . S.skToText
+cmdAccExport = loadAccount >=> putTextLn . S.skToText
+
+
+argAddress :: Parser A.Address
+argAddress = argument reader $ mconcat
+    [ metavar "<address>"
+    , help "Address of an account"
+    ]
+  where
+    reader = eitherReader $ \s -> case A.fromText (T.pack s) of
+      Nothing -> Left "Malformed address."
+      Just a -> Right a
+
+nodeOpts :: Parser Subcommand
+nodeOpts = cmdNode <$> nodeUrl <*> sub
+  where
+    sub = hsubparser $ mconcat
+      [ command "url" $ info
+          (pure cmdNodeUrl)
+          (progDesc "Show the URL of the node that will be used")
+      , command "version" $ info
+          (pure cmdNodeVersion)
+          (progDesc "Query the version information of the node")
+      , command "fetch" $ info
+          (cmdNodeFetch <$> fetchArg)
+          (progDesc "Fetch information about an account")
+      ]
+
+    nodeUrl :: Parser (Maybe NodeUrl)
+    nodeUrl
+      =   Just <$> (strOption $ mconcat
+            [ long "url"
+            , short 'u'
+            , metavar "NODE_URL"
+            , help "URL of the node to connect to (default: AlgoExplorer node based on the chosen network)"
+            ])
+      <|> pure Nothing
+
+    fetchArg = NodeFetchAddress <$> argAddress
+
+cmdNode :: MonadSubcommand m => Maybe NodeUrl -> (NodeUrl -> m ()) -> m ()
+cmdNode murl sub = getNodeUrl murl >>= sub
+  where
+    getNodeUrl :: MonadSubcommand m => Maybe NodeUrl -> m NodeUrl
+    getNodeUrl (Just u) = pure u
+    getNodeUrl Nothing = asks goNetwork >>= \case
+      "mainnet-v1.0" -> pure "https://api.algoexplorer.io/"
+      "testnet-v1.0" -> pure "https://api.testnet.algoexplorer.io/"
+      "betanet-v1.0" -> pure "https://api.betanet.algoexplorer.io/"
+      net -> die $ "Unknown network `" <> T.unpack net <> "`. Please, provide --url."
+
+-- | Display the URL that we will be using.
+cmdNodeUrl :: MonadSubcommand m => NodeUrl -> m ()
+cmdNodeUrl url = putTextLn url
+
+-- | Connect to a node and check that its network is what we expect.
+withNode
+  :: MonadSubcommand m
+  => NodeUrl
+  -> ((Api.Version, ApiV2 (AsClientT m)) -> m a)
+  -> m a
+withNode url act = do
+  net <- asks goNetwork
+  connect url net >>= act
+
+cmdNodeVersion :: MonadSubcommand m => NodeUrl -> m ()
+cmdNodeVersion url = withNode url $ \(v, _) -> printJson v
+
+
+data NodeFetchArgument
+  = NodeFetchAddress A.Address
+
+cmdNodeFetch :: MonadSubcommand m => NodeFetchArgument -> NodeUrl -> m ()
+cmdNodeFetch (NodeFetchAddress addr) url = withNode url $ \(_, api) ->
+  Api._account api addr >>= printJson

@@ -19,3 +19,16 @@ SPDX-License-Identifier: MPL-2.0
     * Application call transactions
 * Canonical MessagePack serialisation
 * Signing and signature verification (only for simple single signatures)
+* REST API client:
+    * `/health`
+    * `/versions`
+    * `/v2/accounts/<address>`
+* CLI:
+    * `halgo acc`
+        * `new`
+        * `view`
+        * `export`
+    * `halgo node`
+        * `url`
+        * `version`
+        * `fetch` (accounts only)
