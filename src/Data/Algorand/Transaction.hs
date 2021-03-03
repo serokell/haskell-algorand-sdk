@@ -140,7 +140,6 @@ data StateSchema = StateSchema
   , ssNumberByteSlices :: Word64
   }
   deriving (Eq, Generic, Show)
-instance MessagePack StateSchema
 
 
 -- | A signed transaction object.
