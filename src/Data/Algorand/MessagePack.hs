@@ -35,7 +35,7 @@ module Data.Algorand.MessagePack
 
   , Canonical (..)
 
-  , Data.MessagePack.MessagePack (..)
+  , module Data.MessagePack
   ) where
 
 
@@ -47,7 +47,7 @@ import qualified Data.ByteString as BS
 import Data.Default.Class (Default (def))
 import Data.Function ((&))
 import Data.List (sortOn)
-import Data.MessagePack (Assoc (Assoc, unAssoc), MessagePack (fromObject, toObject), Object, toObject)
+import Data.MessagePack (Assoc (Assoc, unAssoc), MessagePack (fromObject, toObject), Object, toObject, pack, unpack)
 import Data.Text (Text)
 import qualified Data.Text as T
 import Data.Word (Word64)

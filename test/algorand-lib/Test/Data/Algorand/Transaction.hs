@@ -6,6 +6,7 @@
 
 module Test.Data.Algorand.Transaction where
 
+import Data.Aeson (fromJSON, toJSON)
 import Data.ByteArray (Bytes, ByteArrayAccess, convert)
 import Data.ByteArray.Sized (SizedByteArray, sizedByteArray)
 import Data.ByteString.Base64 (decodeBase64)
@@ -53,7 +54,7 @@ genTransactionType = G.choice
     <*> G.maybe genAddress
   , ApplicationCallTransaction
     <$> G.word64 R.constantBounded
-    <*> G.enumBounded
+    <*> G.word64 R.constantBounded
     <*> G.list (R.linear 0 10) genAddress
     <*> G.maybe (G.bytes $ R.linear 1 100)  -- cannot be empty
     <*> G.list (R.linear 0 10) (G.bytes (R.linear 0 32))
@@ -84,6 +85,11 @@ hprop_canonical_encode_decode :: Property
 hprop_canonical_encode_decode = property $ do
   tx <- forAll genTransaction
   tripping tx (pack . Canonical) (fmap unCanonical . unpack @EitherError)
+
+hprop_json_encode_decode :: Property
+hprop_json_encode_decode = property $ do
+  tx <- forAll genTransaction
+  tripping tx toJSON fromJSON
 
 
 hprop_sign_verify :: Property

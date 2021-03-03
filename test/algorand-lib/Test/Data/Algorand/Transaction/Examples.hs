@@ -18,7 +18,7 @@ import Test.Tasty.HUnit (Assertion, (@?=), assertFailure)
 
 import Data.Algorand.Address (Address)
 import Data.Algorand.MessagePack (Canonical (Canonical, unCanonical))
-import Data.Algorand.Transaction (GenesisHash, StateSchema (..), Transaction (..), TransactionType (..), getUnverifiedTransaction, verifyTransaction, OnComplete (..), transactionId)
+import Data.Algorand.Transaction (GenesisHash, StateSchema (..), Transaction (..), TransactionType (..), getUnverifiedTransaction, verifyTransaction, onCompleteNoOp, transactionId)
 
 
 sender :: Address
@@ -46,7 +46,7 @@ example_21 = Transaction
 
   , tTxType = ApplicationCallTransaction
     { actApplicationId = 100
-    , actOnComplete = OnCompleteNoOp
+    , actOnComplete = onCompleteNoOp
     , actAccounts = ["AAVDEAJ3NIYOG7XCRBKCJ3T5PUCVL2XASOP3NGX4NPPZ3UX6477PBG6E4Q", "AADQIC4PMKRTFMHAAXYAFSGAUULDI2ABBIYVQJ6GZ5JHY6DJPHTU2SPHYM"]
     , actApprovalProgram = Nothing
     , actAppArguments = ["test"]

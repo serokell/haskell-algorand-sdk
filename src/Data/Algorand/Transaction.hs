@@ -12,8 +12,15 @@ module Data.Algorand.Transaction
   , GenesisHash
   , TransactionGroupId
   , Lease
-  , OnComplete (..)
   , StateSchema (..)
+
+  , OnComplete
+  , onCompleteNoOp
+  , onCompleteOptIn
+  , onCompleteCloseOut
+  , onCompleteClearState
+  , onCompleteUpdateApplication
+  , onCompleteDeleteApplication
 
   , SignedTransaction ()
   , signTransaction
@@ -23,13 +30,16 @@ module Data.Algorand.Transaction
   , transactionId
   ) where
 
+import Data.Aeson (FromJSON (..), Options (constructorTagModifier, fieldLabelModifier, sumEncoding), SumEncoding (TaggedObject), ToJSON (..), Value (Object), genericToEncoding, genericToJSON, genericParseJSON)
+import Data.Aeson.Types (withObject)
 import Data.ByteArray (Bytes)
 import Data.ByteArray.Sized (SizedByteArray, unSizedByteArray)
 import Data.ByteString (ByteString)
 import Data.ByteString.Base32 (encodeBase32Unpadded)
 import Data.ByteString.Lazy (toStrict)
-import Data.Default.Class (Default (def))
-import Data.MessagePack (MessagePack (fromObject, toObject), pack)
+import qualified Data.HashMap.Strict as HM
+import Data.MessagePack (pack)
+import Data.String (IsString)
 import Data.Text (Text)
 import qualified Data.Text as T
 import Data.Word (Word64)
@@ -39,7 +49,8 @@ import Crypto.Algorand.Hash (hash32)
 import Crypto.Algorand.Signature (SecretKey, Signature, sign, verify)
 import Data.Algorand.Address (Address, toPublicKey)
 import Data.Algorand.Amount (Microalgos)
-import Data.Algorand.MessagePack (AlgorandMessagePack (toCanonicalObject), AlgorandMessageUnpack (fromCanonicalObject), Canonical (Canonical), (&), (&<>), (.=), (.=<), (.:), (.:?), (.:>), NonZeroValue, CanonicalZero)
+import Data.Algorand.MessagePack (AlgorandMessagePack (toCanonicalObject), AlgorandMessageUnpack (fromCanonicalObject), Canonical (Canonical), (&), (&<>), (.=), (.=<), (.:), (.:?), (.:>))
+import Network.Algorand.Node.Api.Json (defaultOptions)
 
 
 type AppIndex = Word64
@@ -92,52 +103,22 @@ data TransactionType
   deriving (Eq, Generic, Show)
 
 -- | Constants for @OnComplete@.
-data OnComplete
-  = OnCompleteNoOp
-  | OnCompleteOptIn
-  | OnCompleteCloseOut
-  | OnCompleteClearState
-  | OnCompleteUpdateApplication
-  | OnCompleteDeleteApplication
-  | OnCompleteUnknown !Word64  -- ^ For future compatibility
-  deriving (Eq, Show)
+--
+type OnComplete = Word64
 
-instance Default OnComplete where
-  def = OnCompleteNoOp
-instance CanonicalZero OnComplete
-instance NonZeroValue OnComplete
+onCompleteNoOp, onCompleteOptIn, onCompleteCloseOut, onCompleteClearState, onCompleteUpdateApplication, onCompleteDeleteApplication :: OnComplete
+onCompleteNoOp = 0
+onCompleteOptIn = 1
+onCompleteCloseOut = 2
+onCompleteClearState = 3
+onCompleteUpdateApplication = 4
+onCompleteDeleteApplication = 5
 
-instance Enum OnComplete where
-  fromEnum OnCompleteNoOp = 0
-  fromEnum OnCompleteOptIn = 1
-  fromEnum OnCompleteCloseOut = 2
-  fromEnum OnCompleteClearState = 3
-  fromEnum OnCompleteUpdateApplication = 4
-  fromEnum OnCompleteDeleteApplication = 5
-  fromEnum (OnCompleteUnknown x) = fromIntegral x  -- XXX: This can overflow
-
-  toEnum 0 = OnCompleteNoOp
-  toEnum 1 = OnCompleteOptIn
-  toEnum 2 = OnCompleteCloseOut
-  toEnum 3 = OnCompleteClearState
-  toEnum 4 = OnCompleteUpdateApplication
-  toEnum 5 = OnCompleteDeleteApplication
-  toEnum x
-    | x < 0 = error "toEnum: Negative OnComplete value"
-    | otherwise = OnCompleteUnknown (fromIntegral x)
-
-instance Bounded OnComplete where
-  minBound = OnCompleteNoOp
-  maxBound = OnCompleteDeleteApplication
-
-instance MessagePack OnComplete where
-  toObject = toObject @Word64 . fromIntegral . fromEnum
-  fromObject o = (toEnum . fromIntegral) <$> fromObject @Word64 o
 
 -- | The 'StateSchema' object.
 data StateSchema = StateSchema
-  { ssNumberInts :: Word64
-  , ssNumberByteSlices :: Word64
+  { ssNumUint :: Word64
+  , ssNumByteSlice :: Word64
   }
   deriving (Eq, Generic, Show)
 
@@ -146,7 +127,7 @@ data StateSchema = StateSchema
 data SignedTransaction = SignedTransaction
   -- TODO: Only simple signature is supported for now.
   { stSig :: Signature
-  , stTransaction :: Transaction
+  , stTxn :: Transaction
   }
   deriving (Generic, Show)
 
@@ -155,22 +136,22 @@ serialiseTx = toStrict . ("TX" <>) . pack . Canonical
 
 -- | Sign a transaction.
 signTransaction :: SecretKey -> Transaction -> SignedTransaction
-signTransaction sk tx = SignedTransaction
-  { stTransaction = tx
-  , stSig = sign sk (serialiseTx tx)
+signTransaction sk txn = SignedTransaction
+  { stTxn = txn
+  , stSig = sign sk (serialiseTx txn)
   }
 
 -- | Verify a signed transaction.
 verifyTransaction :: SignedTransaction -> Maybe Transaction
 verifyTransaction SignedTransaction{..} =
-  let pk = toPublicKey (tSender stTransaction) in
-  case verify pk (serialiseTx stTransaction) stSig of
+  let pk = toPublicKey (tSender stTxn) in
+  case verify pk (serialiseTx stTxn) stSig of
     False -> Nothing
-    True -> Just stTransaction
+    True -> Just stTxn
 
 -- | Dangerous: returns a transaction without verifying the signature.
 getUnverifiedTransaction :: SignedTransaction -> Transaction
-getUnverifiedTransaction = stTransaction
+getUnverifiedTransaction = stTxn
 
 
 transactionId :: Transaction -> Text
@@ -184,97 +165,216 @@ transactionId = encodeBase32Unpadded . unSizedByteArray . hash32 . serialiseTx
  - manually for now will probably be much faster.
  -}
 
+transactionFieldName :: IsString s => String -> s
+transactionFieldName = \case
+  "tSender" -> "snd"
+  "tFee" -> "fee"
+  "tFirstValid" -> "fv"
+  "tLastValid" -> "lv"
+  "tNote" -> "note"
+  "tGenesisId" -> "gen"
+  "tGenesisHash" -> "gh"
+  "tGroup" -> "grp"
+  "tLease" -> "lx"
+  "tRekeyTo" -> "rekey"
+  "tTxType" -> "type"
+  x -> error $ "Unmapped transaction field name: " <> x
 
 instance AlgorandMessagePack Transaction where
   toCanonicalObject Transaction{..} = mempty
-    & "snd" .= tSender
-    & "fee" .= tFee
-    & "fv" .= tFirstValid
-    & "lv" .= tLastValid
-    & "note" .= tNote
-    & "gen" .= tGenesisId
-    & "gh" .= tGenesisHash
-    & "grp" .= tGroup
-    & "lx" .= tLease
-    & "rekey" .= tRekeyTo
-    &<> tTxType
+      & f "tSender" .= tSender
+      & f "tFee" .= tFee
+      & f "tFirstValid" .= tFirstValid
+      & f "tLastValid" .= tLastValid
+      & f "tNote" .= tNote
+      & f "tGenesisId" .= tGenesisId
+      & f "tGenesisHash" .= tGenesisHash
+      & f "tGroup" .= tGroup
+      & f "tLease" .= tLease
+      & f "tRekeyTo" .= tRekeyTo
+      &<> tTxType
+    where
+      f = transactionFieldName
 
 instance AlgorandMessageUnpack Transaction where
   fromCanonicalObject o = do
-    tSender <- o .: "snd"
-    tFee <- o .:? "fee"
-    tFirstValid <- o .:? "fv"
-    tLastValid <- o .:? "lv"
-    tNote <- o .:? "note"
-    tGenesisId <- o .:? "gen"
-    tGenesisHash <- o .: "gh"
-    tGroup <- o .:? "grp"
-    tLease <- o .:? "lx"
-    tRekeyTo <- o .:? "rekey"
-    tTxType <- fromCanonicalObject o
-    pure Transaction{..}
+      tSender <- o .: f "tSender"
+      tFee <- o .:? f "tFee"
+      tFirstValid <- o .:? f "tFirstValid"
+      tLastValid <- o .:? f "tLastValid"
+      tNote <- o .:? f "tNote"
+      tGenesisId <- o .:? f "tGenesisId"
+      tGenesisHash <- o .: f "tGenesisHash"
+      tGroup <- o .:? f "tGroup"
+      tLease <- o .:? f "tLease"
+      tRekeyTo <- o .:? f "tRekeyTo"
+      tTxType <- fromCanonicalObject o
+      pure Transaction{..}
+    where
+      f = transactionFieldName
 
+transactionJsonOptions :: Options
+transactionJsonOptions = defaultOptions { fieldLabelModifier = transactionFieldName }
+
+-- These instances do surgery on @Value@s in order to inline TransactionType
+-- into its surrounding Transaction.
+-- It is a bit crazy, but hopefully OK, since we have round-trip tests...
+instance ToJSON Transaction where
+  toJSON txn = case toJSON' txn of
+      Object hm -> case HM.lookup "type" hm of
+        Just (Object hm') -> Object $ hm' <> hm  -- union taking "type" form the internal one
+        _ -> error "Incorrect encoding of TransactionType"
+      _ -> error "Incorrect encoding of Transaction"
+    where
+      toJSON' = genericToJSON transactionJsonOptions
+
+instance FromJSON Transaction where
+  parseJSON o = do
+      txnType <- parseJSON @TransactionType o
+      withObject "Transaction" (parseJSON' . Object . HM.insert "type" (toJSON txnType)) o
+    where
+      parseJSON' = genericParseJSON transactionJsonOptions
+
+
+transactionTypeFieldName :: IsString s => String -> s
+transactionTypeFieldName = \case
+  "ptReceiver" -> "rcv"
+  "ptAmount" -> "amt"
+  "ptCloseRemainderTo" -> "close"
+
+  "actApplicationId" -> "apid"
+  "actOnComplete" -> "apan"
+  "actAccounts" -> "apat"
+  "actApprovalProgram" -> "apap"
+  "actAppArguments" -> "apaa"
+  "actClearStateProgram" -> "apsu"
+  "actForeignApps" -> "apfa"
+  "actForeignAssets" -> "apas"
+  "actGlobalStateSchema" -> "apgs"
+  "actLocalStateSchema" -> "apls"
+  x -> error $ "Unmapped transaction type field name: " <> x
 
 instance AlgorandMessagePack TransactionType where
-  toCanonicalObject PaymentTransaction{..} = mempty
-    & "type" .= T.pack "pay"
-    & "rcv" .= ptReceiver
-    & "amt" .= ptAmount
-    & "close" .= ptCloseRemainderTo
-  toCanonicalObject ApplicationCallTransaction{..} = mempty
-    & "type" .= T.pack "appl"
-    & "apid" .= actApplicationId
-    & "apan" .= actOnComplete
-    & "apat" .= actAccounts
-    & "apap" .= actApprovalProgram
-    & "apaa" .= actAppArguments
-    & "apsu" .= actClearStateProgram
-    & "apfa" .= actForeignApps
-    & "apas" .= actForeignAssets
-    & "apgs" .=< actGlobalStateSchema
-    & "apls" .=< actLocalStateSchema
+  toCanonicalObject  = \case
+      PaymentTransaction{..} -> mempty
+        & "type" .= T.pack "pay"
+        & f "ptReceiver" .= ptReceiver
+        & f "ptAmount" .= ptAmount
+        & f "ptCloseRemainderTo" .= ptCloseRemainderTo
+      ApplicationCallTransaction{..} -> mempty
+        & "type" .= T.pack "appl"
+        & f "actApplicationId" .= actApplicationId
+        & f "actOnComplete" .= actOnComplete
+        & f "actAccounts" .= actAccounts
+        & f "actApprovalProgram" .= actApprovalProgram
+        & f "actAppArguments" .= actAppArguments
+        & f "actClearStateProgram" .= actClearStateProgram
+        & f "actForeignApps" .= actForeignApps
+        & f "actForeignAssets" .= actForeignAssets
+        & f "actGlobalStateSchema" .=< actGlobalStateSchema
+        & f "actLocalStateSchema" .=< actLocalStateSchema
+    where
+      f = transactionTypeFieldName
 
 instance AlgorandMessageUnpack TransactionType where
   fromCanonicalObject o = o .: "type" >>= \case
-    "pay" -> do
-      ptReceiver <- o .: "rcv"
-      ptAmount <- o .:? "amt"
-      ptCloseRemainderTo <- o .:? "close"
-      pure PaymentTransaction{..}
-    "appl" -> do
-      actApplicationId <- o .:? "apid"
-      actOnComplete <- o .:? "apan"
-      actAccounts <- o .:? "apat"
-      actApprovalProgram <- o .:? "apap"
-      actAppArguments <- o .:? "apaa"
-      actClearStateProgram <- o .:? "apsu"
-      actForeignApps <- o .:? "apfa"
-      actForeignAssets <- o .:? "apas"
-      actGlobalStateSchema <- o .:> "apgs"
-      actLocalStateSchema <- o .:> "apls"
-      pure ApplicationCallTransaction{..}
-    x -> fail $ "Unsupported transaction type: " <> x
+      "pay" -> do
+        ptReceiver <- o .: f "ptReceiver"
+        ptAmount <- o .:? f "ptAmount"
+        ptCloseRemainderTo <- o .:? f "ptCloseRemainderTo"
+        pure PaymentTransaction{..}
+      "appl" -> do
+        actApplicationId <- o .:? f "actApplicationId"
+        actOnComplete <- o .:? f "actOnComplete"
+        actAccounts <- o .:? f "actAccounts"
+        actApprovalProgram <- o .:? f "actApprovalProgram"
+        actAppArguments <- o .:? f "actAppArguments"
+        actClearStateProgram <- o .:? f "actClearStateProgram"
+        actForeignApps <- o .:? f "actForeignApps"
+        actForeignAssets <- o .:? f "actForeignAssets"
+        actGlobalStateSchema <- o .:> f "actGlobalStateSchema"
+        actLocalStateSchema <- o .:> f "actLocalStateSchema"
+        pure ApplicationCallTransaction{..}
+      x -> fail $ "Unsupported transaction type: " <> x
+    where f = transactionTypeFieldName
 
+transactionTypeJsonOptions :: Options
+transactionTypeJsonOptions = defaultOptions
+  { fieldLabelModifier = transactionTypeFieldName
+  , constructorTagModifier = \case
+      "PaymentTransaction" -> "pay"
+      "ApplicationCallTransaction" -> "appl"
+      x -> error $ "Unsupported transaction type constructor: " <> x
+  , sumEncoding = TaggedObject "type" "_"
+  }
+
+instance ToJSON TransactionType where
+  toJSON = genericToJSON transactionTypeJsonOptions
+  toEncoding = genericToEncoding transactionTypeJsonOptions
+
+instance FromJSON TransactionType where
+  parseJSON = genericParseJSON transactionTypeJsonOptions
+
+
+stateSchemaFieldName :: IsString s => String -> s
+stateSchemaFieldName = \case
+  "ssNumUint" -> "nui"
+  "ssNumByteSlice" -> "nbs"
+  x -> error $ "Unmapped state schema field name: " <> x
 
 instance AlgorandMessagePack StateSchema where
   toCanonicalObject StateSchema{..} = mempty
-    & "nui" .= ssNumberInts
-    & "nbs" .= ssNumberByteSlices
+      & f "ssNumUint" .= ssNumUint
+      & f "ssNumByteSlice" .= ssNumByteSlice
+    where
+      f = stateSchemaFieldName
 
 instance AlgorandMessageUnpack StateSchema where
   fromCanonicalObject o = do
-    ssNumberInts <- o .:? "nui"
-    ssNumberByteSlices <- o .:? "nbs"
-    pure StateSchema{..}
+      ssNumUint <- o .:? f "ssNumUint"
+      ssNumByteSlice <- o .:? f "ssNumByteSlice"
+      pure StateSchema{..}
+    where
+      f = stateSchemaFieldName
 
+stateSchemaJsonOptions :: Options
+stateSchemaJsonOptions = defaultOptions { fieldLabelModifier = stateSchemaFieldName }
+
+instance ToJSON StateSchema where
+  toJSON = genericToJSON stateSchemaJsonOptions
+  toEncoding = genericToEncoding stateSchemaJsonOptions
+
+instance FromJSON StateSchema where
+  parseJSON = genericParseJSON stateSchemaJsonOptions
+
+
+signedTransactionFieldName :: IsString s => String -> s
+signedTransactionFieldName = \case
+  "stSig" -> "sig"
+  "stTxn" -> "txn"
+  x -> error $ "Unmapped signed transaction field name: " <> x
 
 instance AlgorandMessagePack SignedTransaction where
   toCanonicalObject SignedTransaction{..} = mempty
-    & "sig" .= stSig
-    & "txn" .=< stTransaction
+      & f "stSig" .= stSig
+      & f "stTxn" .=< stTxn
+    where
+      f = signedTransactionFieldName
 
 instance AlgorandMessageUnpack SignedTransaction where
   fromCanonicalObject o = do
-    stSig <- o .: "sig"
-    stTransaction <- o .:> "txn"
-    pure SignedTransaction{..}
+      stSig <- o .: f "stSig"
+      stTxn <- o .:> f "stTxn"
+      pure SignedTransaction{..}
+    where
+      f = signedTransactionFieldName
+
+signedTransactionJsonOptions :: Options
+signedTransactionJsonOptions = defaultOptions { fieldLabelModifier = signedTransactionFieldName }
+
+instance ToJSON SignedTransaction where
+  toJSON = genericToJSON signedTransactionJsonOptions
+  toEncoding = genericToEncoding signedTransactionJsonOptions
+
+instance FromJSON SignedTransaction where
+  parseJSON = genericParseJSON signedTransactionJsonOptions

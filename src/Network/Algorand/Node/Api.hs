@@ -26,6 +26,7 @@ import Servant.API.Generic (ToServantApi, (:-))
 
 import Data.Algorand.Address (Address)
 import Data.Algorand.Amount (Microalgos)
+import Data.Algorand.Transaction (StateSchema)
 import Network.Algorand.Node.Api.Json (algorandSnakeOptions, algorandTrainOptions)
 
 
@@ -56,8 +57,8 @@ data Account = Account
   { aAddress :: Address
   , aAmount :: Microalgos
   , aAmountWithoutPendingRewards :: Microalgos
-  --, aAppsLocalState :: Maybe
-  --, aAppsTotalSchema :: Maybe
+  , aAppsLocalState :: Maybe StateSchema
+  , aAppsTotalSchema :: Maybe StateSchema
   --, aAssets :: Maybe
   , aAuthAddr :: Maybe Address
   --, aCreatedApps :: Maybe

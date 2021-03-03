@@ -24,6 +24,8 @@ module Crypto.Algorand.Signature
   ) where
 
 import Control.Monad (guard)
+import Data.Aeson (FromJSON (..), ToJSON (..))
+import Data.Aeson.Types (parseFail)
 import Data.ByteArray (ByteArrayAccess, Bytes, convert)
 import Data.ByteString (ByteString)
 import qualified Data.ByteString as BS
@@ -35,6 +37,7 @@ import Crypto.Error (CryptoFailable (CryptoFailed, CryptoPassed))
 import qualified Crypto.PubKey.Ed25519 as Sig
 
 import Data.Algorand.MessagePack (NonZeroValue (isNonZero))
+import Network.Algorand.Node.Api.Json ()  -- instances for Bytes
 
 
 -- | Signing secret key.
@@ -123,6 +126,17 @@ instance MessagePack Signature where
     bs <- fromObject @Bytes o
     case sigFromBytes bs of
       Nothing -> fail "Malformed signature bytes"
+      Just sig -> pure sig
+
+instance ToJSON Signature where
+  toJSON = toJSON @Bytes . convert
+  toEncoding = toEncoding @Bytes . convert
+
+instance FromJSON Signature where
+  parseJSON o = do
+    bs <- parseJSON @Bytes o
+    case sigFromBytes bs of
+      Nothing -> parseFail "Malformed signature"
       Just sig -> pure sig
 
 sigFromBytes

@@ -11,12 +11,13 @@ module Main
 import Options.Applicative
 
 import Control.Exception.Safe (MonadThrow, handle, throwIO)
-import Control.Monad ((>=>))
+import Control.Monad ((>=>), when)
 import Control.Monad.Reader (MonadReader, ReaderT, asks, runReaderT)
 import Data.Aeson (ToJSON)
 import Data.Aeson.Encode.Pretty (encodePretty)
 import qualified Data.ByteString as BS
-import Data.ByteString.Lazy (toStrict)
+import Data.ByteString.Base64 (decodeBase64)
+import qualified Data.ByteString.Lazy as BSL
 import Data.Text (Text)
 import qualified Data.Text as T
 import Data.Text.Encoding (decodeUtf8)
@@ -29,9 +30,11 @@ import UnliftIO (MonadIO, MonadUnliftIO, liftIO)
 import UnliftIO.Directory (doesPathExist)
 import UnliftIO.IO (IOMode (ReadMode, WriteMode), withFile)
 
+import qualified Data.Algorand.MessagePack as MP
 import Crypto.Algorand.Signature (SecretKey)
 import qualified Crypto.Algorand.Signature as S
 import qualified Data.Algorand.Address as A
+import qualified Data.Algorand.Transaction as T
 import Network.Algorand.Node (NodeUrl, connect)
 import Network.Algorand.Node.Api (ApiV2)
 import qualified Network.Algorand.Node.Api as Api
@@ -62,6 +65,9 @@ opts = (,) <$> optsGlobal <*> hsubparser optsCommand
       [ command "acc" $ info
           accountOpts
           (progDesc "Manage accounts (public and secret keys)")
+      , command "txn" $ info
+          txnOpts
+          (progDesc "Work with transactions")
       , command "node" $ info
           nodeOpts
           (progDesc "Communicate with algod")
@@ -82,8 +88,12 @@ putTextLn :: MonadIO m => Text -> m ()
 putTextLn = liftIO . T.putStrLn
 
 printJson :: (MonadIO m, ToJSON a) => a -> m ()
-printJson = putTextLn . decodeUtf8 . toStrict . encodePretty
+printJson = putTextLn . decodeUtf8 . BSL.toStrict . encodePretty
 
+
+{-
+ - halgo account
+ -}
 
 accountOpts :: Parser Subcommand
 accountOpts = hsubparser $ mconcat
@@ -138,6 +148,55 @@ cmdAccShow = loadAccount >=> putTextLn . A.toText . A.fromPublicKey . S.toPublic
 cmdAccExport :: MonadSubcommand m => FilePath -> m ()
 cmdAccExport = loadAccount >=> putTextLn . S.skToText
 
+
+{-
+ - halgo txn
+ -}
+
+txnOpts :: Parser Subcommand
+txnOpts = hsubparser $ mconcat
+    [ command "show" $ info
+        (cmdTxnShow <$> verifyFlag)
+        (progDesc "Decode and display a signed transaction (reads from stdin)")
+    , command "show-unsigned" $ info
+        (pure cmdTxnShowUnsigned)
+        (progDesc "Decode and display an unsigned transaction (reads from stdin)")
+    ]
+  where
+    verifyFlag = flag True False $ mconcat
+      [ long "no-verify"
+      , short 'n'
+      , help "Do not verify the signature of the transaction"
+      ]
+
+-- | Show a transaction.
+cmdTxnShow :: MonadSubcommand m => Bool -> m ()
+cmdTxnShow verify = liftIO $ do
+  b64 <- BS.getLine
+  case decodeBase64 b64 of
+    Left err -> die $ T.unpack err
+    Right bs -> do
+      MP.Canonical stxn <- MP.unpack (BSL.fromStrict bs)
+      when verify $
+        case T.verifyTransaction stxn of
+          Nothing -> die "Invalid signature. Run with --no-verify if you still want to see it."
+          Just _txn -> pure ()
+      printJson stxn
+
+-- | Show an unsigne transaction.
+cmdTxnShowUnsigned :: MonadSubcommand m => m ()
+cmdTxnShowUnsigned = liftIO $ do
+  b64 <- BS.getLine
+  case decodeBase64 b64 of
+    Left err -> die $ T.unpack err
+    Right bs -> do
+      MP.Canonical txn <- MP.unpack (BSL.fromStrict bs)
+      printJson (txn :: T.Transaction)
+
+
+{-
+ - halgo node
+ -}
 
 argAddress :: Parser A.Address
 argAddress = argument reader $ mconcat
