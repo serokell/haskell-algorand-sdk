@@ -165,6 +165,9 @@ txnOpts = hsubparser $ mconcat
     , command "sign" $ info
         (cmdTxnSign <$> flagJson <*> argSkFile)
         (progDesc "Sign a transaction (reads from stdin)")
+    , command "id" $ info
+        (cmdTxnId <$> flagJson)
+        (progDesc "Calculate transaction ID")
     ]
   where
     flagVerify = flag True False $ mconcat
@@ -227,6 +230,10 @@ cmdTxnSign json skFile = do
   txn <- readTxn json
   let txn' = txn { T.tSender = A.fromPublicKey $ S.toPublic sk }
   liftIO $ T.putStrLn $ txnToB64 (T.signTransaction sk txn')
+
+-- | Transaction ID.
+cmdTxnId :: MonadSubcommand m => Bool -> m ()
+cmdTxnId json = readTxn json >>= liftIO . T.putStrLn . T.transactionId
 
 
 {-
