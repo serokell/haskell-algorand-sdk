@@ -22,12 +22,11 @@ import Test.Tasty.HUnit (Assertion, (@?=))
 
 import Crypto.Algorand.Signature (skFromBytes, toPublic)
 import Data.Algorand.Address (Address, fromPublicKey)
-import Data.Algorand.MessagePack (Canonical (Canonical, unCanonical))
+import Data.Algorand.MessagePack (Canonical (Canonical, unCanonical), EitherError)
 import Data.Algorand.Transaction (StateSchema (..), Transaction (..), TransactionType (..), signTransaction, verifyTransaction)
 
 import Test.Data.Algorand.Transaction.Examples (genesisHash, sender)
 import Test.Crypto.Algorand.Signature (genPublicKey, genSecretKeyBytes)
-import Test.Util (EitherError)
 
 
 genAddress :: MonadGen m => m Address

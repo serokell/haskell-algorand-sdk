@@ -35,6 +35,8 @@ module Data.Algorand.MessagePack
 
   , Canonical (..)
 
+  , EitherError (..)
+
   , module Data.MessagePack
   ) where
 
@@ -160,6 +162,19 @@ newtype Canonical a = Canonical { unCanonical :: a }
 instance (AlgorandMessagePack a, AlgorandMessageUnpack a) => MessagePack (Canonical a) where
   toObject = toObject . toCanonicalObject . unCanonical
   fromObject = fromObject >=> fromCanonicalObject >=> pure . Canonical
+
+
+-- | A helper for using with @unpack@.
+newtype EitherError a = EitherError (Either String a)
+  deriving (Applicative, Eq, Functor, Monad)
+
+instance Show a => Show (EitherError a) where
+  show (EitherError e) = case e of
+    Left err -> "error: " <> err
+    Right a -> show a
+
+instance MonadFail EitherError where
+  fail = EitherError . Left
 
 
 {-

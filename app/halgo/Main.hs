@@ -14,9 +14,10 @@ import Control.Exception.Safe (MonadThrow, handle, throwIO)
 import Control.Monad ((>=>), when)
 import Control.Monad.Reader (MonadReader, ReaderT, asks, runReaderT)
 import Data.Aeson (ToJSON)
+import qualified Data.Aeson as JS
 import Data.Aeson.Encode.Pretty (encodePretty)
 import qualified Data.ByteString as BS
-import Data.ByteString.Base64 (decodeBase64)
+import Data.ByteString.Base64 (decodeBase64, encodeBase64)
 import qualified Data.ByteString.Lazy as BSL
 import Data.Text (Text)
 import qualified Data.Text as T
@@ -128,7 +129,7 @@ cmdAccNew skFile = liftIO $ do
       putTextLn (A.toText . A.fromPublicKey . S.toPublic $ sk)
 
 -- | Helper that loads a secret key from the file (or crashes).
-loadAccount :: MonadSubcommand m => FilePath -> m SecretKey
+loadAccount :: MonadIO m => FilePath -> m SecretKey
 loadAccount skFile = liftIO $ handle showError $
     withFile skFile ReadMode $ \h -> do
       skText <- BS.hGetLine h
@@ -156,17 +157,26 @@ cmdAccExport = loadAccount >=> putTextLn . S.skToText
 txnOpts :: Parser Subcommand
 txnOpts = hsubparser $ mconcat
     [ command "show" $ info
-        (cmdTxnShow <$> verifyFlag)
-        (progDesc "Decode and display a signed transaction (reads from stdin)")
+        (cmdTxnShow <$> flagVerify)
+        (progDesc "Decode from base64 and display a signed transaction (reads from stdin)")
     , command "show-unsigned" $ info
         (pure cmdTxnShowUnsigned)
-        (progDesc "Decode and display an unsigned transaction (reads from stdin)")
+        (progDesc "Decode from base64 and display an unsigned transaction (reads from stdin)")
+    , command "sign" $ info
+        (cmdTxnSign <$> flagJson <*> argSkFile)
+        (progDesc "Sign a transaction (reads from stdin)")
     ]
   where
-    verifyFlag = flag True False $ mconcat
+    flagVerify = flag True False $ mconcat
       [ long "no-verify"
       , short 'n'
       , help "Do not verify the signature of the transaction"
+      ]
+
+    flagJson = flag False True $ mconcat
+      [ long "json"
+      , short 'j'
+      , help "Read transaction as JSON instead of default base64"
       ]
 
 -- | Show a transaction.
@@ -183,15 +193,35 @@ cmdTxnShow verify = liftIO $ do
           Just _txn -> pure ()
       printJson stxn
 
--- | Show an unsigne transaction.
+-- | Read an unsigned transaction.
+txnFromB64 :: MonadIO m => BS.ByteString -> m T.Transaction
+txnFromB64 b64 = case decodeBase64 b64 of
+  Left err -> die $ T.unpack err
+  Right bs -> case MP.unpack (BSL.fromStrict bs) of
+      MP.EitherError (Left err) -> die err
+      MP.EitherError (Right (MP.Canonical txn)) -> pure txn
+
+-- | Encode a signed transaction.
+txnToB64 :: T.SignedTransaction -> Text
+txnToB64 = encodeBase64 . BSL.toStrict . MP.pack . MP.Canonical
+
+-- | Show an unsigned transaction.
 cmdTxnShowUnsigned :: MonadSubcommand m => m ()
-cmdTxnShowUnsigned = liftIO $ do
-  b64 <- BS.getLine
-  case decodeBase64 b64 of
-    Left err -> die $ T.unpack err
-    Right bs -> do
-      MP.Canonical txn <- MP.unpack (BSL.fromStrict bs)
-      printJson (txn :: T.Transaction)
+cmdTxnShowUnsigned = liftIO $ BS.getLine >>= txnFromB64 >>= printJson
+
+-- | Sign a transaction.
+cmdTxnSign :: MonadSubcommand m => Bool -> FilePath -> m ()
+cmdTxnSign json skFile = liftIO $ do
+  sk <- loadAccount skFile
+
+  txn <- case json of
+    False -> BS.getLine >>= txnFromB64
+    True -> JS.eitherDecode <$> BSL.getContents >>= \case
+      Left err -> die err
+      Right r -> pure r
+
+  let txn' = txn { T.tSender = A.fromPublicKey $ S.toPublic sk }
+  T.putStrLn $ txnToB64 (T.signTransaction sk txn')
 
 
 {-
