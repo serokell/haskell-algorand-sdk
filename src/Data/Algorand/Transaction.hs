@@ -41,7 +41,6 @@ import qualified Data.HashMap.Strict as HM
 import Data.MessagePack (pack)
 import Data.String (IsString)
 import Data.Text (Text)
-import qualified Data.Text as T
 import Data.Word (Word64)
 import GHC.Generics (Generic)
 
@@ -100,6 +99,15 @@ data TransactionType
     , actGlobalStateSchema :: Maybe StateSchema
     , actLocalStateSchema :: Maybe StateSchema
     }
+  -- TODO:
+  | KeyRegistrationTransaction
+    {}
+  | AssetConfigTransaction
+    {}
+  | AssetTransferTransaction
+    {}
+  | AssetFreezeTransaction
+    {}
   deriving (Eq, Generic, Show)
 
 -- | Constants for @OnComplete@.
@@ -254,15 +262,25 @@ transactionTypeFieldName = \case
   "actLocalStateSchema" -> "apls"
   x -> error $ "Unmapped transaction type field name: " <> x
 
+transactionType :: IsString s => String -> s
+transactionType = \case
+  "PaymentTransaction" -> "pay"
+  "ApplicationCallTransaction" -> "appl"
+  "KeyRegistrationTransaction" -> "keyreg"
+  "AssetConfigTransaction" -> "acfg"
+  "AssetTransferTransaction" -> "axfer"
+  "AssetFreezeTransaction" -> "afrz"
+  x -> error $ "Unmapped transaction type constructor: " <> x
+
 instance AlgorandMessagePack TransactionType where
   toCanonicalObject  = \case
       PaymentTransaction{..} -> mempty
-        & "type" .= T.pack "pay"
+        & "type" .= t "PaymentTransaction"
         & f "ptReceiver" .= ptReceiver
         & f "ptAmount" .= ptAmount
         & f "ptCloseRemainderTo" .= ptCloseRemainderTo
       ApplicationCallTransaction{..} -> mempty
-        & "type" .= T.pack "appl"
+        & "type" .= t "ApplicationCallTransaction"
         & f "actApplicationId" .= actApplicationId
         & f "actOnComplete" .= actOnComplete
         & f "actAccounts" .= actAccounts
@@ -273,8 +291,17 @@ instance AlgorandMessagePack TransactionType where
         & f "actForeignAssets" .= actForeignAssets
         & f "actGlobalStateSchema" .=< actGlobalStateSchema
         & f "actLocalStateSchema" .=< actLocalStateSchema
+      KeyRegistrationTransaction -> mempty
+        & "type" .= t "KeyRegistrationTransaction"
+      AssetConfigTransaction -> mempty
+        & "type" .= t "AssetConfigTransaction"
+      AssetTransferTransaction -> mempty
+        & "type" .= t "AssetTransferTransaction"
+      AssetFreezeTransaction -> mempty
+        & "type" .= t "AssetFreezeTransaction"
     where
       f = transactionTypeFieldName
+      t = transactionType :: String -> Text
 
 instance AlgorandMessageUnpack TransactionType where
   fromCanonicalObject o = o .: "type" >>= \case
@@ -295,16 +322,22 @@ instance AlgorandMessageUnpack TransactionType where
         actGlobalStateSchema <- o .:> f "actGlobalStateSchema"
         actLocalStateSchema <- o .:> f "actLocalStateSchema"
         pure ApplicationCallTransaction{..}
+      "keyreg" -> do
+        pure KeyRegistrationTransaction
+      "acfg" -> do
+        pure AssetConfigTransaction
+      "axfer" -> do
+        pure AssetTransferTransaction
+      "afrz" -> do
+        pure AssetFreezeTransaction
       x -> fail $ "Unsupported transaction type: " <> x
-    where f = transactionTypeFieldName
+    where
+      f = transactionTypeFieldName
 
 transactionTypeJsonOptions :: Options
 transactionTypeJsonOptions = defaultOptions
   { fieldLabelModifier = transactionTypeFieldName
-  , constructorTagModifier = \case
-      "PaymentTransaction" -> "pay"
-      "ApplicationCallTransaction" -> "appl"
-      x -> error $ "Unsupported transaction type constructor: " <> x
+  , constructorTagModifier = transactionType
   , sumEncoding = TaggedObject "type" "_"
   }
 
