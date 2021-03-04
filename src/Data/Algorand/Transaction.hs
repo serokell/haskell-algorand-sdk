@@ -48,7 +48,7 @@ import Crypto.Algorand.Hash (hash32)
 import Crypto.Algorand.Signature (SecretKey, Signature, sign, verify)
 import Data.Algorand.Address (Address, toPublicKey)
 import Data.Algorand.Amount (Microalgos)
-import Data.Algorand.MessagePack (AlgorandMessagePack (toCanonicalObject), AlgorandMessageUnpack (fromCanonicalObject), Canonical (Canonical), (&), (&<>), (.=), (.=<), (.:), (.:?), (.:>))
+import Data.Algorand.MessagePack (MessagePackObject (toCanonicalObject), MessageUnpackObject (fromCanonicalObject), Canonical (Canonical), (&), (&<>), (.=), (.=<), (.:), (.:?), (.:>))
 import Network.Algorand.Node.Api.Json (defaultOptions)
 
 
@@ -188,7 +188,7 @@ transactionFieldName = \case
   "tTxType" -> "type"
   x -> error $ "Unmapped transaction field name: " <> x
 
-instance AlgorandMessagePack Transaction where
+instance MessagePackObject Transaction where
   toCanonicalObject Transaction{..} = mempty
       & f "tSender" .= tSender
       & f "tFee" .= tFee
@@ -204,7 +204,7 @@ instance AlgorandMessagePack Transaction where
     where
       f = transactionFieldName
 
-instance AlgorandMessageUnpack Transaction where
+instance MessageUnpackObject Transaction where
   fromCanonicalObject o = do
       tSender <- o .: f "tSender"
       tFee <- o .:? f "tFee"
@@ -272,7 +272,7 @@ transactionType = \case
   "AssetFreezeTransaction" -> "afrz"
   x -> error $ "Unmapped transaction type constructor: " <> x
 
-instance AlgorandMessagePack TransactionType where
+instance MessagePackObject TransactionType where
   toCanonicalObject  = \case
       PaymentTransaction{..} -> mempty
         & "type" .= t "PaymentTransaction"
@@ -303,7 +303,7 @@ instance AlgorandMessagePack TransactionType where
       f = transactionTypeFieldName
       t = transactionType :: String -> Text
 
-instance AlgorandMessageUnpack TransactionType where
+instance MessageUnpackObject TransactionType where
   fromCanonicalObject o = o .: "type" >>= \case
       "pay" -> do
         ptReceiver <- o .: f "ptReceiver"
@@ -355,14 +355,14 @@ stateSchemaFieldName = \case
   "ssNumByteSlice" -> "nbs"
   x -> error $ "Unmapped state schema field name: " <> x
 
-instance AlgorandMessagePack StateSchema where
+instance MessagePackObject StateSchema where
   toCanonicalObject StateSchema{..} = mempty
       & f "ssNumUint" .= ssNumUint
       & f "ssNumByteSlice" .= ssNumByteSlice
     where
       f = stateSchemaFieldName
 
-instance AlgorandMessageUnpack StateSchema where
+instance MessageUnpackObject StateSchema where
   fromCanonicalObject o = do
       ssNumUint <- o .:? f "ssNumUint"
       ssNumByteSlice <- o .:? f "ssNumByteSlice"
@@ -387,14 +387,14 @@ signedTransactionFieldName = \case
   "stTxn" -> "txn"
   x -> error $ "Unmapped signed transaction field name: " <> x
 
-instance AlgorandMessagePack SignedTransaction where
+instance MessagePackObject SignedTransaction where
   toCanonicalObject SignedTransaction{..} = mempty
       & f "stSig" .= stSig
       & f "stTxn" .=< stTxn
     where
       f = signedTransactionFieldName
 
-instance AlgorandMessageUnpack SignedTransaction where
+instance MessageUnpackObject SignedTransaction where
   fromCanonicalObject o = do
       stSig <- o .: f "stSig"
       stTxn <- o .:> f "stTxn"

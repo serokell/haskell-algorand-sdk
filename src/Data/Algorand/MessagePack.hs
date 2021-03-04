@@ -24,11 +24,11 @@ module Data.Algorand.MessagePack
   , (&)
   , (.=)
 
-  , AlgorandMessagePack (..)
+  , MessagePackObject (..)
   , (&<>)
   , (.=<)
 
-  , AlgorandMessageUnpack (..)
+  , MessageUnpackObject (..)
   , (.:)
   , (.:?)
   , (.:>)
@@ -108,32 +108,32 @@ k .= v
   | otherwise = id
 
 -- | Like 'MessagePack' but specifically for the Algorand’s canonical flavour.
--- This class is only for encoding, 'AlgorandMessageUnpack' is for decoding.
-class AlgorandMessagePack a where
+-- This class is only for encoding, 'MessageUnpackObject' is for decoding.
+class MessagePackObject a where
   -- Like 'toObject', but produces a canonical representation.
   toCanonicalObject :: a -> CanonicalObject
 
-instance AlgorandMessagePack a => AlgorandMessagePack (Maybe a) where
+instance MessagePackObject a => MessagePackObject (Maybe a) where
   toCanonicalObject Nothing = mempty
   toCanonicalObject (Just a) = toCanonicalObject a
 
 -- | Append an object to another one.
-(&<>) :: AlgorandMessagePack a => CanonicalObject -> a -> CanonicalObject
+(&<>) :: MessagePackObject a => CanonicalObject -> a -> CanonicalObject
 infixl 0 &<>
 o &<> a = o <> toCanonicalObject a
 
 -- | Store a canonical suboject.
-(.=<) :: AlgorandMessagePack a => Text -> a -> CanonicalObject -> CanonicalObject
+(.=<) :: MessagePackObject a => Text -> a -> CanonicalObject -> CanonicalObject
 infixl 2 .=<
 k .=< v = k .= toCanonicalObject v
 
 
--- | The decoding counterpart of 'AlgorandMessagePack'.
-class AlgorandMessageUnpack a where
+-- | The decoding counterpart of 'MessagePackObject'.
+class MessageUnpackObject a where
   -- Like 'fromObject', but fills in defaulted values.
   fromCanonicalObject :: MonadFail m => CanonicalObject -> m a
 
-instance AlgorandMessageUnpack a => AlgorandMessageUnpack (Maybe a) where
+instance MessageUnpackObject a => MessageUnpackObject (Maybe a) where
   fromCanonicalObject = fmap Just . fromCanonicalObject
 
 -- | Lookup a key in a canonical object for a type that cannot be defaulted.
@@ -151,7 +151,7 @@ CanonicalObject o .:? k = case lookup k o of
   Just v -> fromObject v
 
 -- | Lookup a canonical suboject.
-(.:>) :: (MonadFail m, AlgorandMessageUnpack a) => CanonicalObject -> Text -> m a
+(.:>) :: (MonadFail m, MessageUnpackObject a) => CanonicalObject -> Text -> m a
 infixl 2 .:>
 o .:> k = o .:? k >>= fromCanonicalObject
 
@@ -159,7 +159,7 @@ o .:> k = o .:? k >>= fromCanonicalObject
 -- | A wrapper with its 'MessagePack' instance goin via 'CanonicalObject'.
 newtype Canonical a = Canonical { unCanonical :: a }
 
-instance (AlgorandMessagePack a, AlgorandMessageUnpack a) => MessagePack (Canonical a) where
+instance (MessagePackObject a, MessageUnpackObject a) => MessagePack (Canonical a) where
   toObject = toObject . toCanonicalObject . unCanonical
   fromObject = fromObject >=> fromCanonicalObject >=> pure . Canonical
 
