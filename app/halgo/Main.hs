@@ -21,7 +21,7 @@ import qualified Data.ByteString.Lazy as BSL
 import Data.Text (Text)
 import qualified Data.Text as T
 import qualified Data.Text.IO as T
-import Fmt ((+|), (|+), build)
+import Fmt ((+|), (|+), build, pretty)
 import Main.Utf8 (withUtf8)
 import Servant.Client.Generic (AsClientT)
 import qualified System.IO.Error as IOE
@@ -37,6 +37,7 @@ import qualified Data.Algorand.Transaction as T
 import Network.Algorand.Node (NodeUrl, connect)
 import Network.Algorand.Node.Api (ApiV2)
 import qualified Network.Algorand.Node.Api as Api
+import qualified Network.Algorand.Node.Util as N
 
 import Halgo.Util (die, handleApiError, putTextLn, printJson)
 
@@ -256,11 +257,21 @@ nodeOpts = cmdNode <$> nodeUrl <*> sub
           (pure cmdNodeVersion)
           (progDesc "Query the version information of the node")
       , command "fetch" $ info
-          (cmdNodeFetch <$> fetchArg)
-          (progDesc "Fetch information about an account")
+          (hsubparser $ mconcat
+            [ command "account" $ info
+                (cmdNodeFetchAccount <$> argAddress)
+                (progDesc "Fetch information about an account")
+            , command "txn" $ info
+                (cmdNodeFetchTxn <$> argTxId)
+                (progDesc "Fetch a transaction in the pool")
+            ])
+          (progDesc "Fetch something from the node")
       , command "send" $ info
           (cmdNodeSend <$> flagJson)
           (progDesc "Send a signed transaction (reads from stdin)")
+      , command "txn-status" $ info
+          (cmdNodeTxnStatus <$> argTxId)
+          (progDesc "Get the status of a transaction in the pool")
       ]
 
     nodeUrl :: Parser (Maybe NodeUrl)
@@ -273,7 +284,11 @@ nodeOpts = cmdNode <$> nodeUrl <*> sub
             ])
       <|> pure Nothing
 
-    fetchArg = NodeFetchAddress <$> argAddress
+    argTxId :: Parser Text
+    argTxId = strArgument $ mconcat
+        [ metavar "<transaction id>"
+        , help "ID of a transaction"
+        ]
 
 cmdNode :: MonadSubcommand m => Maybe NodeUrl -> (NodeUrl -> m ()) -> m ()
 cmdNode murl sub = getNodeUrl murl >>= sub
@@ -304,13 +319,15 @@ cmdNodeVersion :: MonadSubcommand m => NodeUrl -> m ()
 cmdNodeVersion url = withNode url $ \(v, _) -> printJson v
 
 
-data NodeFetchArgument
-  = NodeFetchAddress A.Address
-
 -- | Fetch information about an account.
-cmdNodeFetch :: MonadSubcommand m => NodeFetchArgument -> NodeUrl -> m ()
-cmdNodeFetch (NodeFetchAddress addr) url = withNode url $ \(_, api) ->
+cmdNodeFetchAccount :: MonadSubcommand m => A.Address -> NodeUrl -> m ()
+cmdNodeFetchAccount addr url = withNode url $ \(_, api) ->
   Api._account api addr >>= printJson
+
+-- | Fetch a transaction (from the pool).
+cmdNodeFetchTxn :: MonadSubcommand m => Text -> NodeUrl -> m ()
+cmdNodeFetchTxn txId url = withNode url $ \(_, api) ->
+  Api._transactionsPending api txId >>= printJson . Api.tiTxn
 
 -- | Send a transaction (or, actually, any bytes).
 cmdNodeSend :: MonadSubcommand m => Bool -> NodeUrl -> m ()
@@ -320,3 +337,11 @@ cmdNodeSend json url = do
     False -> readB64
   withNode url $ \(_, api) ->
     Api._transactions api bs >>= printJson
+
+-- | Get txn status
+cmdNodeTxnStatus :: MonadSubcommand m => Text -> NodeUrl -> m ()
+cmdNodeTxnStatus txId url = withNode url $ \(_, api) ->
+  N.transactionStatus <$> Api._transactionsPending api txId >>= \case
+    N.Waiting -> putTextLn $ "Waiting"
+    N.KickedOut reason -> die $ "Kicked out: "+|reason|+""
+    N.Confirmed r -> putTextLn . pretty $ "Confirmed in round " <> show r

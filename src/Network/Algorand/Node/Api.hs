@@ -13,6 +13,7 @@ module Network.Algorand.Node.Api
   , BuildVersion (..)
   , Version (..)
   , Account (..)
+  , TransactionInfo (..)
   ) where
 
 import GHC.Generics (Generic)
@@ -30,6 +31,7 @@ import Servant.API.Generic (ToServantApi, (:-))
 
 import Data.Algorand.Address (Address)
 import Data.Algorand.Amount (Microalgos)
+import Data.Algorand.Transaction (AppIndex, AssetIndex, SignedTransaction)
 import Network.Algorand.Node.Api.Json (algorandCamelOptions, algorandSnakeOptions, algorandTrainOptions)
 
 
@@ -84,6 +86,23 @@ data Account = Account
 $(deriveJSON algorandTrainOptions 'Account)
 
 
+data TransactionInfo = TransactionInfo
+  { tiApplicationIndex :: Maybe AppIndex
+  , tiAssetIndex :: Maybe AssetIndex
+  , tiCloseRewards :: Maybe Microalgos
+  , tiClosingAmount :: Maybe Microalgos
+  , tiConfirmedRound :: Maybe Word64
+-- TODO:
+--  , tiGlobalStateDelta :: Maybe ...
+--  , tiLocalStateDelta :: Maybe ...
+  , tiPoolError :: Text
+  , tiReceiverRewards :: Maybe Microalgos
+  , tiSenderRewards :: Maybe Microalgos
+  , tiTxn :: SignedTransaction
+  }
+$(deriveJSON algorandTrainOptions 'TransactionInfo)
+
+
 -- | The part of the API that does not depend on the version.
 data ApiAny route = ApiAny
   { _health :: route
@@ -106,6 +125,11 @@ data ApiV2 route = ApiV2
       :- "transactions"
       :> ReqBody '[Binary] ByteString
       :> Post '[JSON] TransactionsRep
+  , _transactionsPending :: route
+      :- "transactions"
+      :> "pending"
+      :> Capture "txId" Text
+      :> Get '[JSON] TransactionInfo
   }
   deriving (Generic)
 
