@@ -18,15 +18,19 @@ module Network.Algorand.Node.Api
 import GHC.Generics (Generic)
 
 import Data.Aeson.TH (deriveJSON)
+import Data.ByteString (ByteString)
+import qualified Data.ByteString.Lazy as BSL
 import Data.Int (Int64)
 import Data.Text (Text)
 import Data.Word (Word64)
-import Servant.API ((:>), Capture, Get, JSON)
+import Network.HTTP.Media ((//))
+import Servant.API ((:>), Capture, Get, JSON, Post, ReqBody)
+import qualified Servant.API.ContentTypes as Mime
 import Servant.API.Generic (ToServantApi, (:-))
 
 import Data.Algorand.Address (Address)
 import Data.Algorand.Amount (Microalgos)
-import Network.Algorand.Node.Api.Json (algorandSnakeOptions, algorandTrainOptions)
+import Network.Algorand.Node.Api.Json (algorandCamelOptions, algorandSnakeOptions, algorandTrainOptions)
 
 
 -- | Node software build version information.
@@ -50,6 +54,12 @@ data Version = Version
   }
   deriving (Generic, Show)
 $(deriveJSON algorandSnakeOptions 'Version)
+
+data TransactionsRep = TransactionsRep
+  { trTxId :: Text
+  }
+  deriving (Generic, Show)
+$(deriveJSON algorandCamelOptions 'TransactionsRep)
 
 
 data Account = Account
@@ -92,6 +102,10 @@ data ApiV2 route = ApiV2
       :- "accounts"
       :> Capture "address" Address
       :> Get '[JSON] Account
+  , _transactions :: route
+      :- "transactions"
+      :> ReqBody '[Binary] ByteString
+      :> Post '[JSON] TransactionsRep
   }
   deriving (Generic)
 
@@ -105,3 +119,17 @@ data Api route = Api
       :> ToServantApi ApiV2
   }
   deriving (Generic)
+
+
+{-
+ - Utils
+ -}
+
+-- | Content type for the `/transactions` endpoint.
+data Binary
+
+instance Mime.Accept Binary where
+  contentType _ = "application" // "x-binary"
+
+instance Mime.MimeRender Binary ByteString where
+  mimeRender _ = BSL.fromStrict

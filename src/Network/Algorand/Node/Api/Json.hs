@@ -9,14 +9,15 @@
 -- Interestingly, different types in the algod API use differet style
 -- for field names, so we have to provide multiple options.
 module Network.Algorand.Node.Api.Json
-  ( algorandSnakeOptions
+  ( algorandCamelOptions
+  , algorandSnakeOptions
   , algorandTrainOptions
   , defaultOptions
   ) where
 
 import Data.Aeson (FromJSON (..), Options (fieldLabelModifier, omitNothingFields), ToJSON (..))
 import qualified Data.Aeson (defaultOptions)
-import Data.Aeson.Casing (aesonPrefix, snakeCase, trainCase)
+import Data.Aeson.Casing (aesonPrefix, camelCase, snakeCase, trainCase)
 import Data.Aeson.Types (parseFail)
 import Data.ByteArray (ByteArray, Bytes, convert)
 import Data.ByteArray.Sized (SizedByteArray, sizedByteArray, unSizedByteArray)
@@ -29,6 +30,11 @@ import GHC.TypeLits (KnownNat)
 
 defaultOptions :: Options
 defaultOptions = Data.Aeson.defaultOptions { omitNothingFields = True }
+
+-- | Options for types using camel case.
+algorandCamelOptions :: Options
+algorandCamelOptions = defaultOptions
+  { fieldLabelModifier = fieldLabelModifier (aesonPrefix camelCase) }
 
 -- | Options for types using snake case.
 algorandSnakeOptions :: Options

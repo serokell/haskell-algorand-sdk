@@ -41,6 +41,7 @@ library:
     - cryptonite >= 0.1
     - data-default-class >= 0.1.2 && < 0.2
     - http-client-tls >= 0.3.4 && < 0.4
+    - http-media >= 0.1 && < 0.9
     - msgpack-binary >= 0.0.14 && < 0.1
     - msgpack-types >= 0.0.4 && < 0.1
     - servant >= 0.14 && < 0.19

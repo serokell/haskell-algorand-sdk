@@ -13,7 +13,7 @@ import Options.Applicative
 import Control.Exception.Safe (MonadThrow, handle, throwIO)
 import Control.Monad ((>=>), when)
 import Control.Monad.Reader (MonadReader, ReaderT, asks, runReaderT)
-import Data.Aeson (ToJSON)
+import Data.Aeson (FromJSON, ToJSON)
 import qualified Data.Aeson as JS
 import Data.Aeson.Encode.Pretty (encodePretty)
 import qualified Data.ByteString as BS
@@ -154,6 +154,13 @@ cmdAccExport = loadAccount >=> putTextLn . S.skToText
  - halgo txn
  -}
 
+flagJson :: Parser Bool
+flagJson = flag False True $ mconcat
+  [ long "json"
+  , short 'j'
+  , help "Read transaction as JSON instead of default base64"
+  ]
+
 txnOpts :: Parser Subcommand
 txnOpts = hsubparser $ mconcat
     [ command "show" $ info
@@ -176,37 +183,23 @@ txnOpts = hsubparser $ mconcat
       , help "Do not verify the signature of the transaction"
       ]
 
-    flagJson = flag False True $ mconcat
-      [ long "json"
-      , short 'j'
-      , help "Read transaction as JSON instead of default base64"
-      ]
-
--- | Show a transaction.
-cmdTxnShow :: MonadSubcommand m => Bool -> m ()
-cmdTxnShow verify = liftIO $ do
-  b64 <- BS.getLine
+-- | Read base64 bytes from stdin.
+readB64 :: MonadIO m => m BS.ByteString
+readB64 = do
+  b64 <- liftIO BS.getLine
   case decodeBase64 b64 of
     Left err -> die $ T.unpack err
-    Right bs -> do
-      MP.Canonical stxn <- MP.unpack (BSL.fromStrict bs)
-      when verify $
-        case T.verifyTransaction stxn of
-          Nothing -> die "Invalid signature. Run with --no-verify if you still want to see it."
-          Just _txn -> pure ()
-      printJson stxn
+    Right bs -> pure bs
 
--- | Decode an unsigned transaction from base64.
-txnFromB64 :: MonadIO m => BS.ByteString -> m T.Transaction
-txnFromB64 b64 = case decodeBase64 b64 of
-  Left err -> die $ T.unpack err
-  Right bs -> case MP.unpack (BSL.fromStrict bs) of
-      MP.EitherError (Left err) -> die err
-      MP.EitherError (Right (MP.Canonical txn)) -> pure txn
+-- | Decode an object from base64.
+dataFromB64 :: (MP.MessagePack (MP.Canonical d), MonadIO m) => BS.ByteString -> m d
+dataFromB64 bs = case MP.unpack (BSL.fromStrict bs) of
+    MP.EitherError (Left err) -> die err
+    MP.EitherError (Right (MP.Canonical r)) -> pure r
 
--- | Decode an unsigned transaction from JSON.
-txnFromJson :: MonadIO m => BSL.ByteString -> m T.Transaction
-txnFromJson bs = case JS.eitherDecode bs of
+-- | Decode an object from JSON.
+dataFromJson :: (FromJSON d, MonadIO m) => BSL.ByteString -> m d
+dataFromJson bs = case JS.eitherDecode bs of
   Left err -> die err
   Right txn -> pure txn
 
@@ -214,26 +207,37 @@ txnFromJson bs = case JS.eitherDecode bs of
 txnToB64 :: T.SignedTransaction -> Text
 txnToB64 = encodeBase64 . BSL.toStrict . MP.pack . MP.Canonical
 
--- | Read an unsigned transaction.
-readTxn :: MonadIO m => Bool -> m T.Transaction
-readTxn False = liftIO BS.getLine >>= txnFromB64
-readTxn True = liftIO BSL.getContents >>= txnFromJson
+-- | Read data either from JSON or from base64.
+readData :: (FromJSON d, MP.MessagePack (MP.Canonical d), MonadIO m) => Bool -> m d
+readData False = readB64 >>= dataFromB64
+readData True = liftIO BSL.getContents >>= dataFromJson
+
+
+-- | Show a transaction.
+cmdTxnShow :: MonadSubcommand m => Bool -> m ()
+cmdTxnShow verify = do
+  stxn <- readData @T.SignedTransaction False
+  when verify $
+    case T.verifyTransaction stxn of
+      Nothing -> die "Invalid signature. Run with --no-verify if you still want to see it."
+      Just _txn -> pure ()
+  printJson stxn
 
 -- | Show an unsigned transaction.
 cmdTxnShowUnsigned :: MonadSubcommand m => m ()
-cmdTxnShowUnsigned = readTxn False >>= printJson
+cmdTxnShowUnsigned = readData @T.Transaction False >>= printJson
 
 -- | Sign a transaction.
 cmdTxnSign :: MonadSubcommand m => Bool -> FilePath -> m ()
 cmdTxnSign json skFile = do
   sk <- loadAccount skFile
-  txn <- readTxn json
+  txn <- readData json
   let txn' = txn { T.tSender = A.fromPublicKey $ S.toPublic sk }
   liftIO $ T.putStrLn $ txnToB64 (T.signTransaction sk txn')
 
 -- | Transaction ID.
 cmdTxnId :: MonadSubcommand m => Bool -> m ()
-cmdTxnId json = readTxn json >>= liftIO . T.putStrLn . T.transactionId
+cmdTxnId json = readData json >>= liftIO . T.putStrLn . T.transactionId
 
 
 {-
@@ -263,6 +267,9 @@ nodeOpts = cmdNode <$> nodeUrl <*> sub
       , command "fetch" $ info
           (cmdNodeFetch <$> fetchArg)
           (progDesc "Fetch information about an account")
+      , command "send" $ info
+          (cmdNodeSend <$> flagJson)
+          (progDesc "Send a signed transaction (reads from stdin)")
       ]
 
     nodeUrl :: Parser (Maybe NodeUrl)
@@ -309,6 +316,16 @@ cmdNodeVersion url = withNode url $ \(v, _) -> printJson v
 data NodeFetchArgument
   = NodeFetchAddress A.Address
 
+-- | Fetch information about an account.
 cmdNodeFetch :: MonadSubcommand m => NodeFetchArgument -> NodeUrl -> m ()
 cmdNodeFetch (NodeFetchAddress addr) url = withNode url $ \(_, api) ->
   Api._account api addr >>= printJson
+
+-- | Send a transaction (or, actually, any bytes).
+cmdNodeSend :: MonadSubcommand m => Bool -> NodeUrl -> m ()
+cmdNodeSend json url = do
+  bs <- case json of
+    True -> (BSL.toStrict . MP.pack . MP.Canonical) <$> readData @T.SignedTransaction json
+    False -> readB64
+  withNode url $ \(_, api) ->
+    Api._transactions api bs >>= printJson
