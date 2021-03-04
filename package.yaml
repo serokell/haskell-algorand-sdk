@@ -62,8 +62,11 @@ executables:
       - base64
       - directory >= 1.2.7.0 && < 1.4
       - filepath >= 1.0 && < 1.5
+      - fmt >= 0.6 && < 0.7
+      - http-types >= 0.1.1 && < 0.13
       - mtl >= 1.0 && < 2.3
       - optparse-applicative >= 0.15 && < 0.17  # the lower bound is not tight
+      - servant-client
       - servant-client-core
       - text
       - unliftio >= 0.1 && < 0.3

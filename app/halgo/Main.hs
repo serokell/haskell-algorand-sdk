@@ -10,22 +10,20 @@ module Main
 
 import Options.Applicative
 
-import Control.Exception.Safe (MonadThrow, handle, throwIO)
+import Control.Exception.Safe (MonadCatch, handle, throwIO)
 import Control.Monad ((>=>), when)
 import Control.Monad.Reader (MonadReader, ReaderT, asks, runReaderT)
-import Data.Aeson (FromJSON, ToJSON)
+import Data.Aeson (FromJSON)
 import qualified Data.Aeson as JS
-import Data.Aeson.Encode.Pretty (encodePretty)
 import qualified Data.ByteString as BS
 import Data.ByteString.Base64 (decodeBase64, encodeBase64)
 import qualified Data.ByteString.Lazy as BSL
 import Data.Text (Text)
 import qualified Data.Text as T
-import Data.Text.Encoding (decodeUtf8)
 import qualified Data.Text.IO as T
+import Fmt ((+|), (|+), build)
 import Main.Utf8 (withUtf8)
 import Servant.Client.Generic (AsClientT)
-import qualified System.Exit
 import qualified System.IO.Error as IOE
 import UnliftIO (MonadIO, MonadUnliftIO, liftIO)
 import UnliftIO.Directory (doesPathExist)
@@ -40,6 +38,8 @@ import Network.Algorand.Node (NodeUrl, connect)
 import Network.Algorand.Node.Api (ApiV2)
 import qualified Network.Algorand.Node.Api as Api
 
+import Halgo.Util (die, handleApiError, putTextLn, printJson)
+
 
 -- | CLI options applicable to all commands.
 data GlobalOptions = GlobalOptions
@@ -47,7 +47,7 @@ data GlobalOptions = GlobalOptions
   }
 
 type Subcommand = ReaderT GlobalOptions IO ()
-type MonadSubcommand m = (MonadUnliftIO m, MonadThrow m, MonadReader GlobalOptions m)
+type MonadSubcommand m = (MonadUnliftIO m, MonadCatch m, MonadReader GlobalOptions m)
 
 
 opts :: Parser (GlobalOptions, Subcommand)
@@ -82,15 +82,6 @@ main = withUtf8 $ do
   (globalOptions, act) <- customExecParser p $ info (opts <**> helper) infoMod
   runReaderT act globalOptions
 
-die :: MonadIO m => String -> m a
-die = liftIO . System.Exit.die
-
-putTextLn :: MonadIO m => Text -> m ()
-putTextLn = liftIO . T.putStrLn
-
-printJson :: (MonadIO m, ToJSON a) => a -> m ()
-printJson = putTextLn . decodeUtf8 . BSL.toStrict . encodePretty
-
 
 {-
  - halgo account
@@ -120,7 +111,7 @@ argSkFile = strArgument $ mconcat
 cmdAccNew :: MonadSubcommand m => FilePath -> m ()
 cmdAccNew skFile = liftIO $ do
   doesPathExist skFile >>= \case
-    True -> die $ "Not creating: " <> skFile <> " already exists."
+    True -> die $ "Not creating: "+|skFile|+" already exists."
     False -> do
       sk <- withFile skFile WriteMode $ \h -> do
         sk <- S.keypair
@@ -138,8 +129,8 @@ loadAccount skFile = liftIO $ handle showError $
         Just sk -> pure sk
   where
     showError e
-      | IOE.isDoesNotExistError e = die $ "Account file does not exist: " <> skFile
-      | IOE.isPermissionError e = die $ "Permission denied. Cannot read: " <> skFile
+      | IOE.isDoesNotExistError e = die $ "Account file does not exist: "+|skFile|+""
+      | IOE.isPermissionError e = die $ "Permission denied. Cannot read: "+|skFile|+""
       | otherwise = throwIO e
 
 -- | Display an account in base64.
@@ -188,19 +179,19 @@ readB64 :: MonadIO m => m BS.ByteString
 readB64 = do
   b64 <- liftIO BS.getLine
   case decodeBase64 b64 of
-    Left err -> die $ T.unpack err
+    Left err -> die $ build err
     Right bs -> pure bs
 
 -- | Decode an object from base64.
 dataFromB64 :: (MP.MessagePack (MP.Canonical d), MonadIO m) => BS.ByteString -> m d
 dataFromB64 bs = case MP.unpack (BSL.fromStrict bs) of
-    MP.EitherError (Left err) -> die err
+    MP.EitherError (Left err) -> die $ build err
     MP.EitherError (Right (MP.Canonical r)) -> pure r
 
 -- | Decode an object from JSON.
 dataFromJson :: (FromJSON d, MonadIO m) => BSL.ByteString -> m d
 dataFromJson bs = case JS.eitherDecode bs of
-  Left err -> die err
+  Left err -> die $ build err
   Right txn -> pure txn
 
 -- | Encode a signed transaction.
@@ -293,7 +284,7 @@ cmdNode murl sub = getNodeUrl murl >>= sub
       "mainnet-v1.0" -> pure "https://api.algoexplorer.io/"
       "testnet-v1.0" -> pure "https://api.testnet.algoexplorer.io/"
       "betanet-v1.0" -> pure "https://api.betanet.algoexplorer.io/"
-      net -> die $ "Unknown network `" <> T.unpack net <> "`. Please, provide --url."
+      net -> die $ "Unknown network `"+|net|+"`. Please, provide --url."
 
 -- | Display the URL that we will be using.
 cmdNodeUrl :: MonadSubcommand m => NodeUrl -> m ()
@@ -307,7 +298,7 @@ withNode
   -> m a
 withNode url act = do
   net <- asks goNetwork
-  connect url net >>= act
+  connect url net >>= handleApiError . act
 
 cmdNodeVersion :: MonadSubcommand m => NodeUrl -> m ()
 cmdNodeVersion url = withNode url $ \(v, _) -> printJson v
