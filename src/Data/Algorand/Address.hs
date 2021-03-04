@@ -5,6 +5,7 @@
 -- | Tools for manipulating Algorand account addresses.
 module Data.Algorand.Address
   ( Address
+  , zero
 
   , fromBytes
   , toText
@@ -20,9 +21,11 @@ import Control.Applicative (empty)
 import Control.Monad (guard)
 import Data.Aeson (FromJSON (..), ToJSON (..))
 import Data.ByteArray (Bytes, ByteArrayAccess, View, convert, eq, length, view)
+import qualified Data.ByteArray (zero)
 import Data.ByteArray.Sized (unSizedByteArray)
 import Data.ByteString (ByteString)
 import Data.ByteString.Base32 (decodeBase32Unpadded, encodeBase32Unpadded)
+import Data.Maybe (fromJust)
 import Data.String (IsString (fromString))
 import Data.Text (Text)
 import qualified Data.Text as T
@@ -76,6 +79,12 @@ instance FromJSON Address where
   parseJSON o = parseJSON o >>= \t -> case fromText t of
     Just a -> pure a
     Nothing -> empty
+
+
+-- | Dummy zero address. Can be used as a placeholder value.
+zero :: Address
+zero = Address . fromJust . pkFromBytes @Bytes $ Data.ByteArray.zero pkSize
+
 
 -- | Try to interpret raw bytes as 'Address'.
 --

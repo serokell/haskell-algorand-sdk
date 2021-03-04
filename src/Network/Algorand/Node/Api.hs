@@ -14,6 +14,7 @@ module Network.Algorand.Node.Api
   , Version (..)
   , Account (..)
   , TransactionInfo (..)
+  , SuggestedParams (..)
   ) where
 
 import GHC.Generics (Generic)
@@ -31,7 +32,7 @@ import Servant.API.Generic (ToServantApi, (:-))
 
 import Data.Algorand.Address (Address)
 import Data.Algorand.Amount (Microalgos)
-import Data.Algorand.Transaction (AppIndex, AssetIndex, SignedTransaction)
+import Data.Algorand.Transaction (AppIndex, AssetIndex, GenesisHash, SignedTransaction)
 import Network.Algorand.Node.Api.Json (algorandCamelOptions, algorandSnakeOptions, algorandTrainOptions)
 
 
@@ -103,6 +104,17 @@ data TransactionInfo = TransactionInfo
 $(deriveJSON algorandTrainOptions 'TransactionInfo)
 
 
+data SuggestedParams = SuggestedParams
+  { spConsensusVersion :: Text
+  , spFee :: Microalgos
+  , spGenesisHash :: GenesisHash
+  , spGenesisId :: Text
+  , spLastRound :: Word64
+  , spMinFee :: Microalgos
+  }
+$(deriveJSON algorandTrainOptions 'SuggestedParams)
+
+
 -- | The part of the API that does not depend on the version.
 data ApiAny route = ApiAny
   { _health :: route
@@ -130,6 +142,10 @@ data ApiV2 route = ApiV2
       :> "pending"
       :> Capture "txId" Text
       :> Get '[JSON] TransactionInfo
+  , _transactionsParams :: route
+      :- "transactions"
+      :> "params"
+      :> Get '[JSON] SuggestedParams
   }
   deriving (Generic)
 

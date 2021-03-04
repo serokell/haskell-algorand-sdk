@@ -19,7 +19,8 @@ import Data.Algorand.MessagePack (CanonicalZero, NonZeroValue)
 
 -- | Amount of microAlgos.
 newtype Microalgos = Microalgos Word64
-  deriving (Bounded, CanonicalZero, Default, Enum, Eq, Generic, Integral, NonZeroValue, Num, Ord, Real, Show)
+  deriving (Bounded, CanonicalZero, Default, Enum, Eq, Generic, Integral, NonZeroValue, Num, Ord, Real)
+  deriving newtype (Read, Show)
 
 instance MessagePack Microalgos where
   toObject (Microalgos a) = toObject a

@@ -34,6 +34,7 @@ library
       Data.Algorand.Amount
       Data.Algorand.MessagePack
       Data.Algorand.Transaction
+      Data.Algorand.Transaction.Build
       Network.Algorand.Node
       Network.Algorand.Node.Api
       Network.Algorand.Node.Api.Json

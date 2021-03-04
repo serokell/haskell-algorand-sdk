@@ -33,7 +33,9 @@ import qualified Data.Algorand.MessagePack as MP
 import Crypto.Algorand.Signature (SecretKey)
 import qualified Crypto.Algorand.Signature as S
 import qualified Data.Algorand.Address as A
+import qualified Data.Algorand.Amount as A
 import qualified Data.Algorand.Transaction as T
+import qualified Data.Algorand.Transaction.Build as T
 import Network.Algorand.Node (NodeUrl, connect)
 import Network.Algorand.Node.Api (ApiV2)
 import qualified Network.Algorand.Node.Api as Api
@@ -153,6 +155,9 @@ flagJson = flag False True $ mconcat
   , help "Read transaction as JSON instead of default base64"
   ]
 
+argAmount :: Parser A.Microalgos
+argAmount = argument auto (metavar "<amount>" <> help "Amount in microalgos")
+
 txnOpts :: Parser Subcommand
 txnOpts = hsubparser $ mconcat
     [ command "show" $ info
@@ -167,12 +172,21 @@ txnOpts = hsubparser $ mconcat
     , command "id" $ info
         (cmdTxnId <$> flagJson)
         (progDesc "Calculate transaction ID")
+    , command "new" $ info
+        (cmdNode <$> optNodeUrl <*> hsubparser new)
+        (progDesc "Create a new transaction")
     ]
   where
     flagVerify = flag True False $ mconcat
       [ long "no-verify"
       , short 'n'
       , help "Do not verify the signature of the transaction"
+      ]
+
+    new = mconcat $
+      [ command "pay" $ info
+          (cmdTxnNewPay <$> argAddress "Receiver" <*> argAmount)
+          (progDesc "Create a new payment transaction")
       ]
 
 -- | Read base64 bytes from stdin.
@@ -196,8 +210,8 @@ dataFromJson bs = case JS.eitherDecode bs of
   Right txn -> pure txn
 
 -- | Encode a signed transaction.
-txnToB64 :: T.SignedTransaction -> Text
-txnToB64 = encodeBase64 . BSL.toStrict . MP.pack . MP.Canonical
+dataToB64 :: (MP.MessagePack (MP.Canonical d)) => d -> Text
+dataToB64 = encodeBase64 . BSL.toStrict . MP.pack . MP.Canonical
 
 -- | Read data either from JSON or from base64.
 readData :: (FromJSON d, MP.MessagePack (MP.Canonical d), MonadIO m) => Bool -> m d
@@ -225,29 +239,46 @@ cmdTxnSign json skFile = do
   sk <- loadAccount skFile
   txn <- readData json
   let txn' = txn { T.tSender = A.fromPublicKey $ S.toPublic sk }
-  liftIO $ T.putStrLn $ txnToB64 (T.signTransaction sk txn')
+  liftIO $ T.putStrLn $ dataToB64 (T.signTransaction sk txn')
 
 -- | Transaction ID.
 cmdTxnId :: MonadSubcommand m => Bool -> m ()
 cmdTxnId json = readData json >>= liftIO . T.putStrLn . T.transactionId
+
+cmdTxnNewPay :: MonadSubcommand m => A.Address -> A.Microalgos -> NodeUrl -> m ()
+cmdTxnNewPay to amnt url = withNode url $ \(_, api) -> do
+  params <- Api._transactionsParams api
+  let payment = T.PaymentTransaction to amnt Nothing
+  let txn = T.buildTransaction params A.zero payment
+  printJson txn
 
 
 {-
  - halgo node
  -}
 
-argAddress :: Parser A.Address
-argAddress = argument reader $ mconcat
+argAddress :: String -> Parser A.Address
+argAddress helpText = argument reader $ mconcat
     [ metavar "<address>"
-    , help "Address of an account"
+    , help helpText
     ]
   where
     reader = eitherReader $ \s -> case A.fromText (T.pack s) of
       Nothing -> Left "Malformed address."
       Just a -> Right a
 
+optNodeUrl :: Parser (Maybe NodeUrl)
+optNodeUrl
+  =   Just <$> (strOption $ mconcat
+        [ long "url"
+        , short 'u'
+        , metavar "NODE_URL"
+        , help "URL of the node to connect to (default: AlgoExplorer node based on the chosen network)"
+        ])
+  <|> pure Nothing
+
 nodeOpts :: Parser Subcommand
-nodeOpts = cmdNode <$> nodeUrl <*> sub
+nodeOpts = cmdNode <$> optNodeUrl <*> sub
   where
     sub = hsubparser $ mconcat
       [ command "url" $ info
@@ -259,7 +290,7 @@ nodeOpts = cmdNode <$> nodeUrl <*> sub
       , command "fetch" $ info
           (hsubparser $ mconcat
             [ command "account" $ info
-                (cmdNodeFetchAccount <$> argAddress)
+                (cmdNodeFetchAccount <$> argAddress "Account to fetch")
                 (progDesc "Fetch information about an account")
             , command "txn" $ info
                 (cmdNodeFetchTxn <$> argTxId)
@@ -273,16 +304,6 @@ nodeOpts = cmdNode <$> nodeUrl <*> sub
           (cmdNodeTxnStatus <$> argTxId)
           (progDesc "Get the status of a transaction in the pool")
       ]
-
-    nodeUrl :: Parser (Maybe NodeUrl)
-    nodeUrl
-      =   Just <$> (strOption $ mconcat
-            [ long "url"
-            , short 'u'
-            , metavar "NODE_URL"
-            , help "URL of the node to connect to (default: AlgoExplorer node based on the chosen network)"
-            ])
-      <|> pure Nothing
 
     argTxId :: Parser Text
     argTxId = strArgument $ mconcat
