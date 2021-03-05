@@ -13,6 +13,7 @@ module Network.Algorand.Node.Api
   , BuildVersion (..)
   , Version (..)
   , Account (..)
+  , TransactionsRep (..)
   , TransactionInfo (..)
   , SuggestedParams (..)
   ) where

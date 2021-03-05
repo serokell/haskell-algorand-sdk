@@ -357,7 +357,7 @@ cmdNodeSend json url = do
     True -> (BSL.toStrict . MP.pack . MP.Canonical) <$> readData @T.SignedTransaction json
     False -> readB64
   withNode url $ \(_, api) ->
-    Api._transactions api bs >>= printJson
+    Api._transactions api bs >>= putTextLn . Api.trTxId
 
 -- | Get txn status
 cmdNodeTxnStatus :: MonadSubcommand m => Text -> NodeUrl -> m ()
