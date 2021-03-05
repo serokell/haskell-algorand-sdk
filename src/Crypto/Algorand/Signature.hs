@@ -30,13 +30,12 @@ import Data.ByteArray (ByteArrayAccess, Bytes, convert)
 import Data.ByteString (ByteString)
 import qualified Data.ByteString as BS
 import Data.ByteString.Base64 (decodeBase64, encodeBase64)
-import Data.MessagePack (MessagePack (fromObject, toObject))
 import Data.Text (Text)
 import Control.Monad.IO.Class (MonadIO, liftIO)
 import Crypto.Error (CryptoFailable (CryptoFailed, CryptoPassed))
 import qualified Crypto.PubKey.Ed25519 as Sig
 
-import Data.Algorand.MessagePack (NonZeroValue (isNonZero))
+import Data.Algorand.MessagePack (AlgoMessagePack (..), NonZeroValue (isNonZero))
 import Network.Algorand.Node.Api.Json ()  -- instances for Bytes
 
 
@@ -120,10 +119,10 @@ newtype Signature = Signature Sig.Signature
 instance NonZeroValue Signature where
   isNonZero _ = True
 
-instance MessagePack Signature where
-  toObject (Signature sig) = toObject @Bytes . convert $ sig
-  fromObject o = do
-    bs <- fromObject @Bytes o
+instance AlgoMessagePack Signature where
+  toAlgoObject (Signature sig) = toAlgoObject @Bytes . convert $ sig
+  fromAlgoObject o = do
+    bs <- fromAlgoObject @Bytes o
     case sigFromBytes bs of
       Nothing -> fail "Malformed signature bytes"
       Just sig -> pure sig

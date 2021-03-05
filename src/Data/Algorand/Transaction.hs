@@ -41,6 +41,7 @@ import qualified Data.HashMap.Strict as HM
 import Data.MessagePack (pack)
 import Data.String (IsString)
 import Data.Text (Text)
+import qualified Data.Text as T
 import Data.Word (Word64)
 import GHC.Generics (Generic)
 
@@ -330,7 +331,7 @@ instance MessageUnpackObject TransactionType where
         pure AssetTransferTransaction
       "afrz" -> do
         pure AssetFreezeTransaction
-      x -> fail $ "Unsupported transaction type: " <> x
+      x -> fail $ "Unsupported transaction type: " <> T.unpack x
     where
       f = transactionTypeFieldName
 
