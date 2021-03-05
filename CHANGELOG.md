@@ -22,13 +22,25 @@ SPDX-License-Identifier: MPL-2.0
 * REST API client:
     * `/health`
     * `/versions`
-    * `/v2/accounts/<address>`
+    * `/v2/accounts/:address`
+    * `/v2/transactions/params`
+    * `/v2/transactions` (POST)
+    * `/v2/transactions/pending/:txid`
 * CLI:
     * `halgo acc`
         * `new`
-        * `view`
+        * `show`
         * `export`
     * `halgo node`
         * `url`
         * `version`
-        * `fetch` (accounts only)
+        * `fetch acc`
+        * `fetch txn
+        * `send`
+        * `txn-status`
+    * `halgo txn`
+        * `show`
+        * `show-unsigned`
+        * `sign`
+        * `id`
+        * `new pay`

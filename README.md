@@ -93,8 +93,114 @@ $ halgo node version
 is formatted as JSON. Here is an easy way to check your balance:
 
 ```text
-$ halgo node fetch HNVCPPGOW2SC2YVDVDICU3YNONSTEFLXDXREHJR2YBEKDC2Z3IUZSC6YGI | jq '.amount'
+$ halgo node fetch acc HNVCPPGOW2SC2YVDVDICU3YNONSTEFLXDXREHJR2YBEKDC2Z3IUZSC6YGI | jq '.amount'
 100000000
+```
+
+#### Transactions
+
+Let’s perform a simple payment transaction. Assuming you followed the steps above,
+you have an account in `./example.acc` with some algos on it.
+
+Let‘s create a second account:
+
+```text
+$ halgo acc new ./another.acc
+OFQHFQX6FMW4ELREN57QSH5U5LN63EGLZIFF7TEKIF5YWMNTPMXZ6BUSNE
+```
+
+Now let’s create a payment transaction sending 100k microalgos to this new account:
+
+```text
+$ halgo txn new pay $(halgo acc show ./another.acc) 100000 > /tmp/transaction
+```
+
+We saved the transaction to a file so we can look into it and see that it is
+simply a bunch of JSON:
+
+```text
+$ cat /tmp/transaction
+{
+    "gh": "SGO1GKSzyE7IEPItTxCByw9x8FmnrCDexi9/cOUJOiI=",
+    "lv": 12718072,
+    "amt": 100000,
+    "fv": 12717072,
+    "fee": 1000,
+    "gen": "testnet-v1.0",
+    "rcv": "OFQHFQX6FMW4ELREN57QSH5U5LN63EGLZIFF7TEKIF5YWMNTPMXZ6BUSNE",
+    "type": "pay",
+    "snd": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAY5HFKQ"
+}
+```
+
+You might wonder what’s up with the sender address. Well, when creating the
+transaction we only specified the receiver’s address. The sender will get
+filled in once we sign it. Let’s do just that:
+
+```text
+$ cat /tmp/transaction | halgo txn sign --json ./example.acc
+gqNzaWfEQB8XAgzMdY/bUFBhaInAm9ZezXKpx6VsG94ZUwEoKCawGbB326hGKj/FmMgGqiF+/aNWwwfpmmCfsX+TxVAkiQSjdHhuiaNhbXTOAAGGoKNmZWXNA+iiZnbOAMIMEKNnZW6sdGVzdG5ldC12MS4womdoxCBIY7UYpLPITsgQ8i1PEIHLD3HwWaesIN7GL39w5Qk6IqJsds4Awg/4o3JjdsQgcWBywv4rLcIuJG9/CR+06tvtkMvKCl/MikF7izGzey+jc25kxCA7aie8zrakLWKjqNAqbw1zZTIVdx3iQ6Y6wEihi1naKaR0eXBlo3BheQ==
+```
+
+Note the `--json` flag that tells `halgo` that it needs to read the transaction
+in the JSON format.
+
+A lot of base64! However, we can ask `halgo` to decode this madness for us
+(and it will even verify the signature):
+
+```text
+$ cat /tmp/transaction | halgo txn sign --json ./example.acc | halgo txn show
+{
+    "txn": {
+        "gh": "SGO1GKSzyE7IEPItTxCByw9x8FmnrCDexi9/cOUJOiI=",
+        "lv": 12718072,
+        "amt": 100000,
+        "fv": 12717072,
+        "fee": 1000,
+        "gen": "testnet-v1.0",
+        "rcv": "OFQHFQX6FMW4ELREN57QSH5U5LN63EGLZIFF7TEKIF5YWMNTPMXZ6BUSNE",
+        "type": "pay",
+        "snd": "HNVCPPGOW2SC2YVDVDICU3YNONSTEFLXDXREHJR2YBEKDC2Z3IUZSC6YGI"
+    },
+    "sig": "HxcCDMx1j9tQUGFoicCb1l7NcqnHpWwb3hlTASgoJrAZsHfbqEYqP8WYyAaqIX79o1bDB+maYJ+xf5PFUCSJBA=="
+}
+```
+
+This time we did not specify `--json`, since the input is not JSON, but rather
+raw bytes encoded as base64.
+
+Enough of looking at intermediate results, let’s submit it to the node:
+
+```text
+$ cat /tmp/transaction | halgo txn sign --json ./example.acc | halgo node send
+7MJLZW6SHUZOXVJOY2TEGHE4RQNOKDX5JB3HYWSDSKM75EUQD3SQ
+```
+
+The node returns the transaction ID, which we can now use to query the status:
+
+```text
+$ halgo node txn-status 7MJLZW6SHUZOXVJOY2TEGHE4RQNOKDX5JB3HYWSDSKM75EUQD3SQ
+Confirmed in round 12717084
+```
+
+and even fetch the transaction from the node (as long as it remains in its pool):
+
+```text
+$ halgo node fetch txn 7MJLZW6SHUZOXVJOY2TEGHE4RQNOKDX5JB3HYWSDSKM75EUQD3SQ
+{
+    "txn": {
+        "gh": "SGO1GKSzyE7IEPItTxCByw9x8FmnrCDexi9/cOUJOiI=",
+        "lv": 12718072,
+        "amt": 100000,
+        "fv": 12717072,
+        "fee": 1000,
+        "gen": "testnet-v1.0",
+        "rcv": "OFQHFQX6FMW4ELREN57QSH5U5LN63EGLZIFF7TEKIF5YWMNTPMXZ6BUSNE",
+        "type": "pay",
+        "snd": "HNVCPPGOW2SC2YVDVDICU3YNONSTEFLXDXREHJR2YBEKDC2Z3IUZSC6YGI"
+    },
+    "sig": "HxcCDMx1j9tQUGFoicCb1l7NcqnHpWwb3hlTASgoJrAZsHfbqEYqP8WYyAaqIX79o1bDB+maYJ+xf5PFUCSJBA=="
+}
 ```
 
 
