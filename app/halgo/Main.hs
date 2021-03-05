@@ -289,7 +289,7 @@ nodeOpts = cmdNode <$> optNodeUrl <*> sub
           (progDesc "Query the version information of the node")
       , command "fetch" $ info
           (hsubparser $ mconcat
-            [ command "account" $ info
+            [ command "acc" $ info
                 (cmdNodeFetchAccount <$> argAddress "Account to fetch")
                 (progDesc "Fetch information about an account")
             , command "txn" $ info
