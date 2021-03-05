@@ -210,6 +210,18 @@ If you encounter any issues when using this library or have improvement ideas,
 please open report in issue on GitHub. You are also very welcome to submit
 pull request, if you feel like doing so.
 
+### Development
+
+This SDK currently only supports a limited set of transaction types.
+Adding new transaction types should be easy as defining all the datatypes
+according to the specification and implementing serialisation. Serialisation
+is just a bunch of boilerplate code that follows the same pattern for
+all data types (it is absolutely possible to generate it using Generics
+and, hopefully, this will happen in the future). See `Data.Algorand.Transaction`.
+
+The definition of the node API is in `Network.Algorand.Node.Api` and adding
+missing endpoints should be pretty straightforward.
+
 
 ## License
 
