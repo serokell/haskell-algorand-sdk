@@ -207,7 +207,7 @@ instance MessagePackObject Transaction where
 
 instance MessageUnpackObject Transaction where
   fromCanonicalObject o = do
-      tSender <- o .: f "tSender"
+      tSender <- o .:? f "tSender"
       tFee <- o .:? f "tFee"
       tFirstValid <- o .:? f "tFirstValid"
       tLastValid <- o .:? f "tLastValid"
@@ -307,7 +307,7 @@ instance MessagePackObject TransactionType where
 instance MessageUnpackObject TransactionType where
   fromCanonicalObject o = o .: "type" >>= \case
       "pay" -> do
-        ptReceiver <- o .: f "ptReceiver"
+        ptReceiver <- o .:? f "ptReceiver"
         ptAmount <- o .:? f "ptAmount"
         ptCloseRemainderTo <- o .:? f "ptCloseRemainderTo"
         pure PaymentTransaction{..}

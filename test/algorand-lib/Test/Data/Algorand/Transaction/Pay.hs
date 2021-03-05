@@ -22,7 +22,7 @@ import Test.Data.Algorand.Transaction.Examples (genesisHashFromBytes, result)
 
 example :: Transaction
 example = Transaction
-  { tSender = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAY5HFKQ"
+  { tSender = "6TYVTN4MHDI7PGOXEZZRUIPPCERHSZLEAJUO5RHLGTFBLDHEGK35CYS3HE"
   , tFee = 1234
   , tFirstValid = 9000
   , tLastValid = 9010
@@ -31,7 +31,7 @@ example = Transaction
   , tGenesisHash = genesisHashFromBytes "Mf0h6zjkEIEZPtNM3zsrg+iHQFS0fZxhgr7w35I464M="
 
   , tTxType = PaymentTransaction
-    { ptReceiver = "OKL27YOBRCNNVQDQQ6UFC6IX7Z4BJ7EPBS3TSSAZ6V54SKYTTCMKUFCOIA"
+    { ptReceiver = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAY5HFKQ"
     , ptAmount = 1234567
     , ptCloseRemainderTo = Nothing
     }
@@ -43,7 +43,7 @@ example = Transaction
 
 example_encoded :: ByteString
 example_encoded = result
-   "iaNhbXTOABLWh6NmZWXNBNKiZnbNIyijZ2VuqXVuaXQtdGVzdKJnaMQgMf0h6zjkEIEZPtNM3zsrg+iHQFS0fZxhgr7w35I464OibHbNIzKjcmN2xCByl6/hwYia2sBwh6hReRf+eBT8jwy3OUgZ9XvJKxOYmKNzbmTEIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAApHR5cGWjcGF5"
+   "iKNhbXTOABLWh6NmZWXNBNKiZnbNIyijZ2VuqXVuaXQtdGVzdKJnaMQgMf0h6zjkEIEZPtNM3zsrg+iHQFS0fZxhgr7w35I464OibHbNIzKjc25kxCD08Vm3jDjR95nXJnMaIe8RInllZAJo7sTrNMoVjOQyt6R0eXBlo3BheQ=="
 
 unit_encoding :: Assertion
 unit_encoding =

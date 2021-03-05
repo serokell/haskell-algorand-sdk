@@ -34,7 +34,8 @@ import Servant.API (ToHttpApiData (toQueryParam))
 
 import Crypto.Algorand.Hash (hash32)
 import Crypto.Algorand.Signature (PublicKey, pkFromBytes, pkSize)
-import Data.Algorand.MessagePack (NonZeroValue (isNonZero), AlgoMessagePack (..))
+import Data.Algorand.MessagePack (CanonicalZero, NonZeroValue (isNonZero), AlgoMessagePack (..))
+import qualified Data.Algorand.MessagePack (zero)
 
 
 -- | The length of the checksum appended to a public key.
@@ -59,7 +60,10 @@ instance IsString Address where
     Just a -> a
 
 instance NonZeroValue Address where
-  isNonZero _ = True
+  isNonZero = (/= zero)
+
+instance CanonicalZero Address where
+  zero = Data.Algorand.Address.zero
 
 instance AlgoMessagePack Address where
   toAlgoObject (Address pk) = toAlgoObject @Bytes (convert pk)
