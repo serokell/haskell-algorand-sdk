@@ -16,11 +16,15 @@ module Network.Algorand.Node.Api
   , TransactionsRep (..)
   , TransactionInfo (..)
   , SuggestedParams (..)
-  , TealCompileRep (..)
+  , NanoSec (..)
+  , NodeStatus (..)
+  , msgPackFormat
   ) where
 
 import GHC.Generics (Generic)
 
+import qualified Data.Binary as Binary
+import Data.Aeson (FromJSON, ToJSON)
 import Data.Aeson.TH (deriveJSON)
 import Data.ByteString (ByteString)
 import qualified Data.ByteString.Lazy as BSL
@@ -28,17 +32,17 @@ import Data.Int (Int64)
 import Data.Text (Text)
 import Data.Word (Word64)
 import Network.HTTP.Media ((//))
-import Servant.API ((:>), Capture, Get, JSON, PlainText, Post, ReqBody)
+import Servant.API ((:>), Capture, Get, JSON, Post, ReqBody, QueryParam)
 import qualified Servant.API.ContentTypes as Mime
 import Servant.API.Generic (ToServantApi, (:-))
 
+import qualified Data.Algorand.MessagePack as MP
 import Data.Algorand.Address (Address)
 import Data.Algorand.Amount (Microalgos)
-import qualified Data.Algorand.MessagePack as MP
 import Data.Algorand.Transaction (AppIndex, AssetIndex, GenesisHash)
 import Data.Algorand.Transaction.Signed (SignedTransaction)
+import Data.Algorand.Block
 import Network.Algorand.Node.Api.Json (algorandCamelOptions, algorandSnakeOptions, algorandTrainOptions)
-
 
 -- | Node software build version information.
 data BuildVersion = BuildVersion
@@ -68,7 +72,6 @@ data TransactionsRep = TransactionsRep
   deriving (Generic, Show)
 $(deriveJSON algorandCamelOptions 'TransactionsRep)
 
-
 data Account = Account
   { aAddress :: Address
   , aAmount :: Microalgos
@@ -90,7 +93,6 @@ data Account = Account
   deriving (Generic, Show)
 $(deriveJSON algorandTrainOptions 'Account)
 
-
 data TransactionInfo = TransactionInfo
   { tiApplicationIndex :: Maybe AppIndex
   , tiAssetIndex :: Maybe AssetIndex
@@ -107,7 +109,6 @@ data TransactionInfo = TransactionInfo
   }
 $(deriveJSON algorandTrainOptions 'TransactionInfo)
 
-
 data SuggestedParams = SuggestedParams
   { spConsensusVersion :: Text
   , spFee :: Microalgos
@@ -118,13 +119,47 @@ data SuggestedParams = SuggestedParams
   }
 $(deriveJSON algorandTrainOptions 'SuggestedParams)
 
+newtype NanoSec = NanoSec { unNanoSec :: Integer }
+  deriving stock (Eq, Ord, Show)
+  deriving newtype (ToJSON, FromJSON)
 
-data TealCompileRep = TealCompileRep
-  { tcrResult :: ByteString
-  --, tcrHash :: Base32 bytes  -- why
+data NodeStatus = NodeStatus
+  { nsCatchupTime :: NanoSec
+  , nsLastRound :: Round
+  , nsLastVersion :: Text
+  -- ^ indicates the last consensus version supported
+  , nsNextVersion :: Text
+  -- ^ NextVersion of consensus protocol to use
+  , nsNextVersionRound :: Round
+  -- ^ round at which the next consensus version will apply
+  , nsNextVersionSupported :: Bool
+  -- ^ indicates whether the next consensus version
+  -- is supported by this node
+  , nsStoppedAtUnsupportedRound :: Bool
+  -- ^ indicates that the node does not supports
+  -- the new rounds and has stopped making progress
+  , nsTimeSinceLastRound :: NanoSec
+  , nsCatchpoint :: Maybe Text
+  -- ^ The current catchpoint that is being caught up to
+  , nsCatchpointAcquiredBlocks :: Maybe Integer
+  -- ^ The number of blocks that have already been
+  -- obtained by the node as part of the catchup
+  , nsCatchpointProcessedAccounts :: Maybe Integer
+  -- ^ The number of accounts from the current catchpoint
+  -- that have been processed so far as part of the catchup
+  , nsCatchpointTotalAccounts :: Maybe Integer
+  -- ^ The total number of accounts included in
+  -- the current catchpoint
+  , nsCatchpointTotalBlocks :: Maybe Integer
+  -- ^ The total number of blocks that are required to complete
+  -- the current catchpoint catchup
+  , nsCatchpointVerifiedAccounts :: Maybe Integer
+  -- ^ The number of accounts from the current catchpoint that
+  -- have been verified so far as part of the catchup
+  , nsLastCatchpoint :: Maybe Text
+  -- ^ The last catchpoint seen by the node
   }
-$(deriveJSON algorandTrainOptions 'TealCompileRep)
-
+$(deriveJSON algorandTrainOptions 'NodeStatus)
 
 -- | The part of the API that does not depend on the version.
 data ApiAny route = ApiAny
@@ -136,7 +171,6 @@ data ApiAny route = ApiAny
       :> Get '[JSON] Version
   }
   deriving (Generic)
-
 
 -- | Algod API (v2 only).
 data ApiV2 route = ApiV2
@@ -161,14 +195,19 @@ data ApiV2 route = ApiV2
       :- "transactions"
       :> "params"
       :> Get '[JSON] SuggestedParams
-  , _tealCompile :: route
-      :- "teal"
-      :> "compile"
-      :> ReqBody '[PlainText] Text
-      :> Post '[JSON] TealCompileRep
+  , _status :: route
+      :- "status"
+      :> Get '[JSON] NodeStatus
+  , _block :: route
+      :- "blocks"
+      :> Capture "round" Round
+      :> QueryParam "format" Text
+      :> Get '[MsgPack] BlockWrapped
   }
   deriving (Generic)
 
+msgPackFormat :: Maybe Text
+msgPackFormat = Just "msgpack"
 
 -- | Algod API.
 data Api route = Api
@@ -180,22 +219,31 @@ data Api route = Api
   }
   deriving (Generic)
 
-
 {-
  - Utils
  -}
 
--- | Content type for the `/transactions` endpoint.
+-- | Content type for the `v2/transactions` endpoint.
 data Binary
-
 instance Mime.Accept Binary where
   contentType _ = "application" // "x-binary"
-
 instance Mime.MimeRender Binary ByteString where
   mimeRender _ = BSL.fromStrict
-
 instance Mime.MimeRender Binary BSL.ByteString where
   mimeRender _ = id
-
 instance Mime.MimeRender Binary [SignedTransaction] where
   mimeRender _ = mconcat . map (MP.pack . MP.Canonical)
+
+-- | Content type for the `v2/blocks` endpoint.
+data MsgPack
+instance Mime.Accept MsgPack where
+  contentType _ = "application" // "msgpack"
+instance Mime.MimeUnrender MsgPack BlockWrapped where
+  mimeUnrender _ = parseMsgPack
+    where
+      eitherToM (Left  (_, _, msg)) = fail msg
+      eitherToM (Right (_, _, res)) = pure res
+      parseMsgPack bs = MP.runEitherError $
+        eitherToM (Binary.decodeOrFail bs)
+          >>= MP.fromAlgoObject . MP.unCompatObject
+          >>= MP.fromCanonicalObject

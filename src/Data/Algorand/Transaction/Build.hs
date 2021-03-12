@@ -37,7 +37,7 @@ buildTransaction sp@SuggestedParams{..} sender tt = tx1{ tFee = suggestedFee sp 
       , tLastValid = spLastRound + 1000
       , tNote = Nothing
       , tGenesisId = Just spGenesisId
-      , tGenesisHash = spGenesisHash
+      , tGenesisHash = Just spGenesisHash
       , tTxType = tt
       , tGroup = Nothing
       , tLease = Nothing

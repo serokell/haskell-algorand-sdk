@@ -46,7 +46,6 @@ algorandTrainOptions :: Options
 algorandTrainOptions = defaultOptions
   { fieldLabelModifier = fieldLabelModifier (aesonPrefix trainCase) }
 
-
 instance ToJSON ByteString where
   toJSON = toJSON . encodeBase64
   toEncoding = toEncoding . encodeBase64
@@ -58,14 +57,12 @@ instance FromJSON ByteString where
       Right bs -> pure bs
       Left err -> parseFail $ T.unpack err
 
-
 instance ToJSON Bytes where
   toJSON = toJSON @ByteString . convert
   toEncoding = toEncoding @ByteString . convert
 
 instance FromJSON Bytes where
   parseJSON = fmap convert . parseJSON @ByteString
-
 
 instance (ByteArray b, ToJSON b, KnownNat n) => ToJSON  (SizedByteArray n b) where
   toJSON = toJSON . unSizedByteArray

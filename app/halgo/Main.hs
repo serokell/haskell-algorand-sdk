@@ -26,6 +26,7 @@ import UnliftIO (MonadIO, MonadUnliftIO, liftIO)
 import UnliftIO.Directory (doesPathExist)
 import UnliftIO.IO (IOMode (ReadMode, WriteMode), withFile)
 
+import qualified Data.Algorand.Block as B
 import Crypto.Algorand.Signature (SecretKey)
 import qualified Crypto.Algorand.Signature as S
 import qualified Data.Algorand.Address as A
@@ -78,6 +79,7 @@ opts = (,) <$> optsGlobal <*> hsubparser optsCommand
           contractOpts
           (progDesc "Work with TEAL programs")
       ]
+
 
 -- | Main.
 main :: IO ()
@@ -340,7 +342,18 @@ nodeOpts = cmdNode <$> optNodeUrl <*> sub
       , command "txn-status" $ info
           (cmdNodeTxnStatus <$> argTxId)
           (progDesc "Get the status of a transaction in the pool")
+      , command "status" $ info
+          (pure cmdNodeStatus)
+          (progDesc "Show the status of the node that will be used")
+      , command "block" $ info
+          (cmdPrintBlock <$> roundOpt)
+          (progDesc "Retrieve block")
       ]
+
+    roundOpt = B.Round <$> option auto
+      ( long "round"
+           <> metavar "INTEGER"
+           <> help "Round number of Algorand blockchain" )
 
     argTxId :: Parser Text
     argTxId = strArgument $ mconcat
@@ -376,6 +389,15 @@ withNode url act = do
 cmdNodeVersion :: MonadSubcommand m => NodeUrl -> m ()
 cmdNodeVersion url = withNode url $ \(v, _) -> putJson v
 
+cmdPrintBlock :: MonadSubcommand m => B.Round -> NodeUrl -> m ()
+cmdPrintBlock rnd url = withNode url $ \(_, api) -> do
+  B.BlockWrapped block <- Api._block api rnd Api.msgPackFormat
+  let txs = TS.getUnverifiedTransaction <$> B.bTransactions block
+  putTextLn $ "Retrieved " +| (if null txs then "empty " else "" :: Text)
+    |+ "block for round " +| B.unRound (B.bRound block)
+    |+ " created at " +| B.bTimestamp block
+    |+ (if null txs then "" else " with txs:")
+  mapM_ putJson txs
 
 -- | Fetch information about an account.
 cmdNodeFetchAccount :: MonadSubcommand m => A.Address -> NodeUrl -> m ()
@@ -402,7 +424,6 @@ cmdNodeTxnStatus txId url = withNode url $ \(_, api) ->
     N.KickedOut reason -> die $ "Kicked out: "+|reason|+""
     N.Confirmed r -> putTextLn . pretty $ "Confirmed in round " <> show r
 
-
 argProgramSourceFile :: Parser FilePath
 argProgramSourceFile = strArgument $ mconcat
   [ metavar "<program source file>"
@@ -424,7 +445,8 @@ contractOpts = hsubparser $ mconcat
 cmdContractCompile :: MonadSubcommand m => FilePath -> NodeUrl -> m ()
 cmdContractCompile sourcePath url = withNode url $ \(_, api) -> do
   source <- liftIO $ T.readFile sourcePath
-  bin <- Api.tcrResult <$> Api._tealCompile api source
+  -- TODO replace undefined
+  bin <- undefined api source
   let outPath = sourcePath <> ".tok"
   putNoticeLn $ "Writing compiled program to `"+|outPath|+"`"
   liftIO $ BS.writeFile outPath bin
@@ -434,3 +456,7 @@ cmdContractAddress :: MonadSubcommand m => FilePath -> m ()
 cmdContractAddress programPath = do
   program <- liftIO $ BS.readFile programPath
   putTextLn (A.toText . A.fromContractCode $ program)
+
+cmdNodeStatus :: MonadSubcommand m => NodeUrl -> m ()
+cmdNodeStatus url = withNode url $ \(_, api) ->
+  Api._status api >>= putJson

@@ -65,7 +65,7 @@ data Transaction = Transaction
   , tLastValid :: Word64
   , tNote :: Maybe ByteString
   , tGenesisId :: Maybe Text
-  , tGenesisHash :: GenesisHash
+  , tGenesisHash :: Maybe GenesisHash
 
   , tTxType :: TransactionType
   , tGroup :: Maybe TransactionGroupId
@@ -193,7 +193,7 @@ instance MessageUnpackObject Transaction where
       tLastValid <- o .:? f "tLastValid"
       tNote <- o .:? f "tNote"
       tGenesisId <- o .:? f "tGenesisId"
-      tGenesisHash <- o .: f "tGenesisHash"
+      tGenesisHash <- o .:? f "tGenesisHash"
       tGroup <- o .:? f "tGroup"
       tLease <- o .:? f "tLease"
       tRekeyTo <- o .:? f "tRekeyTo"

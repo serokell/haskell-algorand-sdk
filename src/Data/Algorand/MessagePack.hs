@@ -39,25 +39,81 @@ module Data.Algorand.MessagePack
 
   , EitherError (..)
 
-  , module Data.MessagePack
+  , MessagePack (..)
   , AlgoMessagePack (..)
+  , pack
+  , unpack
+  , CompatObject (..)
   ) where
 
 
 import Control.Monad ((>=>))
+import Control.Applicative ((<|>), empty)
+import Data.Binary (Binary (..), Get, decodeOrFail)
+import Data.Binary.Get (getByteString, getWord16be,
+                        getWord32be, getWord8)
+import Data.Bits ((.&.))
 import Data.ByteArray (ByteArray, Bytes, convert)
 import Data.ByteArray.Sized (SizedByteArray, sizedByteArray, unSizedByteArray)
 import Data.ByteString (ByteString)
 import qualified Data.ByteString as BS
+import qualified Data.ByteString.Lazy as LBS
 import Data.Default.Class (Default (def))
 import Data.Function ((&))
 import Data.List (sortOn)
-import Data.MessagePack (Assoc (Assoc, unAssoc), MessagePack (fromObject, toObject), Object (ObjectArray, ObjectNil), toObject, pack, unpack)
+import qualified Data.MessagePack as MP
+import Data.MessagePack (Assoc (Assoc, unAssoc), MessagePack (fromObject, toObject), Object (..), pack)
 import Data.Text (Text)
 import qualified Data.Text as T
+import qualified Data.Text.Encoding as T
 import Data.Word (Word64)
 import GHC.TypeLits (KnownNat)
 
+unpack :: (Monad m, MonadFail m, MessagePack a)
+       => LBS.ByteString -> m a
+unpack = eitherToM . decodeOrFail >=> fromObject . unCompatObject
+  where
+    eitherToM (Left  (_, _, msg)) = fail msg
+    eitherToM (Right (_, _, res)) = return res
+
+-- | Data type to account for broken MsgPack
+-- encoding by algorand go client
+-- (see https://github.com/algorand/go-algorand/issues/1968).
+newtype CompatObject = CompatObject { unCompatObject :: Object }
+
+instance Binary CompatObject where
+  get = CompatObject <$> getObject
+  {-# INLINE get #-}
+  put = MP.putObject . unCompatObject
+  {-# INLINE put #-}
+
+getStrCompat :: Get Object
+getStrCompat = do
+  len <- getWord8 >>= \case
+    t | t .&. 0xE0 == 0xA0 ->
+      return $ fromIntegral $ t .&. 0x1F
+    0xD9 -> fromIntegral <$> getWord8
+    0xDA -> fromIntegral <$> getWord16be
+    0xDB -> fromIntegral <$> getWord32be
+    _    -> empty
+  bs <- getByteString len
+  pure $ either
+    (const $ ObjectBin bs) ObjectStr $
+    T.decodeUtf8' bs
+
+getObject :: Get Object
+getObject =
+      ObjectNil    <$  MP.getNil
+  <|> ObjectBool   <$> MP.getBool
+  <|> ObjectInt    <$> MP.getInt
+  <|> ObjectWord   <$> MP.getWord
+  <|> ObjectFloat  <$> MP.getFloat
+  <|> ObjectDouble <$> MP.getDouble
+  <|> getStrCompat
+  <|> ObjectBin    <$> MP.getBin
+  <|> ObjectArray  <$> MP.getArray getObject
+  <|> ObjectMap    <$> MP.getMap getObject getObject
+  <|> uncurry ObjectExt <$> MP.getExt
 
 -- | Our own 'MessagePack' class, becuase the standard one has some weird instances.
 --
@@ -68,6 +124,10 @@ class AlgoMessagePack a where
   fromAlgoObject :: MonadFail m => Object -> m a
 
 instance AlgoMessagePack ByteString where
+  toAlgoObject = toObject
+  fromAlgoObject = fromObject
+
+instance AlgoMessagePack Bool where
   toAlgoObject = toObject
   fromAlgoObject = fromObject
 
@@ -85,11 +145,10 @@ instance AlgoMessagePack a => AlgoMessagePack [a] where
     ObjectArray xs -> mapM fromAlgoObject xs
     _              -> fail "invalid encoding for list"
 
-instance (AlgoMessagePack a) => AlgoMessagePack (Maybe a) where
+instance AlgoMessagePack a => AlgoMessagePack (Maybe a) where
   toAlgoObject Nothing = ObjectNil
   toAlgoObject (Just a) = toAlgoObject a
   fromAlgoObject = fmap Just . fromAlgoObject
-
 
 -- | Class for data types that have a reasonable “canonical zero” value.
 class CanonicalZero a where
@@ -210,13 +269,17 @@ o .:>? k = o .:?? k >>= \case
 -- | A wrapper with its 'MessagePack' instance goin via 'CanonicalObject'.
 newtype Canonical a = Canonical { unCanonical :: a }
 
+instance (MessagePackObject a, MessageUnpackObject a) => AlgoMessagePack (Canonical a) where
+  toAlgoObject = toAlgoObject . toCanonicalObject . unCanonical
+  fromAlgoObject = fromAlgoObject >=> fromCanonicalObject >=> pure . Canonical
+
 instance (MessagePackObject a, MessageUnpackObject a) => MessagePack (Canonical a) where
-  toObject = toAlgoObject . toCanonicalObject . unCanonical
-  fromObject = fromAlgoObject >=> fromCanonicalObject >=> pure . Canonical
+  toObject = toAlgoObject
+  fromObject = fromAlgoObject
 
 
 -- | A helper for using with @unpack@.
-newtype EitherError a = EitherError (Either String a)
+newtype EitherError a = EitherError { runEitherError :: Either String a }
   deriving (Applicative, Eq, Functor, Monad)
 
 instance Show a => Show (EitherError a) where
@@ -226,7 +289,6 @@ instance Show a => Show (EitherError a) where
 
 instance MonadFail EitherError where
   fail = EitherError . Left
-
 
 {-
  - A bunch of orphan instances that we need.

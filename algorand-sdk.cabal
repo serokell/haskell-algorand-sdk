@@ -32,6 +32,7 @@ library
       Crypto.Algorand.Signature
       Data.Algorand.Address
       Data.Algorand.Amount
+      Data.Algorand.Block
       Data.Algorand.MessagePack
       Data.Algorand.MessagePack.Json
       Data.Algorand.Transaction
@@ -54,6 +55,7 @@ library
     , base >=4.7 && <4.15
     , base32 >=0.2 && <0.3
     , base64 >=0.0.1.0 && <0.5
+    , binary
     , bytestring >=0.9 && <0.11
     , containers >=0.5 && <0.7
     , cryptonite >=0.1
@@ -69,6 +71,7 @@ library
     , servant-client >=0.14 && <0.19
     , servant-client-core >=0.14 && <0.19
     , text >=0.1 && <1.3
+    , time
     , unordered-containers >=0.1.3 && <0.3
   default-language: Haskell2010
 
@@ -100,6 +103,7 @@ executable halgo
     , servant-client
     , servant-client-core
     , text
+    , time
     , unliftio >=0.1 && <0.3
     , with-utf8 >=1.0 && <1.1
   default-language: Haskell2010
@@ -139,4 +143,5 @@ test-suite algorand-lib-test
     , tasty-hedgehog
     , tasty-hunit
     , text >=0.1 && <1.3
+    , time
   default-language: Haskell2010
