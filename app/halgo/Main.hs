@@ -11,18 +11,15 @@ module Main
 import Options.Applicative
 
 import Control.Exception.Safe (MonadCatch, handle, throwIO)
-import Control.Monad ((>=>), when)
+import Control.Monad ((>=>), forM_, when)
 import Control.Monad.Reader (MonadReader, ReaderT, asks, runReaderT)
-import Data.Aeson (FromJSON)
-import qualified Data.Aeson as JS
 import qualified Data.ByteString as BS
-import Data.ByteString.Base64 (decodeBase64, encodeBase64)
 import qualified Data.ByteString.Lazy as BSL
 import Data.Text (Text)
 import qualified Data.Text as T
 import qualified Data.Text.IO as T
 import Data.Word (Word64)
-import Fmt ((+|), (|+), build, pretty)
+import Fmt ((+|), (|+), pretty)
 import Main.Utf8 (withUtf8)
 import Servant.Client.Generic (AsClientT)
 import qualified System.IO.Error as IOE
@@ -42,7 +39,8 @@ import Network.Algorand.Node.Api (ApiV2)
 import qualified Network.Algorand.Node.Api as Api
 import qualified Network.Algorand.Node.Util as N
 
-import Halgo.Util (die, handleApiError, putTextLn, printJson)
+import Halgo.IO (putItemsB64, putItemsJson, putJson, putTextLn, readItemsB64, readItemsJson, readBytesB64)
+import Halgo.Util (die, handleApiError)
 
 
 -- | CLI options applicable to all commands.
@@ -163,13 +161,13 @@ txnOpts :: Parser Subcommand
 txnOpts = hsubparser $ mconcat
     [ command "show" $ info
         (cmdTxnShow <$> flagVerify)
-        (progDesc "Decode from base64 and display a signed transaction (reads from stdin)")
+        (progDesc "Decode from base64 and display signed transactions (reads from stdin)")
     , command "show-unsigned" $ info
         (pure cmdTxnShowUnsigned)
-        (progDesc "Decode from base64 and display an unsigned transaction (reads from stdin)")
+        (progDesc "Decode from base64 and display unsigned transactions (reads from stdin)")
     , command "sign" $ info
         (cmdTxnSign <$> flagJson <*> argSkFile)
-        (progDesc "Sign a transaction (reads from stdin)")
+        (progDesc "Sign one or multiple transactions (reads from stdin)")
     , command "id" $ info
         (cmdTxnId <$> flagJson)
         (progDesc "Calculate transaction ID")
@@ -199,75 +197,49 @@ txnOpts = hsubparser $ mconcat
           (progDesc "Create a new AssetTransfer transaction")
       ]
 
--- | Read base64 bytes from stdin.
-readB64 :: MonadIO m => m BS.ByteString
-readB64 = do
-  b64 <- liftIO BS.getLine
-  case decodeBase64 b64 of
-    Left err -> die $ build err
-    Right bs -> pure bs
 
--- | Decode an object from base64.
-dataFromB64 :: (MP.MessagePack (MP.Canonical d), MonadIO m) => BS.ByteString -> m d
-dataFromB64 bs = case MP.unpack (BSL.fromStrict bs) of
-    MP.EitherError (Left err) -> die $ build err
-    MP.EitherError (Right (MP.Canonical r)) -> pure r
-
--- | Decode an object from JSON.
-dataFromJson :: (FromJSON d, MonadIO m) => BSL.ByteString -> m d
-dataFromJson bs = case JS.eitherDecode bs of
-  Left err -> die $ build err
-  Right txn -> pure txn
-
--- | Encode a signed transaction.
-dataToB64 :: (MP.MessagePack (MP.Canonical d)) => d -> Text
-dataToB64 = encodeBase64 . BSL.toStrict . MP.pack . MP.Canonical
-
--- | Read data either from JSON or from base64.
-readData :: (FromJSON d, MP.MessagePack (MP.Canonical d), MonadIO m) => Bool -> m d
-readData False = readB64 >>= dataFromB64
-readData True = liftIO BSL.getContents >>= dataFromJson
-
-
--- | Show a transaction.
+-- | Show signed transactions.
 cmdTxnShow :: MonadSubcommand m => Bool -> m ()
 cmdTxnShow verify = do
-  stxn <- readData @T.SignedTransaction False
+  stxns <- readItemsB64 @T.SignedTransaction
   when verify $
-    case T.verifyTransaction stxn of
+    forM_ stxns $ \stxn -> case T.verifyTransaction stxn of
       Nothing -> die "Invalid signature. Run with --no-verify if you still want to see it."
       Just _txn -> pure ()
-  printJson stxn
+  putItemsJson stxns
 
--- | Show an unsigned transaction.
+-- | Show unsigned transactions.
 cmdTxnShowUnsigned :: MonadSubcommand m => m ()
-cmdTxnShowUnsigned = readData @T.Transaction False >>= printJson
+cmdTxnShowUnsigned = readItemsB64 @T.Transaction >>= putItemsJson
 
--- | Sign a transaction.
+-- | Sign transactions.
 cmdTxnSign :: MonadSubcommand m => Bool -> FilePath -> m ()
 cmdTxnSign json skFile = do
   sk <- loadAccount skFile
-  txn <- readData json
-  let txn' = txn { T.tSender = A.fromPublicKey $ S.toPublic sk }
-  liftIO $ T.putStrLn $ dataToB64 (T.signTransaction sk txn')
+  txns <- if json then readItemsJson else readItemsB64
+  let txns' = map (\txn -> txn { T.tSender = A.fromPublicKey $ S.toPublic sk }) txns
+  let signed = map (T.signTransaction sk) txns'
+  putItemsB64 signed
 
 -- | Transaction ID.
 cmdTxnId :: MonadSubcommand m => Bool -> m ()
-cmdTxnId json = readData json >>= liftIO . T.putStrLn . T.transactionId
+cmdTxnId json = do
+  txns <- if json then readItemsJson else readItemsB64
+  mapM_ (putTextLn . T.transactionId) txns
 
 cmdTxnNewPay :: MonadSubcommand m => A.Address -> A.Microalgos -> NodeUrl -> m ()
 cmdTxnNewPay to amnt url = withNode url $ \(_, api) -> do
   params <- Api._transactionsParams api
   let payment = T.PaymentTransaction to amnt Nothing
   let txn = T.buildTransaction params A.zero payment
-  printJson txn
+  putItemsB64 [txn]
 
 cmdTxnNewAxfr :: MonadSubcommand m => T.AssetIndex -> A.Address -> Word64 -> NodeUrl -> m ()
 cmdTxnNewAxfr index to amnt url = withNode url $ \(_, api) -> do
   params <- Api._transactionsParams api
   let payment = T.AssetTransferTransaction index amnt Nothing to Nothing
   let txn = T.buildTransaction params A.zero payment
-  printJson txn
+  putItemsB64 [txn]
 
 
 {-
@@ -316,7 +288,7 @@ nodeOpts = cmdNode <$> optNodeUrl <*> sub
           (progDesc "Fetch something from the node")
       , command "send" $ info
           (cmdNodeSend <$> flagJson)
-          (progDesc "Send a signed transaction (reads from stdin)")
+          (progDesc "Send signed transactions (reads from stdin)")
       , command "txn-status" $ info
           (cmdNodeTxnStatus <$> argTxId)
           (progDesc "Get the status of a transaction in the pool")
@@ -354,27 +326,29 @@ withNode url act = do
   connect url net >>= handleApiError . act
 
 cmdNodeVersion :: MonadSubcommand m => NodeUrl -> m ()
-cmdNodeVersion url = withNode url $ \(v, _) -> printJson v
+cmdNodeVersion url = withNode url $ \(v, _) -> putJson v
 
 
 -- | Fetch information about an account.
 cmdNodeFetchAccount :: MonadSubcommand m => A.Address -> NodeUrl -> m ()
 cmdNodeFetchAccount addr url = withNode url $ \(_, api) ->
-  Api._account api addr >>= printJson
+  Api._account api addr >>= putJson
 
 -- | Fetch a transaction (from the pool).
 cmdNodeFetchTxn :: MonadSubcommand m => Text -> NodeUrl -> m ()
 cmdNodeFetchTxn txId url = withNode url $ \(_, api) ->
-  Api._transactionsPending api txId >>= printJson . Api.tiTxn
+  Api._transactionsPending api txId >>= putJson . Api.tiTxn
 
--- | Send a transaction (or, actually, any bytes).
+-- | Send transactions (or, actually, any bytes).
 cmdNodeSend :: MonadSubcommand m => Bool -> NodeUrl -> m ()
 cmdNodeSend json url = do
-  bs <- case json of
-    True -> (BSL.toStrict . MP.pack . MP.Canonical) <$> readData @T.SignedTransaction json
-    False -> readB64
-  withNode url $ \(_, api) ->
-    Api._transactions api bs >>= putTextLn . Api.trTxId
+    bss <- case json of
+      True -> map packTx <$> readItemsJson @T.SignedTransaction
+      False -> readBytesB64
+    withNode url $ \(_, api) ->
+      mapM_ (Api._transactions api >=> putTextLn . Api.trTxId) bss
+  where
+    packTx = BSL.toStrict . MP.pack . MP.Canonical
 
 -- | Get txn status
 cmdNodeTxnStatus :: MonadSubcommand m => Text -> NodeUrl -> m ()

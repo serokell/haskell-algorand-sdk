@@ -119,7 +119,7 @@ We saved the transaction to a file so we can look into it and see that it is
 simply a bunch of JSON:
 
 ```text
-$ cat /tmp/transaction
+$ cat /tmp/transaction | halgo txn show-unsigned
 {
     "gh": "SGO1GKSzyE7IEPItTxCByw9x8FmnrCDexi9/cOUJOiI=",
     "lv": 12718072,
@@ -138,18 +138,15 @@ transaction we only specified the receiver’s address. The sender will get
 filled in once we sign it. Let’s do just that:
 
 ```text
-$ cat /tmp/transaction | halgo txn sign --json ./example.acc
+$ cat /tmp/transaction | halgo txn sign ./example.acc
 gqNzaWfEQB8XAgzMdY/bUFBhaInAm9ZezXKpx6VsG94ZUwEoKCawGbB326hGKj/FmMgGqiF+/aNWwwfpmmCfsX+TxVAkiQSjdHhuiaNhbXTOAAGGoKNmZWXNA+iiZnbOAMIMEKNnZW6sdGVzdG5ldC12MS4womdoxCBIY7UYpLPITsgQ8i1PEIHLD3HwWaesIN7GL39w5Qk6IqJsds4Awg/4o3JjdsQgcWBywv4rLcIuJG9/CR+06tvtkMvKCl/MikF7izGzey+jc25kxCA7aie8zrakLWKjqNAqbw1zZTIVdx3iQ6Y6wEihi1naKaR0eXBlo3BheQ==
 ```
-
-Note the `--json` flag that tells `halgo` that it needs to read the transaction
-in the JSON format.
 
 A lot of base64! However, we can ask `halgo` to decode this madness for us
 (and it will even verify the signature):
 
 ```text
-$ cat /tmp/transaction | halgo txn sign --json ./example.acc | halgo txn show
+$ cat /tmp/transaction | halgo txn sign ./example.acc | halgo txn show
 {
     "txn": {
         "gh": "SGO1GKSzyE7IEPItTxCByw9x8FmnrCDexi9/cOUJOiI=",
@@ -166,13 +163,10 @@ $ cat /tmp/transaction | halgo txn sign --json ./example.acc | halgo txn show
 }
 ```
 
-This time we did not specify `--json`, since the input is not JSON, but rather
-raw bytes encoded as base64.
-
 Enough of looking at intermediate results, let’s submit it to the node:
 
 ```text
-$ cat /tmp/transaction | halgo txn sign --json ./example.acc | halgo node send
+$ cat /tmp/transaction | halgo txn sign ./example.acc | halgo node send
 7MJLZW6SHUZOXVJOY2TEGHE4RQNOKDX5JB3HYWSDSKM75EUQD3SQ
 ```
 

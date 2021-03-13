@@ -71,6 +71,7 @@ library
 executable halgo
   main-is: Main.hs
   other-modules:
+      Halgo.IO
       Halgo.Util
       Paths_algorand_sdk
   hs-source-dirs:
