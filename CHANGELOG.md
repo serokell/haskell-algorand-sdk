@@ -17,6 +17,7 @@ SPDX-License-Identifier: MPL-2.0
 * Transaction types:
     * Payment transactions
     * Application call transactions
+    * Asset transfer transactions
 * Canonical MessagePack serialisation
 * Signing and signature verification (only for simple single signatures)
 * REST API client:
@@ -44,3 +45,4 @@ SPDX-License-Identifier: MPL-2.0
         * `sign`
         * `id`
         * `new pay`
+        * `new axfr`

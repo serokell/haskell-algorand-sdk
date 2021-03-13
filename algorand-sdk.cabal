@@ -106,6 +106,7 @@ test-suite algorand-lib-test
       Test.Crypto.Algorand.Signature
       Test.Data.Algorand.Address
       Test.Data.Algorand.Transaction
+      Test.Data.Algorand.Transaction.AssetTransfer
       Test.Data.Algorand.Transaction.Examples
       Test.Data.Algorand.Transaction.Pay
       Paths_algorand_sdk

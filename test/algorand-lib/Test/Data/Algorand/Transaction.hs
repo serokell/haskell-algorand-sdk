@@ -62,6 +62,12 @@ genTransactionType = G.choice
     <*> G.list (R.linear 0 10) (G.word64 (R.linear 0 10000))
     <*> (Just <$> genStateSchema)
     <*> (Just <$> genStateSchema)
+  , AssetTransferTransaction
+    <$> G.word64 R.constantBounded
+    <*> G.word64 R.constantBounded
+    <*> G.maybe genAddress
+    <*> genAddress
+    <*> G.maybe genAddress
   ]
 
 genTransaction :: MonadGen m => m Transaction

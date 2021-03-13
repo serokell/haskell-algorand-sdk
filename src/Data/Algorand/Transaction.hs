@@ -100,12 +100,17 @@ data TransactionType
     , actGlobalStateSchema :: Maybe StateSchema
     , actLocalStateSchema :: Maybe StateSchema
     }
+  | AssetTransferTransaction
+    { attXferAsset :: AssetIndex
+    , attAssetAmount :: Word64
+    , attAssetSender :: Maybe Address  -- required in a spec, but not really
+    , attAssetReceiver :: Address
+    , attAssetCloseTo :: Maybe Address
+    }
   -- TODO:
   | KeyRegistrationTransaction
     {}
   | AssetConfigTransaction
-    {}
-  | AssetTransferTransaction
     {}
   | AssetFreezeTransaction
     {}
@@ -261,6 +266,13 @@ transactionTypeFieldName = \case
   "actForeignAssets" -> "apas"
   "actGlobalStateSchema" -> "apgs"
   "actLocalStateSchema" -> "apls"
+
+  "attXferAsset" -> "xaid"
+  "attAssetAmount" -> "aamt"
+  "attAssetSender" -> "asnd"
+  "attAssetReceiver" -> "arcv"
+  "attAssetCloseTo" -> "aclose"
+
   x -> error $ "Unmapped transaction type field name: " <> x
 
 transactionType :: IsString s => String -> s
@@ -296,8 +308,13 @@ instance MessagePackObject TransactionType where
         & "type" .= t "KeyRegistrationTransaction"
       AssetConfigTransaction -> mempty
         & "type" .= t "AssetConfigTransaction"
-      AssetTransferTransaction -> mempty
+      AssetTransferTransaction{..} -> mempty
         & "type" .= t "AssetTransferTransaction"
+        & f "attXferAsset" .= attXferAsset
+        & f "attAssetAmount" .= attAssetAmount
+        & f "attAssetSender" .= attAssetSender
+        & f "attAssetReceiver" .= attAssetReceiver
+        & f "attAssetCloseTo" .= attAssetCloseTo
       AssetFreezeTransaction -> mempty
         & "type" .= t "AssetFreezeTransaction"
     where
@@ -328,7 +345,12 @@ instance MessageUnpackObject TransactionType where
       "acfg" -> do
         pure AssetConfigTransaction
       "axfer" -> do
-        pure AssetTransferTransaction
+        attXferAsset <- o .:? f "attXferAsset"
+        attAssetAmount <- o .:? f "attAssetAmount"
+        attAssetSender <- o .:? f "attAssetSender"
+        attAssetReceiver <- o .:? f "attAssetReceiver"
+        attAssetCloseTo <- o .:? f "attAssetCloseTo"
+        pure AssetTransferTransaction{..}
       "afrz" -> do
         pure AssetFreezeTransaction
       x -> fail $ "Unsupported transaction type: " <> T.unpack x

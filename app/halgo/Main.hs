@@ -21,6 +21,7 @@ import qualified Data.ByteString.Lazy as BSL
 import Data.Text (Text)
 import qualified Data.Text as T
 import qualified Data.Text.IO as T
+import Data.Word (Word64)
 import Fmt ((+|), (|+), build, pretty)
 import Main.Utf8 (withUtf8)
 import Servant.Client.Generic (AsClientT)
@@ -183,10 +184,19 @@ txnOpts = hsubparser $ mconcat
       , help "Do not verify the signature of the transaction"
       ]
 
+    argAssetIndex :: Parser T.AssetIndex
+    argAssetIndex = argument auto (metavar "<asset>" <> help "Index of the asset")
+
+    argAssetAmount :: Parser Word64
+    argAssetAmount = argument auto (metavar "<amount>" <> help "Amount of asset")
+
     new = mconcat $
       [ command "pay" $ info
           (cmdTxnNewPay <$> argAddress "Receiver" <*> argAmount)
-          (progDesc "Create a new payment transaction")
+          (progDesc "Create a new Payment transaction")
+      , command "axfr" $ info
+          (cmdTxnNewAxfr <$> argAssetIndex <*> argAddress "Receiver" <*> argAssetAmount)
+          (progDesc "Create a new AssetTransfer transaction")
       ]
 
 -- | Read base64 bytes from stdin.
@@ -249,6 +259,13 @@ cmdTxnNewPay :: MonadSubcommand m => A.Address -> A.Microalgos -> NodeUrl -> m (
 cmdTxnNewPay to amnt url = withNode url $ \(_, api) -> do
   params <- Api._transactionsParams api
   let payment = T.PaymentTransaction to amnt Nothing
+  let txn = T.buildTransaction params A.zero payment
+  printJson txn
+
+cmdTxnNewAxfr :: MonadSubcommand m => T.AssetIndex -> A.Address -> Word64 -> NodeUrl -> m ()
+cmdTxnNewAxfr index to amnt url = withNode url $ \(_, api) -> do
+  params <- Api._transactionsParams api
+  let payment = T.AssetTransferTransaction index amnt Nothing to Nothing
   let txn = T.buildTransaction params A.zero payment
   printJson txn
 
