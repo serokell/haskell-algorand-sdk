@@ -197,6 +197,67 @@ $ halgo node fetch txn 7MJLZW6SHUZOXVJOY2TEGHE4RQNOKDX5JB3HYWSDSKM75EUQD3SQ
 }
 ```
 
+#### Transaction groups
+
+Let’s create two payment transactions:
+
+```text
+$ halgo txn new pay $(halgo acc show ./another.acc) 100000 > /tmp/txs
+$ halgo txn new pay $(halgo acc show ./another.acc) 200000 >> /tmp/txs
+```
+
+We simply wrote two transactions into the same file.
+
+Unfortunately, there is a small problem: `halgo txn new pay` does not fill in
+the sender field of the transaction, since it is normally set later, when
+signing. However, when making transactions into a group, they must be already
+complete, so we will have to do a bit of manual surgery on these transactions
+and set the sender field ourselves.
+
+Luckily, it can be done relatively easily, since many `halgo` commands support JSON:
+
+```text
+$ cat /tmp/txs | halgo txn show-unsigned | jq '.[].snd = "'$(halgo acc show ./example.acc)'"' | halgo txn group --json > /tmp/group
+```
+
+(Alternatively, you can just save the transactions as JSON into a file
+and edit using your text editor.)
+
+We can use `halgo txn show-unsigned` to make sure that the transactions
+now have their `grp` field set to the same value:
+
+```text
+$ cat /tmp/group | halgo txn show-unsigned | jq '.[].grp'
+"nTYG+OjVGy6xXHea1l59aSWE0PwkrziW8kgB88tcdQU="
+"nTYG+OjVGy6xXHea1l59aSWE0PwkrziW8kgB88tcdQU="
+```
+
+`halgo txn group` also has the `--check` flag that makes it verify that
+the transactions form a valid group (it will output the same group again,
+so we silence it by redirecting output to `/dev/null`):
+
+```text
+$ cat /tmp/group | halgo txn group --check >/dev/null && echo OK
+OK
+```
+
+Lastly, we can sign and send this group:
+
+```text
+$ cat /tmp/group | halgo txn sign ./example.acc | halgo node send
+FWX2THG4UQHUB36M4WRSH6Z4YQ3C7W4DWR7VYEXKBAVYWK6XKCXQ
+```
+
+We can now query the status of the group as a whole or of individual
+transactions:
+
+```text
+$ halgo node txn-status FWX2THG4UQHUB36M4WRSH6Z4YQ3C7W4DWR7VYEXKBAVYWK6XKCXQ
+Confirmed in round 12899884
+$ cat /tmp/group | halgo txn id | xargs -L1 halgo node txn-status
+Confirmed in round 12899884
+Confirmed in round 12899884
+```
 
 ## Contributing
 

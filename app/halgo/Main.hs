@@ -34,6 +34,7 @@ import qualified Data.Algorand.Address as A
 import qualified Data.Algorand.Amount as A
 import qualified Data.Algorand.Transaction as T
 import qualified Data.Algorand.Transaction.Build as T
+import qualified Data.Algorand.Transaction.Group as T
 import Network.Algorand.Node (NodeUrl, connect)
 import Network.Algorand.Node.Api (ApiV2)
 import qualified Network.Algorand.Node.Api as Api
@@ -181,12 +182,20 @@ txnOpts = hsubparser $ mconcat
     , command "new" $ info
         (cmdNode <$> optNodeUrl <*> hsubparser new)
         (progDesc "Create a new transaction")
+    , command "group" $ info
+        (cmdTxnGroup <$> flagJson <*> flagGroupCheck)
+        (progDesc "Collect transactions into a group")
     ]
   where
     flagVerify = flag True False $ mconcat
       [ long "no-verify"
       , short 'n'
       , help "Do not verify the signature of the transaction"
+      ]
+
+    flagGroupCheck = flag False True $ mconcat
+      [ long "check"
+      , help "Check that the transactions are a valid group instead of making a new one"
       ]
 
     argAssetIndex :: Parser T.AssetIndex
@@ -235,6 +244,17 @@ cmdTxnId :: MonadSubcommand m => Bool -> m ()
 cmdTxnId json = do
   txns <- if json then readItemsJson else readItemsB64
   mapM_ (putTextLn . T.transactionId) txns
+
+-- | Create or check a group of transactionsl
+cmdTxnGroup :: MonadSubcommand m => Bool -> Bool -> m ()
+cmdTxnGroup json check = do
+  txns <- if json then readItemsJson else readItemsB64
+  case check of
+    True -> case T.isValidGroup txns of
+      False -> die "Not a valid transaction group"
+      True -> putItemsB64 txns
+    False -> putItemsB64 $ T.makeGroup txns
+
 
 cmdTxnNewPay :: MonadSubcommand m => A.Address -> A.Microalgos -> NodeUrl -> m ()
 cmdTxnNewPay to amnt url = withNode url $ \(_, api) -> do
@@ -355,7 +375,7 @@ cmdNodeSend json url = do
       True -> map packTx <$> readItemsJson @T.SignedTransaction
       False -> readBytesB64
     withNode url $ \(_, api) ->
-      mapM_ (Api._transactions api >=> putTextLn . Api.trTxId) bss
+      Api._transactions api (mconcat bss) >>= putTextLn . Api.trTxId
   where
     packTx = BSL.toStrict . MP.pack . MP.Canonical
 

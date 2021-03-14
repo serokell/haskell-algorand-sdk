@@ -20,6 +20,7 @@ SPDX-License-Identifier: MPL-2.0
     * Asset transfer transactions
 * Canonical MessagePack serialisation
 * Signing and signature verification (only for simple single signatures)
+* Transaction groups
 * REST API client:
     * `/health`
     * `/versions`
@@ -46,3 +47,4 @@ SPDX-License-Identifier: MPL-2.0
         * `id`
         * `new pay`
         * `new axfr`
+        * `group`

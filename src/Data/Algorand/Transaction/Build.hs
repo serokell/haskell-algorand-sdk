@@ -2,7 +2,7 @@
 --
 -- SPDX-License-Identifier: MPL-2.0
 
--- | Helper for building transactions.
+-- | Helpers for building transactions.
 module Data.Algorand.Transaction.Build
   ( buildTransaction
   , suggestedFee

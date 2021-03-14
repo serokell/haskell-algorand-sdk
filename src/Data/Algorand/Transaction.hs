@@ -28,6 +28,7 @@ module Data.Algorand.Transaction
   , getUnverifiedTransaction
 
   , transactionId
+  , transactionId'
   ) where
 
 import Data.Aeson (FromJSON (..), Options (constructorTagModifier, fieldLabelModifier, sumEncoding), SumEncoding (TaggedObject), ToJSON (..), Value (Object), genericToEncoding, genericToJSON, genericParseJSON)
@@ -168,8 +169,13 @@ getUnverifiedTransaction :: SignedTransaction -> Transaction
 getUnverifiedTransaction = stTxn
 
 
+-- | Get transaction ID.
 transactionId :: Transaction -> Text
-transactionId = encodeBase32Unpadded . unSizedByteArray . hash32 . serialiseTx
+transactionId = encodeBase32Unpadded . transactionId'
+
+-- | Get transaction ID as raw bytes.
+transactionId' :: Transaction -> ByteString
+transactionId' = unSizedByteArray . hash32 . serialiseTx
 
 {-
  - What comes below is pretty annoying. Basically, it is a ton of boilerplate
