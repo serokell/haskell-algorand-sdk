@@ -151,7 +151,14 @@ flagJson :: Parser Bool
 flagJson = flag False True $ mconcat
   [ long "json"
   , short 'j'
-  , help "Read transaction as JSON instead of default base64"
+  , help "Read transactions as JSON instead of default base64"
+  ]
+
+flagB64 :: Parser Bool
+flagB64 = flag False True $ mconcat
+  [ long "base64"
+  , short 'b'
+  , help "Print transactions as base64 instead of JSON"
   ]
 
 argAmount :: Parser A.Microalgos
@@ -160,10 +167,10 @@ argAmount = argument auto (metavar "<amount>" <> help "Amount in microalgos")
 txnOpts :: Parser Subcommand
 txnOpts = hsubparser $ mconcat
     [ command "show" $ info
-        (cmdTxnShow <$> flagVerify)
+        (cmdTxnShow <$> flagVerify <*> flagJson <*> flagB64)
         (progDesc "Decode from base64 and display signed transactions (reads from stdin)")
     , command "show-unsigned" $ info
-        (pure cmdTxnShowUnsigned)
+        (cmdTxnShowUnsigned <$> flagJson <*> flagB64)
         (progDesc "Decode from base64 and display unsigned transactions (reads from stdin)")
     , command "sign" $ info
         (cmdTxnSign <$> flagJson <*> argSkFile)
@@ -199,18 +206,20 @@ txnOpts = hsubparser $ mconcat
 
 
 -- | Show signed transactions.
-cmdTxnShow :: MonadSubcommand m => Bool -> m ()
-cmdTxnShow verify = do
-  stxns <- readItemsB64 @T.SignedTransaction
+cmdTxnShow :: MonadSubcommand m => Bool -> Bool -> Bool -> m ()
+cmdTxnShow verify json base64 = do
+  stxns <- if json then readItemsJson else readItemsB64
   when verify $
     forM_ stxns $ \stxn -> case T.verifyTransaction stxn of
       Nothing -> die "Invalid signature. Run with --no-verify if you still want to see it."
       Just _txn -> pure ()
-  putItemsJson stxns
+  (if base64 then putItemsB64 else putItemsJson) stxns
 
 -- | Show unsigned transactions.
-cmdTxnShowUnsigned :: MonadSubcommand m => m ()
-cmdTxnShowUnsigned = readItemsB64 @T.Transaction >>= putItemsJson
+cmdTxnShowUnsigned :: MonadSubcommand m => Bool -> Bool -> m ()
+cmdTxnShowUnsigned json base64 =
+  (if json then readItemsJson else readItemsB64 @T.Transaction)
+  >>= if base64 then putItemsB64 else putItemsJson
 
 -- | Sign transactions.
 cmdTxnSign :: MonadSubcommand m => Bool -> FilePath -> m ()
