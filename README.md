@@ -217,11 +217,19 @@ and set the sender field ourselves.
 Luckily, it can be done relatively easily, since many `halgo` commands support JSON:
 
 ```text
-$ cat /tmp/txs | halgo txn show-unsigned | jq '.[].snd = "'$(halgo acc show ./example.acc)'"' | halgo txn group --json > /tmp/group
+$ cat /tmp/txs | halgo txn show-unsigned | jq '.[].snd = "'$(halgo acc show ./example.acc)'"' > /tmp/txs.fixed
 ```
 
 (Alternatively, you can just save the transactions as JSON into a file
 and edit using your text editor.)
+
+Now we call `halgo txn group` to calculate and set the group ID on each of
+our transactions in the file (note the `--json` flag as by default it
+expects input transactions encoded as base64):
+
+```text
+$ cat /tmp/txs.fixed | halgo txn group --json > /tmp/group
+```
 
 We can use `halgo txn show-unsigned` to make sure that the transactions
 now have their `grp` field set to the same value:
