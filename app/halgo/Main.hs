@@ -14,7 +14,6 @@ import Control.Exception.Safe (MonadCatch, handle, throwIO)
 import Control.Monad ((>=>), forM_, when)
 import Control.Monad.Reader (MonadReader, ReaderT, asks, runReaderT)
 import qualified Data.ByteString as BS
-import qualified Data.ByteString.Lazy as BSL
 import Data.Text (Text)
 import qualified Data.Text as T
 import qualified Data.Text.IO as T
@@ -27,7 +26,6 @@ import UnliftIO (MonadIO, MonadUnliftIO, liftIO)
 import UnliftIO.Directory (doesPathExist)
 import UnliftIO.IO (IOMode (ReadMode, WriteMode), withFile)
 
-import qualified Data.Algorand.MessagePack as MP
 import Crypto.Algorand.Signature (SecretKey)
 import qualified Crypto.Algorand.Signature as S
 import qualified Data.Algorand.Address as A
@@ -40,7 +38,7 @@ import Network.Algorand.Node.Api (ApiV2)
 import qualified Network.Algorand.Node.Api as Api
 import qualified Network.Algorand.Node.Util as N
 
-import Halgo.IO (putItemsB64, putItemsJson, putJson, putTextLn, readItemsB64, readItemsJson, readBytesB64)
+import Halgo.IO (putItemsB64, putItemsJson, putJson, putTextLn, readItemsB64, readItemsJson)
 import Halgo.Util (die, handleApiError)
 
 
@@ -368,16 +366,12 @@ cmdNodeFetchTxn :: MonadSubcommand m => Text -> NodeUrl -> m ()
 cmdNodeFetchTxn txId url = withNode url $ \(_, api) ->
   Api._transactionsPending api txId >>= putJson . Api.tiTxn
 
--- | Send transactions (or, actually, any bytes).
+-- | Send transactions.
 cmdNodeSend :: MonadSubcommand m => Bool -> NodeUrl -> m ()
 cmdNodeSend json url = do
-    bss <- case json of
-      True -> map packTx <$> readItemsJson @T.SignedTransaction
-      False -> readBytesB64
+    txns <- if json then readItemsJson else readItemsB64
     withNode url $ \(_, api) ->
-      Api._transactions api (mconcat bss) >>= putTextLn . Api.trTxId
-  where
-    packTx = BSL.toStrict . MP.pack . MP.Canonical
+      Api._transactions api txns >>= putTextLn . Api.trTxId
 
 -- | Get txn status
 cmdNodeTxnStatus :: MonadSubcommand m => Text -> NodeUrl -> m ()

@@ -33,6 +33,7 @@ import Servant.API.Generic (ToServantApi, (:-))
 
 import Data.Algorand.Address (Address)
 import Data.Algorand.Amount (Microalgos)
+import qualified Data.Algorand.MessagePack as MP
 import Data.Algorand.Transaction (AppIndex, AssetIndex, GenesisHash, SignedTransaction)
 import Network.Algorand.Node.Api.Json (algorandCamelOptions, algorandSnakeOptions, algorandTrainOptions)
 
@@ -136,6 +137,10 @@ data ApiV2 route = ApiV2
       :> Get '[JSON] Account
   , _transactions :: route
       :- "transactions"
+      :> ReqBody '[Binary] [SignedTransaction]
+      :> Post '[JSON] TransactionsRep
+  , _transactionsRaw :: route
+      :- "transactions"
       :> ReqBody '[Binary] ByteString
       :> Post '[JSON] TransactionsRep
   , _transactionsPending :: route
@@ -174,3 +179,9 @@ instance Mime.Accept Binary where
 
 instance Mime.MimeRender Binary ByteString where
   mimeRender _ = BSL.fromStrict
+
+instance Mime.MimeRender Binary BSL.ByteString where
+  mimeRender _ = id
+
+instance Mime.MimeRender Binary [SignedTransaction] where
+  mimeRender _ = mconcat . map (MP.pack . MP.Canonical)

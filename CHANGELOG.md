@@ -27,6 +27,7 @@ SPDX-License-Identifier: MPL-2.0
     * `/v2/accounts/:address`
     * `/v2/transactions/params`
     * `/v2/transactions` (POST)
+    * `/v2/transactions` (POST) (raw)
     * `/v2/transactions/pending/:txid`
 * CLI:
     * `halgo acc`
