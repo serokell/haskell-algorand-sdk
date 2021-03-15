@@ -60,6 +60,7 @@ library
     , containers >=0.5 && <0.7
     , cryptonite >=0.1
     , data-default-class >=0.1.2 && <0.2
+    , fmt >=0.6 && <0.7
     , http-client-tls >=0.3.4 && <0.4
     , http-media >=0.1 && <0.9
     , memory >=0.1 && <0.16
@@ -103,7 +104,6 @@ executable halgo
     , servant-client
     , servant-client-core
     , text
-    , time
     , unliftio >=0.1 && <0.3
     , with-utf8 >=1.0 && <1.1
   default-language: Haskell2010
@@ -135,6 +135,7 @@ test-suite algorand-lib-test
     , base32
     , base64
     , bytestring >=0.9 && <0.11
+    , fmt >=0.6 && <0.7
     , hedgehog
     , memory >=0.1 && <0.16
     , msgpack-binary
@@ -143,5 +144,4 @@ test-suite algorand-lib-test
     , tasty-hedgehog
     , tasty-hunit
     , text >=0.1 && <1.3
-    , time
   default-language: Haskell2010

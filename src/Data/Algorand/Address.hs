@@ -32,6 +32,7 @@ import Data.Text (Text)
 import qualified Data.Text as T
 import Data.Text.Encoding (encodeUtf8)
 import Servant.API (ToHttpApiData (toQueryParam))
+import Fmt (Buildable (..))
 
 import Crypto.Algorand.Hash (hash32)
 import Crypto.Algorand.Signature (PublicKey, pkFromBytes, pkSize)
@@ -50,10 +51,13 @@ checksumSize = 4
 -- over the network as raw bytes, however when obtaining it from external
 -- sources, it contains an additional checksum and is encoded in base32.
 newtype Address = Address (SizedByteArray 32 Bytes)
-  deriving (Eq)
+  deriving (Eq, ByteArrayAccess)
 
 instance Show Address where
   show = T.unpack . toText
+
+instance Buildable Address where
+  build = build . toText
 
 instance IsString Address where
   fromString s = case fromText (T.pack s) of
