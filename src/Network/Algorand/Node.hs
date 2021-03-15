@@ -7,7 +7,7 @@ module Network.Algorand.Node
   ( connect
   , NodeUrl
   , BadNode (..)
-
+  , AlgoClient (..)
   , module Api
   ) where
 
@@ -42,28 +42,32 @@ instance Show BadNode where
 
 instance Exception BadNode
 
+newtype AlgoClient = AlgoClient
+  { getAlgoClient ::
+      forall m' . MonadIO m' => ApiV2 (AsClientT m')
+  }
 
 -- | Connect to a node and make sure it is working on the expected network.
 connect
   :: forall m. (MonadIO m, MonadThrow m)
   => NodeUrl  -- ^ URL of the node.
   -> Text  -- ^ Expected network (genesis id).
-  -> m (Api.Version, ApiV2 (AsClientT m))
+  -> m (Api.Version, AlgoClient)
 connect url net = do
     manager <- newTlsManager
     env <- mkClientEnv manager <$> parseBaseUrl (T.unpack url)
 
     let
-      apiClient :: Api (AsClientT m)
+      apiClient :: forall m' . MonadIO m' => Api (AsClientT m')
       apiClient = genericClientHoist (\x -> liftIO $ runClientM x env >>= either throwM pure)
 
       apiAny :: ApiAny (AsClientT m)
       apiAny = fromServant $ _vAny apiClient
 
-      apiV2Client :: ApiV2 (AsClientT m)
+      apiV2Client :: forall m' . MonadIO m' => ApiV2 (AsClientT m')
       apiV2Client = fromServant $ _v2 apiClient
 
     version@Version{vGenesisId} <- _version apiAny
     case vGenesisId == net of
       False -> throwM $ WrongNetwork net vGenesisId
-      True -> pure (version, apiV2Client)
+      True -> pure (version, AlgoClient apiV2Client)

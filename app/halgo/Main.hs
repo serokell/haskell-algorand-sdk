@@ -21,6 +21,7 @@ import Data.Word (Word64)
 import Fmt ((+|), (|+), pretty)
 import Main.Utf8 (withUtf8)
 import Servant.Client.Generic (AsClientT)
+import Data.Bifunctor (second)
 import qualified System.IO.Error as IOE
 import UnliftIO (MonadIO, MonadUnliftIO, liftIO)
 import UnliftIO.Directory (doesPathExist)
@@ -35,7 +36,7 @@ import qualified Data.Algorand.Transaction as T
 import qualified Data.Algorand.Transaction.Build as T
 import qualified Data.Algorand.Transaction.Group as T
 import qualified Data.Algorand.Transaction.Signed as TS
-import Network.Algorand.Node (NodeUrl, connect)
+import Network.Algorand.Node (NodeUrl, connect, AlgoClient (..))
 import Network.Algorand.Node.Api (ApiV2)
 import qualified Network.Algorand.Node.Api as Api
 import qualified Network.Algorand.Node.Util as N
@@ -384,7 +385,7 @@ withNode
   -> m a
 withNode url act = do
   net <- asks goNetwork
-  connect url net >>= handleApiError . act
+  connect url net >>= handleApiError . act . second getAlgoClient
 
 cmdNodeVersion :: MonadSubcommand m => NodeUrl -> m ()
 cmdNodeVersion url = withNode url $ \(v, _) -> putJson v
@@ -445,8 +446,7 @@ contractOpts = hsubparser $ mconcat
 cmdContractCompile :: MonadSubcommand m => FilePath -> NodeUrl -> m ()
 cmdContractCompile sourcePath url = withNode url $ \(_, api) -> do
   source <- liftIO $ T.readFile sourcePath
-  -- TODO replace undefined
-  bin <- undefined api source
+  bin <- Api.unTealCode . Api.tcrResult <$> Api._compileTeal api source
   let outPath = sourcePath <> ".tok"
   putNoticeLn $ "Writing compiled program to `"+|outPath|+"`"
   liftIO $ BS.writeFile outPath bin

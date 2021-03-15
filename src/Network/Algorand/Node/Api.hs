@@ -19,6 +19,9 @@ module Network.Algorand.Node.Api
   , NanoSec (..)
   , NodeStatus (..)
   , msgPackFormat
+
+  , TealCode (..)
+  , TealCompilationResult (..)
   ) where
 
 import GHC.Generics (Generic)
@@ -161,6 +164,16 @@ data NodeStatus = NodeStatus
   }
 $(deriveJSON algorandTrainOptions 'NodeStatus)
 
+newtype TealCode = TealCode
+  { unTealCode :: ByteString }
+  deriving newtype (FromJSON, ToJSON)
+
+data TealCompilationResult = TealCompilationResult
+  { tcrHash :: Address
+  , tcrResult :: TealCode
+  }
+$(deriveJSON algorandTrainOptions 'TealCompilationResult)
+
 -- | The part of the API that does not depend on the version.
 data ApiAny route = ApiAny
   { _health :: route
@@ -203,6 +216,11 @@ data ApiV2 route = ApiV2
       :> Capture "round" Round
       :> QueryParam "format" Text
       :> Get '[MsgPack] BlockWrapped
+  , _compileTeal :: route
+      :- "teal"
+      :> "compile"
+      :> ReqBody '[Mime.PlainText] Text
+      :> Post '[JSON] TealCompilationResult
   }
   deriving (Generic)
 
