@@ -18,7 +18,8 @@ import Test.Tasty.HUnit (Assertion, (@?=), assertFailure)
 
 import Data.Algorand.Address (Address)
 import Data.Algorand.MessagePack (Canonical (Canonical, unCanonical))
-import Data.Algorand.Transaction (GenesisHash, StateSchema (..), Transaction (..), TransactionType (..), getUnverifiedTransaction, verifyTransaction, onCompleteNoOp, transactionId)
+import Data.Algorand.Transaction (GenesisHash, StateSchema (..), Transaction (..), TransactionType (..), onCompleteNoOp, transactionId)
+import Data.Algorand.Transaction.Signed (getUnverifiedTransaction, verifyTransaction)
 
 
 sender :: Address

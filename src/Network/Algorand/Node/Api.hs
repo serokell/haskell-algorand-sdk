@@ -34,7 +34,8 @@ import Servant.API.Generic (ToServantApi, (:-))
 import Data.Algorand.Address (Address)
 import Data.Algorand.Amount (Microalgos)
 import qualified Data.Algorand.MessagePack as MP
-import Data.Algorand.Transaction (AppIndex, AssetIndex, GenesisHash, SignedTransaction)
+import Data.Algorand.Transaction (AppIndex, AssetIndex, GenesisHash)
+import Data.Algorand.Transaction.Signed (SignedTransaction)
 import Network.Algorand.Node.Api.Json (algorandCamelOptions, algorandSnakeOptions, algorandTrainOptions)
 
 

@@ -33,6 +33,7 @@ import qualified Data.Algorand.Amount as A
 import qualified Data.Algorand.Transaction as T
 import qualified Data.Algorand.Transaction.Build as T
 import qualified Data.Algorand.Transaction.Group as T
+import qualified Data.Algorand.Transaction.Signed as TS
 import Network.Algorand.Node (NodeUrl, connect)
 import Network.Algorand.Node.Api (ApiV2)
 import qualified Network.Algorand.Node.Api as Api
@@ -217,7 +218,7 @@ cmdTxnShow :: MonadSubcommand m => Bool -> Bool -> Bool -> m ()
 cmdTxnShow verify json base64 = do
   stxns <- if json then readItemsJson else readItemsB64
   when verify $
-    forM_ stxns $ \stxn -> case T.verifyTransaction stxn of
+    forM_ stxns $ \stxn -> case TS.verifyTransaction stxn of
       Nothing -> die "Invalid signature. Run with --no-verify if you still want to see it."
       Just _txn -> pure ()
   (if base64 then putItemsB64 else putItemsJson) stxns
@@ -234,7 +235,7 @@ cmdTxnSign json skFile = do
   sk <- loadAccount skFile
   txns <- if json then readItemsJson else readItemsB64
   let txns' = map (\txn -> txn { T.tSender = A.fromPublicKey $ S.toPublic sk }) txns
-  let signed = map (T.signTransaction sk) txns'
+  let signed = map (TS.signSimple sk) txns'
   putItemsB64 signed
 
 -- | Transaction ID.

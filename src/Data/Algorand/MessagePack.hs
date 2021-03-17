@@ -31,7 +31,9 @@ module Data.Algorand.MessagePack
   , MessageUnpackObject (..)
   , (.:)
   , (.:?)
+  , (.:??)
   , (.:>)
+  , (.:>?)
 
   , Canonical (..)
 
@@ -176,17 +178,31 @@ CanonicalObject o .: k = case lookup k o of
   Nothing -> fail $ "Missing required key: " <> T.unpack k
   Just v -> fromAlgoObject v
 
--- | Lookup ankey in a canonical object.
+-- | Lookup a key in a canonical object.
 (.:?) :: (MonadFail m, AlgoMessagePack a, CanonicalZero a) => CanonicalObject -> Text -> m a
 infixl 2 .:?
 CanonicalObject o .:? k = case lookup k o of
   Nothing -> pure zero
   Just v -> fromAlgoObject v
 
+-- | Lookup a key in a canonical, if it exists.
+(.:??) :: (MonadFail m, AlgoMessagePack a) => CanonicalObject -> Text -> m (Maybe a)
+infixl 2 .:??
+CanonicalObject o .:?? k = case lookup k o of
+  Nothing -> pure Nothing
+  Just v -> Just <$> fromAlgoObject v
+
 -- | Lookup a canonical suboject.
 (.:>) :: (MonadFail m, MessageUnpackObject a) => CanonicalObject -> Text -> m a
 infixl 2 .:>
 o .:> k = o .:? k >>= fromCanonicalObject
+
+-- | Lookup a canonical suboject, if the key exists.
+(.:>?) :: (MonadFail m, MessageUnpackObject a) => CanonicalObject -> Text -> m (Maybe a)
+infixl 2 .:>?
+o .:>? k = o .:?? k >>= \case
+  Nothing -> pure Nothing
+  Just v -> Just <$> fromCanonicalObject v
 
 
 -- | A wrapper with its 'MessagePack' instance goin via 'CanonicalObject'.

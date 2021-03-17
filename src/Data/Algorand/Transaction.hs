@@ -22,13 +22,10 @@ module Data.Algorand.Transaction
   , onCompleteUpdateApplication
   , onCompleteDeleteApplication
 
-  , SignedTransaction ()
-  , signTransaction
-  , verifyTransaction
-  , getUnverifiedTransaction
-
   , transactionId
   , transactionId'
+
+  , serialiseTx
   ) where
 
 import Data.Aeson (FromJSON (..), Options (constructorTagModifier, fieldLabelModifier, sumEncoding), SumEncoding (TaggedObject), ToJSON (..), Value (Object), genericToEncoding, genericToJSON, genericParseJSON)
@@ -47,8 +44,7 @@ import Data.Word (Word64)
 import GHC.Generics (Generic)
 
 import Crypto.Algorand.Hash (hash32)
-import Crypto.Algorand.Signature (SecretKey, Signature, sign, verify)
-import Data.Algorand.Address (Address, toPublicKey)
+import Data.Algorand.Address (Address)
 import Data.Algorand.Amount (Microalgos)
 import Data.Algorand.MessagePack (MessagePackObject (toCanonicalObject), MessageUnpackObject (fromCanonicalObject), Canonical (Canonical), (&), (&<>), (.=), (.=<), (.:), (.:?), (.:>))
 import Network.Algorand.Node.Api.Json (defaultOptions)
@@ -138,37 +134,6 @@ data StateSchema = StateSchema
   deriving (Eq, Generic, Show)
 
 
--- | A signed transaction object.
-data SignedTransaction = SignedTransaction
-  -- TODO: Only simple signature is supported for now.
-  { stSig :: Signature
-  , stTxn :: Transaction
-  }
-  deriving (Generic, Show)
-
-serialiseTx :: Transaction -> ByteString
-serialiseTx = toStrict . ("TX" <>) . pack . Canonical
-
--- | Sign a transaction.
-signTransaction :: SecretKey -> Transaction -> SignedTransaction
-signTransaction sk txn = SignedTransaction
-  { stTxn = txn
-  , stSig = sign sk (serialiseTx txn)
-  }
-
--- | Verify a signed transaction.
-verifyTransaction :: SignedTransaction -> Maybe Transaction
-verifyTransaction SignedTransaction{..} =
-  let pk = toPublicKey (tSender stTxn) in
-  case verify pk (serialiseTx stTxn) stSig of
-    False -> Nothing
-    True -> Just stTxn
-
--- | Dangerous: returns a transaction without verifying the signature.
-getUnverifiedTransaction :: SignedTransaction -> Transaction
-getUnverifiedTransaction = stTxn
-
-
 -- | Get transaction ID.
 transactionId :: Transaction -> Text
 transactionId = encodeBase32Unpadded . transactionId'
@@ -176,6 +141,12 @@ transactionId = encodeBase32Unpadded . transactionId'
 -- | Get transaction ID as raw bytes.
 transactionId' :: Transaction -> ByteString
 transactionId' = unSizedByteArray . hash32 . serialiseTx
+
+
+-- | Internal: pack a transaction into byte with prefix.
+serialiseTx :: Transaction -> ByteString
+serialiseTx = toStrict . ("TX" <>) . pack . Canonical
+
 
 {-
  - What comes below is pretty annoying. Basically, it is a ton of boilerplate
@@ -410,33 +381,3 @@ instance FromJSON StateSchema where
   parseJSON = genericParseJSON stateSchemaJsonOptions
 
 
-signedTransactionFieldName :: IsString s => String -> s
-signedTransactionFieldName = \case
-  "stSig" -> "sig"
-  "stTxn" -> "txn"
-  x -> error $ "Unmapped signed transaction field name: " <> x
-
-instance MessagePackObject SignedTransaction where
-  toCanonicalObject SignedTransaction{..} = mempty
-      & f "stSig" .= stSig
-      & f "stTxn" .=< stTxn
-    where
-      f = signedTransactionFieldName
-
-instance MessageUnpackObject SignedTransaction where
-  fromCanonicalObject o = do
-      stSig <- o .: f "stSig"
-      stTxn <- o .:> f "stTxn"
-      pure SignedTransaction{..}
-    where
-      f = signedTransactionFieldName
-
-signedTransactionJsonOptions :: Options
-signedTransactionJsonOptions = defaultOptions { fieldLabelModifier = signedTransactionFieldName }
-
-instance ToJSON SignedTransaction where
-  toJSON = genericToJSON signedTransactionJsonOptions
-  toEncoding = genericToEncoding signedTransactionJsonOptions
-
-instance FromJSON SignedTransaction where
-  parseJSON = genericParseJSON signedTransactionJsonOptions

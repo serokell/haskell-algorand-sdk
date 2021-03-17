@@ -23,7 +23,8 @@ import Test.Tasty.HUnit (Assertion, (@?=))
 import Crypto.Algorand.Signature (skFromBytes, toPublic)
 import Data.Algorand.Address (Address, fromPublicKey)
 import Data.Algorand.MessagePack (Canonical (Canonical, unCanonical), EitherError)
-import Data.Algorand.Transaction (StateSchema (..), Transaction (..), TransactionType (..), signTransaction, verifyTransaction)
+import Data.Algorand.Transaction (StateSchema (..), Transaction (..), TransactionType (..))
+import Data.Algorand.Transaction.Signed (signSimple, verifyTransaction)
 
 import Test.Data.Algorand.Transaction.Examples (genesisHash, sender)
 import Test.Crypto.Algorand.Signature (genPublicKey, genSecretKeyBytes)
@@ -102,7 +103,7 @@ hprop_sign_verify = property $ do
   Just sk <- skFromBytes <$> forAll genSecretKeyBytes
   tx <- forAll genTransaction
   let tx' = tx { tSender = fromPublicKey (toPublic sk) }
-  tripping tx' (signTransaction sk) verifyTransaction
+  tripping tx' (signSimple sk) verifyTransaction
 
 
 unit_simple :: Assertion

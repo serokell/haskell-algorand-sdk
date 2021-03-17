@@ -36,6 +36,7 @@ library
       Data.Algorand.Transaction
       Data.Algorand.Transaction.Build
       Data.Algorand.Transaction.Group
+      Data.Algorand.Transaction.Signed
       Network.Algorand.Node
       Network.Algorand.Node.Api
       Network.Algorand.Node.Api.Json
