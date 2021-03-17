@@ -6,14 +6,22 @@
 module Network.Algorand.Node.Util
   ( TransactionStatus (..)
   , transactionStatus
+  , getBlock
   ) where
 
+import Control.Exception.Safe (MonadCatch, handle, throwM)
+import qualified Data.Aeson as J
+import qualified Data.HashMap.Strict as HM
 import Data.Text (Text)
 import qualified Data.Text as T
 import Data.Word (Word64)
+import Network.HTTP.Types (Status (statusCode))
+import Servant.Client (ClientError (..), ResponseF (..))
+import Servant.Client.Generic (AsClientT)
 
 import Network.Algorand.Node.Api (TransactionInfo (..))
-
+import qualified Network.Algorand.Node.Api as Api
+import qualified Data.Algorand.Block as B
 
 -- | Status of a transaction in the pool.
 data TransactionStatus
@@ -29,3 +37,20 @@ transactionStatus TransactionInfo{tiConfirmedRound, tiPoolError} =
     Nothing -> case T.null tiPoolError of
       False -> KickedOut tiPoolError
       True -> Waiting
+
+getBlock
+  :: MonadCatch m
+  => Api.ApiV2 (AsClientT m) -> B.Round -> m (Maybe B.Block)
+getBlock api rnd = handle handler $ do
+  B.BlockWrapped block <- Api._block api rnd Api.msgPackFormat
+  pure (Just block)
+  where
+    noBlockMsg = "ledger does not have entry"
+    handler (FailureResponse _req
+              Response{responseStatusCode = s, responseBody = b})
+      | statusCode s == 500
+      , Just (J.Object errObj) <- J.decode' b
+      , Just (J.String msg) <- HM.lookup "message" errObj
+      , T.take (T.length noBlockMsg) msg == noBlockMsg
+      = pure Nothing
+    handler e = throwM e
