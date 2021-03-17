@@ -46,6 +46,7 @@ data ApiV2 route = ApiV2
   { _account :: route
       :- "accounts"
       :> Capture "address" Address
+      :> QueryParam "round" Round
       :> Get '[JSON] Account
   , _transactions :: route
       :- "transactions"
