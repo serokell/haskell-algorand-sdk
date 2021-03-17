@@ -23,8 +23,8 @@ import Data.String (IsString)
 import Data.Text (Text)
 import GHC.Generics (Generic)
 
-import Crypto.Algorand.Signature (SecretKey, Signature, sign, verify)
-import Data.Algorand.Address (fromContractCode, toPublicKey)
+import Crypto.Algorand.Signature (SecretKey, Signature, sign, toPublic, verify)
+import Data.Algorand.Address (fromContractCode, fromPublicKey, toPublicKey)
 import Data.Algorand.MessagePack (MessagePackObject (toCanonicalObject), MessageUnpackObject (fromCanonicalObject), (&), (&<>), (.=), (.=<), (.:?), (.:??), (.:>), (.:>?), NonZeroValue (isNonZero))
 import Data.Algorand.Transaction (Transaction (..), serialiseTx)
 import Network.Algorand.Node.Api.Json (defaultOptions)
@@ -51,9 +51,11 @@ data SignedTransaction = SignedTransaction
 {- Simple signature -}
 
 -- | Sign a transaction with a simple signature.
+--
+-- Note: this function will overwrite the sender of the transaction!
 signSimple :: SecretKey -> Transaction -> SignedTransaction
 signSimple sk txn = SignedTransaction
-  { stTxn = txn
+  { stTxn = txn { tSender = fromPublicKey (toPublic sk) }
   , stSig = SignatureSimple $ sign sk (serialiseTx txn)
   }
 
@@ -87,6 +89,8 @@ instance NonZeroValue LogicSignature where
   isNonZero _ = True
 
 -- | Sign a transaction from a contract account.
+--
+-- Note: this function will overwrite the sender of the transaction!
 signFromContractAccount
   :: ByteString  -- ^ Compiled contract code.
   -> [ByteString]  -- ^ Program arguments.

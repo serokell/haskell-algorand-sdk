@@ -229,13 +229,12 @@ cmdTxnShowUnsigned json base64 =
   (if json then readItemsJson else readItemsB64 @T.Transaction)
   >>= if base64 then putItemsB64 else putItemsJson
 
--- | Sign transactions.
+-- | Sign transactions with a simple signature.
 cmdTxnSign :: MonadSubcommand m => Bool -> FilePath -> m ()
 cmdTxnSign json skFile = do
   sk <- loadAccount skFile
   txns <- if json then readItemsJson else readItemsB64
-  let txns' = map (\txn -> txn { T.tSender = A.fromPublicKey $ S.toPublic sk }) txns
-  let signed = map (TS.signSimple sk) txns'
+  let signed = map (TS.signSimple sk) txns
   putItemsB64 signed
 
 -- | Transaction ID.
