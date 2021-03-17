@@ -13,6 +13,8 @@ module Data.Algorand.Address
 
   , fromPublicKey
   , toPublicKey
+
+  , fromContractCode
   ) where
 
 import Prelude hiding (length)
@@ -21,11 +23,10 @@ import Control.Applicative (empty)
 import Control.Monad (guard)
 import Data.Aeson (FromJSON (..), ToJSON (..))
 import Data.ByteArray (Bytes, ByteArrayAccess, View, convert, eq, length, view)
-import qualified Data.ByteArray (zero)
-import Data.ByteArray.Sized (unSizedByteArray)
+import Data.ByteArray.Sized (SizedByteArray, sizedByteArray, unSizedByteArray)
+import qualified Data.ByteArray.Sized (zero)
 import Data.ByteString (ByteString)
 import Data.ByteString.Base32 (decodeBase32Unpadded, encodeBase32Unpadded)
-import Data.Maybe (fromJust)
 import Data.String (IsString (fromString))
 import Data.Text (Text)
 import qualified Data.Text as T
@@ -45,10 +46,10 @@ checksumSize = 4
 
 -- | An address on the Algorand blockchain.
 --
--- Internally, this is just a public key, and when seialised it is sent
--- over the network as a public key, however when obtaining it from external
+-- Internally, this is just 32 bytes, and when seialised it is sent
+-- over the network as raw bytes, however when obtaining it from external
 -- sources, it contains an additional checksum and is encoded in base32.
-newtype Address = Address PublicKey
+newtype Address = Address (SizedByteArray 32 Bytes)
   deriving (Eq)
 
 instance Show Address where
@@ -66,11 +67,11 @@ instance CanonicalZero Address where
   zero = Data.Algorand.Address.zero
 
 instance AlgoMessagePack Address where
-  toAlgoObject (Address pk) = toAlgoObject @Bytes (convert pk)
+  toAlgoObject (Address bs) = toAlgoObject @Bytes (convert bs)
   fromAlgoObject o = fromAlgoObject @Bytes o >>= \bs ->
-    case pkFromBytes bs of
-      Nothing -> fail "Invalid address (public key)"
-      Just pk -> pure $ Address pk
+    case sizedByteArray bs of
+      Nothing -> fail "Invalid address bytes length"
+      Just sized -> pure $ Address sized
 
 instance ToHttpApiData Address where
   toQueryParam = toText
@@ -87,7 +88,7 @@ instance FromJSON Address where
 
 -- | Dummy zero address. Can be used as a placeholder value.
 zero :: Address
-zero = Address . fromJust . pkFromBytes @Bytes $ Data.ByteArray.zero pkSize
+zero = Address $ Data.ByteArray.Sized.zero
 
 
 -- | Try to interpret raw bytes as 'Address'.
@@ -97,14 +98,14 @@ zero = Address . fromJust . pkFromBytes @Bytes $ Data.ByteArray.zero pkSize
 fromBytes :: ByteString -> Maybe Address
 fromBytes bytes = do
   guard (length bytes == pkSize + checksumSize)
-  pk <- pkFromBytes $ view bytes 0 pkSize
-  guard (checksum pk `eq` view bytes pkSize 4)
-  pure $ Address pk
+  sized <- sizedByteArray $ convert $ view bytes 0 pkSize
+  guard (checksum sized `eq` view bytes pkSize 4)
+  pure $ Address sized
 
 
 -- | Display an 'Address' using the Algorand human-readable representation.
 toText :: Address -> Text
-toText (Address pk) = encodeBase32Unpadded (convert pk <> convert (checksum pk))
+toText (Address bs) = encodeBase32Unpadded (convert bs <> convert (checksum bs))
 
 -- | Decode an 'Address' from a human-readable representation.
 --
@@ -119,16 +120,27 @@ fromText t = case decodeBase32Unpadded (encodeUtf8 t) of
 
 -- | Convert a 'PublicKey' to the corresponding algorand 'Address'.
 fromPublicKey :: PublicKey -> Address
-fromPublicKey = Address
+fromPublicKey pk = case sizedByteArray (convert pk) of
+  Just sized -> Address sized
+  Nothing -> error "Impossible: the public key must be 32 bytes long"
 
 -- | Convert an Algorand 'Address' to the corresponding 'PublicKey'.
 --
 -- This function checks the integrity by verifying the checksum embedded
 -- in Algorand addresses.
-toPublicKey :: Address -> PublicKey
-toPublicKey (Address pk) = pk
+toPublicKey :: Address -> Maybe PublicKey
+toPublicKey (Address bs) = pkFromBytes bs
+
+
+-- | Get an address of a stateless smart contract.
+--
+-- This is used in conjunction with Logic Signatures as a Cotnract Account.
+fromContractCode
+  :: ByteString  -- ^ Compiled contract code.
+  -> Address
+fromContractCode = Address . hash32 . ("Program" <>)
 
 
 -- | Compute the checksum of a public key.
 checksum :: ByteArrayAccess bs => bs -> View Bytes
-checksum pk = view (unSizedByteArray $ hash32 pk) (32 - checksumSize) checksumSize
+checksum bs = view (unSizedByteArray $ hash32 bs) (32 - checksumSize) checksumSize

@@ -59,8 +59,9 @@ signSimple sk txn = SignedTransaction
 -- | Verify a simple signature transaction.
 verifySimple :: Signature -> Transaction -> Bool
 verifySimple sig txn =
-  let pk = toPublicKey (tSender txn) in
-  verify pk (serialiseTx txn) sig
+  case toPublicKey (tSender txn) of
+    Nothing -> False
+    Just pk -> verify pk (serialiseTx txn) sig
 
 
 {- Multi signature -}

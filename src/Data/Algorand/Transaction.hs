@@ -379,5 +379,3 @@ instance ToJSON StateSchema where
 
 instance FromJSON StateSchema where
   parseJSON = genericParseJSON stateSchemaJsonOptions
-
-

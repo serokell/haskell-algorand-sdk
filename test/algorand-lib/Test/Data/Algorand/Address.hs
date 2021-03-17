@@ -6,6 +6,7 @@
 
 module Test.Data.Algorand.Address where
 
+import Control.Monad ((>=>))
 import Data.ByteString (ByteString)
 import Data.ByteString.Base32 (decodeBase32, encodeBase32Unpadded)
 import Data.Maybe (fromJust)
@@ -15,7 +16,7 @@ import Test.HUnit (Assertion)
 import Test.Tasty.HUnit ((@?=))
 
 import Crypto.Algorand.Signature (pkFromBytes)
-import Data.Algorand.Address (Address, fromBytes, fromPublicKey, fromText, toPublicKey, toText)
+import Data.Algorand.Address (Address, fromBytes, fromContractCode, fromPublicKey, fromText, toPublicKey, toText)
 
 import Test.Crypto.Algorand.Signature (genPublicKey)
 
@@ -50,11 +51,18 @@ unit_example_address_pk :: Assertion
 unit_example_address_pk = do
   let Right pkBytes = decodeBase32 examplePk
   let Just pk = pkFromBytes pkBytes
-  let pk' = toPublicKey exampleAddress
+  let Just pk' = toPublicKey exampleAddress
   pk' @?= pk
+
+unit_example_program_address :: Assertion
+unit_example_program_address = do
+  -- simple.teal.tok from the docs
+  let program = "\x01\x20\x01\x00\x22"
+  let addr = fromContractCode program
+  addr @?= "KI4DJG2OOFJGUERJGSWCYGFZWDNEU2KWTU56VRJHITP62PLJ5VYMBFDBFE"
 
 -- | Encode-decode for addresses.
 hprop_to_from_address :: Property
 hprop_to_from_address = property $ do
     pk <- forAll $ genPublicKey
-    tripping pk (toText . fromPublicKey) (fmap toPublicKey . fromText)
+    tripping pk (toText . fromPublicKey) (fromText >=> toPublicKey)
