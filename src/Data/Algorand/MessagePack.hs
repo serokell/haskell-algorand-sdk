@@ -107,6 +107,8 @@ class NonZeroValue a where
 instance CanonicalZero Word64
 instance NonZeroValue Word64
 
+instance CanonicalZero ByteString where
+  zero = ""
 instance NonZeroValue ByteString where
   isNonZero = not . BS.null
 

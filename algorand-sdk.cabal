@@ -108,6 +108,7 @@ test-suite algorand-lib-test
   other-modules:
       Test.Crypto.Algorand.Signature
       Test.Data.Algorand.Address
+      Test.Data.Algorand.Program
       Test.Data.Algorand.Transaction
       Test.Data.Algorand.Transaction.AssetTransfer
       Test.Data.Algorand.Transaction.Examples

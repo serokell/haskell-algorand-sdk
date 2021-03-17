@@ -8,6 +8,7 @@ module Data.Algorand.Transaction.Signed
   , SignedTransaction ()
 
   , signSimple
+  , signFromContractAccount
 
   , verifyTransaction
   , getSignature
@@ -16,14 +17,15 @@ module Data.Algorand.Transaction.Signed
 
 import Data.Aeson (FromJSON (..), ToJSON (..))
 import qualified Data.Aeson as JS
+import Data.ByteString (ByteString)
 import qualified Data.HashMap.Strict as HM
 import Data.String (IsString)
 import Data.Text (Text)
 import GHC.Generics (Generic)
 
 import Crypto.Algorand.Signature (SecretKey, Signature, sign, verify)
-import Data.Algorand.Address (Address, toPublicKey)
-import Data.Algorand.MessagePack (MessagePackObject (toCanonicalObject), MessageUnpackObject (fromCanonicalObject), Canonical (Canonical), (&), (&<>), (.=), (.=<), (.:), (.:?), (.:??), (.:>), (.:>?), NonZeroValue (isNonZero))
+import Data.Algorand.Address (fromContractCode, toPublicKey)
+import Data.Algorand.MessagePack (MessagePackObject (toCanonicalObject), MessageUnpackObject (fromCanonicalObject), (&), (&<>), (.=), (.=<), (.:?), (.:??), (.:>), (.:>?), NonZeroValue (isNonZero))
 import Data.Algorand.Transaction (Transaction (..), serialiseTx)
 import Network.Algorand.Node.Api.Json (defaultOptions)
 
@@ -40,7 +42,6 @@ instance NonZeroValue TransactionSignature where
 
 -- | A signed transaction object.
 data SignedTransaction = SignedTransaction
-  -- TODO: Only simple signature is supported for now.
   { stSig :: TransactionSignature
   , stTxn :: Transaction
   }
@@ -75,11 +76,26 @@ instance NonZeroValue MultiSignature where
 
 {- Logic signature -}
 
-data LogicSignature = LogicSignature
+data LogicSignature = ContractAccountSignature
+  -- TODO: Only contract account signature is supported.
+  { lsLogic :: ByteString
+  , lsArgs :: [ByteString]
+  }
   deriving (Generic, Show)
 
 instance NonZeroValue LogicSignature where
   isNonZero _ = True
+
+-- | Sign a transaction from a contract account.
+signFromContractAccount
+  :: ByteString  -- ^ Compiled contract code.
+  -> [ByteString]  -- ^ Program arguments.
+  -> Transaction  -- ^ Transaction to sign.
+  -> SignedTransaction
+signFromContractAccount lsLogic lsArgs txn = SignedTransaction{..}
+  where
+    stTxn = txn { tSender = fromContractCode lsLogic }
+    stSig = SignatureLogic $ ContractAccountSignature{lsLogic, lsArgs}
 
 
 -- | Verify a signed transaction.
@@ -89,7 +105,9 @@ verifyTransaction SignedTransaction{..} =
     ok = case stSig of
       SignatureSimple sig -> verifySimple sig stTxn
       SignatureMulti _msig -> False  -- FIXME
-      SignatureLogic _lsig -> False -- FIXME
+      SignatureLogic lsig -> case lsig of
+        ContractAccountSignature{lsLogic} ->
+          tSender stTxn == fromContractCode lsLogic
   in case ok of
     False -> Nothing
     True -> Just stTxn
@@ -194,9 +212,9 @@ instance FromJSON TransactionSignature where
   parseJSON = JS.genericParseJSON transactionSignatureJsonOptions
 
 
-multiSignatureFieldName :: IsString s => String -> s
-multiSignatureFieldName = \case
-  x -> error $ "Unmapped multi signature field name: " <> x
+--multiSignatureFieldName :: IsString s => String -> s
+--multiSignatureFieldName = \case
+--  x -> error $ "Unmapped multi signature field name: " <> x
 
 instance MessagePackObject MultiSignature where
   toCanonicalObject MultiSignature = mempty  -- TODO
@@ -205,7 +223,7 @@ instance MessageUnpackObject MultiSignature where
   fromCanonicalObject _ = pure MultiSignature  -- TODO
 
 multiSignatureJsonOptions :: JS.Options
-multiSignatureJsonOptions = defaultOptions { JS.fieldLabelModifier = multiSignatureFieldName }
+multiSignatureJsonOptions = defaultOptions -- { JS.fieldLabelModifier = multiSignatureFieldName }
 
 instance ToJSON MultiSignature where
   toJSON = JS.genericToJSON multiSignatureJsonOptions
@@ -217,13 +235,25 @@ instance FromJSON MultiSignature where
 
 logicSignatureFieldName :: IsString s => String -> s
 logicSignatureFieldName = \case
+  "lsLogic" -> "l"
+  "lsArgs" -> "arg"
   x -> error $ "Unmapped logic signature field name: " <> x
 
 instance MessagePackObject LogicSignature where
-  toCanonicalObject LogicSignature = mempty  -- TODO
+  toCanonicalObject = \case
+      ContractAccountSignature{..} -> mempty
+        & f "lsLogic" .= lsLogic
+        & f "lsArgs" .= lsArgs
+    where
+      f = logicSignatureFieldName
 
 instance MessageUnpackObject LogicSignature where
-  fromCanonicalObject _ = pure LogicSignature  -- TODO
+  fromCanonicalObject o = do
+      lsLogic <- o .:? f "lsLogic"
+      lsArgs <- o .:? f "lsArgs"
+      pure ContractAccountSignature{..}
+    where
+      f = logicSignatureFieldName
 
 logicSignatureJsonOptions :: JS.Options
 logicSignatureJsonOptions = defaultOptions { JS.fieldLabelModifier = logicSignatureFieldName }

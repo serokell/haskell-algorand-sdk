@@ -21,13 +21,14 @@ import qualified Hedgehog.Range as R
 import Test.Tasty.HUnit (Assertion, (@?=))
 
 import Crypto.Algorand.Signature (skFromBytes, toPublic)
-import Data.Algorand.Address (Address, fromPublicKey)
+import Data.Algorand.Address (Address, fromContractCode, fromPublicKey)
 import Data.Algorand.MessagePack (Canonical (Canonical, unCanonical), EitherError)
 import Data.Algorand.Transaction (StateSchema (..), Transaction (..), TransactionType (..))
-import Data.Algorand.Transaction.Signed (signSimple, verifyTransaction)
+import Data.Algorand.Transaction.Signed (signFromContractAccount, signSimple, verifyTransaction)
 
-import Test.Data.Algorand.Transaction.Examples (genesisHash, sender)
 import Test.Crypto.Algorand.Signature (genPublicKey, genSecretKeyBytes)
+import Test.Data.Algorand.Program (genProgram)
+import Test.Data.Algorand.Transaction.Examples (genesisHash, sender)
 
 
 genAddress :: MonadGen m => m Address
@@ -98,12 +99,19 @@ hprop_json_encode_decode = property $ do
   tripping tx toJSON fromJSON
 
 
-hprop_sign_verify :: Property
-hprop_sign_verify = property $ do
+hprop_sign_verify_simple :: Property
+hprop_sign_verify_simple = property $ do
   Just sk <- skFromBytes <$> forAll genSecretKeyBytes
   tx <- forAll genTransaction
   let tx' = tx { tSender = fromPublicKey (toPublic sk) }
   tripping tx' (signSimple sk) verifyTransaction
+
+hprop_sign_verify_contract :: Property
+hprop_sign_verify_contract = property $ do
+  program <- forAll genProgram
+  tx <- forAll genTransaction
+  let tx' = tx { tSender = fromContractCode program }
+  tripping tx' (signFromContractAccount program []) verifyTransaction
 
 
 unit_simple :: Assertion
