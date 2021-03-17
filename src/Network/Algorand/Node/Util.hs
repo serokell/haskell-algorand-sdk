@@ -7,17 +7,25 @@ module Network.Algorand.Node.Util
   ( TransactionStatus (..)
   , transactionStatus
   , getBlock
+  , lookupAssetBalance
+  , lookupAppLocalStorage
   ) where
 
 import Control.Exception.Safe (MonadCatch, handle, throwM)
+import Control.Monad (guard)
 import qualified Data.Aeson as J
+import Data.ByteString (ByteString)
 import qualified Data.HashMap.Strict as HM
+import Data.Maybe (isNothing)
+import Data.Map (Map)
+import qualified Data.Map as M
 import Data.Text (Text)
 import qualified Data.Text as T
 import Data.Word (Word64)
 import Network.HTTP.Types (Status (statusCode))
 import Servant.Client (ClientError (..), ResponseF (..))
 import Servant.Client.Generic (AsClientT)
+import Data.Algorand.Transaction (AppIndex, AssetIndex)
 
 import Network.Algorand.Node.Api (TransactionInfo (..))
 import qualified Network.Algorand.Node.Api as Api
@@ -54,3 +62,28 @@ getBlock api rnd = handle handler $ do
       , T.take (T.length noBlockMsg) msg == noBlockMsg
       = pure Nothing
     handler e = throwM e
+
+lookupAssetBalance :: Api.Account -> AssetIndex -> Word64
+lookupAssetBalance Api.Account{..} assetId
+  | Just Api.Asset{..} <- aAssets >>= lookup assetId . map toPair
+  , isNothing asDeleted || Just False == asDeleted
+  , not asIsFrozen = asAmount
+  | otherwise = 0
+  where
+    toPair a@Api.Asset{..} = (asAssetId, a)
+
+lookupAppLocalStorage :: Api.Account -> AppIndex -> Maybe (Map ByteString (Either ByteString Word64))
+lookupAppLocalStorage Api.Account{..} appId = do
+  Api.LocalState{..} <- aAppsLocalState >>= lookup appId . map toPair
+  guard $ isNothing lsDeleted || Just False == lsDeleted
+  M.fromList . map toEntry <$> lsKeyValue
+  where
+    toPair a@Api.LocalState{..} = (lsId, a)
+    toEntry Api.TealKvEntry{..}
+      | Api.tvType tkeValue == Api.tealValueBytesType
+      = (tkeKey, Left $ Api.tvBytes tkeValue)
+      | Api.tvType tkeValue == Api.tealValueUintType
+      = (tkeKey, Right $ Api.tvUint tkeValue)
+      | otherwise = error $
+        "lookupAppLocalStorage: unknown teal value type "
+          <> show (Api.tvType tkeValue)

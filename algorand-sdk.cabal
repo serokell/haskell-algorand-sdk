@@ -42,6 +42,7 @@ library
       Network.Algorand.Node
       Network.Algorand.Node.Api
       Network.Algorand.Node.Api.Json
+      Network.Algorand.Node.Api.Type
       Network.Algorand.Node.Util
   other-modules:
       Paths_algorand_sdk
