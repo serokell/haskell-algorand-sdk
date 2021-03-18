@@ -164,6 +164,13 @@ flagB64 = flag False True $ mconcat
 argAmount :: Parser A.Microalgos
 argAmount = argument auto (metavar "<amount>" <> help "Amount in microalgos")
 
+argProgramFile :: Parser FilePath
+argProgramFile = strArgument $ mconcat
+  [ metavar "<program file>"
+  , help "Path to a file with the compiled contract code"
+  , action "file"
+  ]
+
 txnOpts :: Parser Subcommand
 txnOpts = hsubparser $ mconcat
     [ command "show" $ info
@@ -174,7 +181,10 @@ txnOpts = hsubparser $ mconcat
         (progDesc "Decode from base64 and display unsigned transactions (reads from stdin)")
     , command "sign" $ info
         (cmdTxnSign <$> flagJson <*> argSkFile)
-        (progDesc "Sign one or multiple transactions (reads from stdin)")
+        (progDesc "Sign one or multiple transactions with a simple sig (reads from stdin)")
+    , command "lsign" $ info
+        (cmdTxnLogicSign <$> flagJson <*> argProgramFile)
+        (progDesc "Sign one or multiple transactions with a logic sig (reads from stdin)")
     , command "id" $ info
         (cmdTxnId <$> flagJson)
         (progDesc "Calculate transaction ID")
@@ -235,6 +245,14 @@ cmdTxnSign json skFile = do
   sk <- loadAccount skFile
   txns <- if json then readItemsJson else readItemsB64
   let signed = map (TS.signSimple sk) txns
+  putItemsB64 signed
+
+-- | Sign transactions with a logic signature.
+cmdTxnLogicSign :: MonadSubcommand m => Bool -> FilePath -> m ()
+cmdTxnLogicSign json programFile = do
+  program <- liftIO $ BS.readFile programFile
+  txns <- if json then readItemsJson else readItemsB64
+  let signed = map (TS.signFromContractAccount program []) txns
   putItemsB64 signed
 
 -- | Transaction ID.

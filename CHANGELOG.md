@@ -45,6 +45,7 @@ SPDX-License-Identifier: MPL-2.0
         * `show`
         * `show-unsigned`
         * `sign`
+        * `lsign`
         * `id`
         * `new pay`
         * `new axfr`
