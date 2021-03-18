@@ -7,27 +7,21 @@
 module Test.Data.Algorand.Transaction.Signed where
 
 import Data.Aeson (fromJSON, toJSON)
-import Data.ByteArray (Bytes, ByteArrayAccess, convert)
-import Data.ByteArray.Sized (SizedByteArray, sizedByteArray)
 import Data.ByteString (ByteString)
-import Data.ByteString.Base64 (decodeBase64)
-import Data.ByteString.Lazy (toStrict)
-import Data.MessagePack (pack, unpack)
-import Data.Proxy (Proxy (Proxy))
-import GHC.TypeLits (KnownNat, natVal)
+import Data.ByteString.Base64 (encodeBase64)
+import qualified Data.ByteString.Lazy as BSL
 
 import Hedgehog (MonadGen, Property, (===), forAll, property, tripping)
 import qualified Hedgehog.Gen as G
-import qualified Hedgehog.Range as R
 import Test.Tasty.HUnit (Assertion, (@?=))
 
 import Crypto.Algorand.Signature (SecretKey, skFromBytes, toPublic)
-import Data.Algorand.Address (Address, fromContractCode, fromPublicKey)
-import Data.Algorand.MessagePack (Canonical (Canonical, unCanonical), EitherError)
-import Data.Algorand.Transaction (StateSchema (..), Transaction (..), TransactionType (..))
+import Data.Algorand.Address (fromContractCode, fromPublicKey)
+import qualified Data.Algorand.MessagePack as MP
+import Data.Algorand.Transaction (Transaction (..))
 import Data.Algorand.Transaction.Signed (SignedTransaction, getUnverifiedTransaction, signFromContractAccount, signSimple, verifyTransaction)
 
-import Test.Crypto.Algorand.Signature (genPublicKey, genSecretKeyBytes)
+import Test.Crypto.Algorand.Signature (genSecretKeyBytes)
 import Test.Data.Algorand.Program (genProgram)
 import Test.Data.Algorand.Transaction (genTransaction)
 import Test.Data.Algorand.Transaction.Examples (example_21)
@@ -86,3 +80,14 @@ hprop_json_encode_decode = property $ do
   signer <- forAll genSigner
   tx <- forAll genTransaction
   tripping (signerSign signer tx) toJSON fromJSON
+
+
+
+unit_sign_as_contract :: Assertion
+unit_sign_as_contract = do
+    -- Generated using Python SDK.
+    let program = "\x01\x20\x01\x01\x22"
+    let signed = signFromContractAccount program [] example_21
+    encodeBase64 (BSL.toStrict . MP.pack . MP.Canonical $ signed) @?= expected
+  where
+    expected = "gqRsc2lngaFsxAUBIAEBIqN0eG6KpGFwYWGRxAR0ZXN0pGFwYXSSxCAAKjIBO2ow437iiFQk7n19BVXq4JOftpr8a9+d0v7n/sQgAAcEC49iozKw4AXwAsjApRY0aAEKMVgnxs9SfHhpeeekYXBmYZLNFbPNGgqkYXBpZGSjZmVlzQTSomZ2zSMoomdoxCAx/SHrOOQQgRk+00zfOyuD6IdAVLR9nGGCvvDfkjjrg6Jsds0jMqNzbmTEIPZ2Lax1sZl9bCyWGAaAUHSQ15URL/5/t2Cyc4r5x/GtpHR5cGWkYXBwbA=="
