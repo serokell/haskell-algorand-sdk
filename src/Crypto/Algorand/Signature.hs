@@ -114,7 +114,7 @@ skFromBytes bs = case Sig.secretKey bs of
 
 -- | Cryptographic signature.
 newtype Signature = Signature Sig.Signature
-  deriving (ByteArrayAccess, Show)
+  deriving (ByteArrayAccess, Eq, Show)
 
 instance NonZeroValue Signature where
   isNonZero _ = True

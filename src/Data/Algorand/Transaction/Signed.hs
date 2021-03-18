@@ -35,7 +35,7 @@ data TransactionSignature
   = SignatureSimple Signature
   | SignatureMulti MultiSignature
   | SignatureLogic LogicSignature
-  deriving (Generic, Show)
+  deriving (Eq, Generic, Show)
 
 instance NonZeroValue TransactionSignature where
   isNonZero _ = True
@@ -45,7 +45,7 @@ data SignedTransaction = SignedTransaction
   { stSig :: TransactionSignature
   , stTxn :: Transaction
   }
-  deriving (Generic, Show)
+  deriving (Eq, Generic, Show)
 
 
 {- Simple signature -}
@@ -70,7 +70,7 @@ verifySimple sig txn =
 {- Multi signature -}
 
 data MultiSignature = MultiSignature
-  deriving (Generic, Show)
+  deriving (Eq, Generic, Show)
 
 instance NonZeroValue MultiSignature where
   isNonZero _ = True
@@ -83,7 +83,7 @@ data LogicSignature = ContractAccountSignature
   { lsLogic :: ByteString
   , lsArgs :: [ByteString]
   }
-  deriving (Generic, Show)
+  deriving (Eq, Generic, Show)
 
 instance NonZeroValue LogicSignature where
   isNonZero _ = True
@@ -171,11 +171,12 @@ instance ToJSON SignedTransaction where
         _ -> error "Incorrect encoding for TransactionSignature"
 
 instance FromJSON SignedTransaction where
-  parseJSON v = JS.withObject "SignedTransaction" (\obj -> do
-      stSig <- parseJSON v
+  parseJSON = JS.withObject "SignedTransaction" $ \obj -> do
+      -- Delete the tranaction field because the parser for
+      -- TransactionSignature wants _exactly_ one field.
+      stSig <- parseJSON $ JS.Object (HM.delete (f "stTxn") obj)
       stTxn <- (obj JS..: f "stTxn") >>= parseJSON
       pure SignedTransaction{..}
-      ) v
     where
       f = signedTransactionFieldName
 

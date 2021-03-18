@@ -113,6 +113,7 @@ test-suite algorand-lib-test
       Test.Data.Algorand.Transaction.AssetTransfer
       Test.Data.Algorand.Transaction.Examples
       Test.Data.Algorand.Transaction.Pay
+      Test.Data.Algorand.Transaction.Signed
       Paths_algorand_sdk
   hs-source-dirs:
       test/algorand-lib
