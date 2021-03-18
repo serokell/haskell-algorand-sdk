@@ -16,6 +16,7 @@ module Network.Algorand.Node.Api
   , TransactionsRep (..)
   , TransactionInfo (..)
   , SuggestedParams (..)
+  , TealCompileRep (..)
   ) where
 
 import GHC.Generics (Generic)
@@ -27,7 +28,7 @@ import Data.Int (Int64)
 import Data.Text (Text)
 import Data.Word (Word64)
 import Network.HTTP.Media ((//))
-import Servant.API ((:>), Capture, Get, JSON, Post, ReqBody)
+import Servant.API ((:>), Capture, Get, JSON, PlainText, Post, ReqBody)
 import qualified Servant.API.ContentTypes as Mime
 import Servant.API.Generic (ToServantApi, (:-))
 
@@ -118,6 +119,13 @@ data SuggestedParams = SuggestedParams
 $(deriveJSON algorandTrainOptions 'SuggestedParams)
 
 
+data TealCompileRep = TealCompileRep
+  { tcrResult :: ByteString
+  --, tcrHash :: Base32 bytes  -- why
+  }
+$(deriveJSON algorandTrainOptions 'TealCompileRep)
+
+
 -- | The part of the API that does not depend on the version.
 data ApiAny route = ApiAny
   { _health :: route
@@ -153,6 +161,11 @@ data ApiV2 route = ApiV2
       :- "transactions"
       :> "params"
       :> Get '[JSON] SuggestedParams
+  , _tealCompile :: route
+      :- "teal"
+      :> "compile"
+      :> ReqBody '[PlainText] Text
+      :> Post '[JSON] TealCompileRep
   }
   deriving (Generic)
 

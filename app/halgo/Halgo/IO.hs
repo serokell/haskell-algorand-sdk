@@ -6,6 +6,7 @@
 module Halgo.IO
   ( putTextLn
   , putJson
+  , putNoticeLn
 
   , readBytesB64
   , readItemsJson
@@ -32,10 +33,12 @@ import qualified Data.Text.Lazy as LT
 import qualified Data.Text.Lazy.Encoding as LT
 import qualified Data.Text.Lazy.IO as LT
 import Fmt (pretty)
+import System.IO (stderr)
 
 import qualified Data.Algorand.MessagePack as MP
 
 import Halgo.Util (die)
+
 
 
 -- | @putStrLn@ for 'Text'.
@@ -45,6 +48,10 @@ putTextLn = liftIO . T.putStrLn
 -- | Encode as JSON and pretty-print to stdout.
 putJson :: (MonadIO m, ToJSON a) => a -> m ()
 putJson = liftIO . LT.putStrLn . LT.decodeUtf8 . encodePretty
+
+-- | @putStrLn@ for 'Text' that prints to 'stderr'.
+putNoticeLn :: MonadIO m => Text -> m ()
+putNoticeLn = liftIO . T.hPutStrLn stderr
 
 
 -- | Read a list of base64-encoded bytestrings, one per line.

@@ -267,6 +267,41 @@ Confirmed in round 12899884
 Confirmed in round 12899884
 ```
 
+#### Contract accounts
+
+`halgo contract compile` allows you to compile TEAL code to binary:
+
+```text
+$ echo "int 1" > /tmp/true.teal
+$ halgo contract compile /tmp/true.teal
+Writing compiled program to `/tmp/true.teal.tok`
+6Z3C3LDVWGMX23BMSYMANACQOSINPFIRF77H7N3AWJZYV6OH6GWTJKVMXY
+```
+
+It prepends the `.tok` suffix to the source code file name and puts
+raw binary data into that new file. It also prints the address
+of the account corresponding to the contract with this code.
+
+Once you have the compiled code, you can get its address again any time:
+
+```text
+$ halgo contract address /tmp/true.teal.tok
+6Z3C3LDVWGMX23BMSYMANACQOSINPFIRF77H7N3AWJZYV6OH6GWTJKVMXY
+```
+
+If you are lucky, this account will have some spare algos on the testnet.
+Let’s make it send some of its algos to you.
+
+You can use `halgo txn lsign` to sign a transaction with a Logic Signature:
+
+```text
+$ halgo txn new pay $(halgo acc show ./example.acc) 100 | halgo txn lsign /tmp/true.teal.tok | halgo node send
+BVFGYILJKW2J5SWSVMZFZDEXWOLUUENDRW67WOQDDXUR7CUGQBBA
+```
+
+Ta-da!
+
+
 ## Contributing
 
 If you encounter any issues when using this library or have improvement ideas,

@@ -50,3 +50,6 @@ SPDX-License-Identifier: MPL-2.0
         * `new pay`
         * `new axfr`
         * `group`
+    * `halgo contract`
+        * `compile`
+        * `address`

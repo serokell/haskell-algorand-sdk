@@ -39,7 +39,7 @@ import Network.Algorand.Node.Api (ApiV2)
 import qualified Network.Algorand.Node.Api as Api
 import qualified Network.Algorand.Node.Util as N
 
-import Halgo.IO (putItemsB64, putItemsJson, putJson, putTextLn, readItemsB64, readItemsJson)
+import Halgo.IO (putItemsB64, putItemsJson, putJson, putNoticeLn, putTextLn, readItemsB64, readItemsJson)
 import Halgo.Util (die, handleApiError)
 
 
@@ -74,6 +74,9 @@ opts = (,) <$> optsGlobal <*> hsubparser optsCommand
       , command "node" $ info
           nodeOpts
           (progDesc "Communicate with algod")
+      , command "contract" $ info
+          contractOpts
+          (progDesc "Work with TEAL programs")
       ]
 
 -- | Main.
@@ -167,7 +170,7 @@ argAmount = argument auto (metavar "<amount>" <> help "Amount in microalgos")
 argProgramFile :: Parser FilePath
 argProgramFile = strArgument $ mconcat
   [ metavar "<program file>"
-  , help "Path to a file with the compiled contract code"
+  , help "Path to a file with a compiled contract code"
   , action "file"
   ]
 
@@ -398,3 +401,36 @@ cmdNodeTxnStatus txId url = withNode url $ \(_, api) ->
     N.Waiting -> putTextLn $ "Waiting"
     N.KickedOut reason -> die $ "Kicked out: "+|reason|+""
     N.Confirmed r -> putTextLn . pretty $ "Confirmed in round " <> show r
+
+
+argProgramSourceFile :: Parser FilePath
+argProgramSourceFile = strArgument $ mconcat
+  [ metavar "<program source file>"
+  , help "Path to a file with a contract source code"
+  , action "file"
+  ]
+
+
+contractOpts :: Parser Subcommand
+contractOpts = hsubparser $ mconcat
+    [ command "compile" $ info
+        (cmdNode <$> optNodeUrl <*> (cmdContractCompile <$> argProgramSourceFile))
+        (progDesc "Compile source code to binary. Appends `.tok` to the input file name.")
+    , command "address" $ info
+        (cmdContractAddress <$> argProgramFile)
+        (progDesc "Show the address of the compiled contract account")
+    ]
+
+cmdContractCompile :: MonadSubcommand m => FilePath -> NodeUrl -> m ()
+cmdContractCompile sourcePath url = withNode url $ \(_, api) -> do
+  source <- liftIO $ T.readFile sourcePath
+  bin <- Api.tcrResult <$> Api._tealCompile api source
+  let outPath = sourcePath <> ".tok"
+  putNoticeLn $ "Writing compiled program to `"+|outPath|+"`"
+  liftIO $ BS.writeFile outPath bin
+  putTextLn (A.toText . A.fromContractCode $ bin)
+
+cmdContractAddress :: MonadSubcommand m => FilePath -> m ()
+cmdContractAddress programPath = do
+  program <- liftIO $ BS.readFile programPath
+  putTextLn (A.toText . A.fromContractCode $ program)
