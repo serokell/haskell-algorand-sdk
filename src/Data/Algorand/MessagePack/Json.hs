@@ -16,6 +16,7 @@ module Data.Algorand.MessagePack.Json
 
 import qualified Data.Aeson as JS
 import qualified Data.Aeson.Types as JS
+import Data.ByteString (ByteString)
 import Data.ByteString.Base64 (decodeBase64, encodeBase64)
 import Data.Foldable (toList)
 import qualified Data.HashMap.Strict as HM
@@ -24,7 +25,8 @@ import qualified Data.Scientific as S
 import Data.Text (Text)
 import Data.Text.Encoding (encodeUtf8)
 
-import Data.Algorand.MessagePack (Canonical (Canonical), EitherError (..), MessagePackObject, MessageUnpackObject)
+import qualified Data.Algorand.Address as A
+import Data.Algorand.MessagePack (Canonical (Canonical), EitherError (..), MessagePackObject, MessageUnpackObject, fromAlgoObject, toAlgoObject)
 
 
 -- | Serialise to a canonical JSON.
@@ -55,7 +57,10 @@ jsonFromMsgpack (MP.ObjectMap items) = JS.Object $ HM.fromList $ map pair items
     pair :: (MP.Object, MP.Object) -> (Text, JS.Value)
     pair (k, v) = case MP.fromObject k of
       EitherError (Left err) -> error $ "Can only work with maps from text keys: " <> err
-      EitherError (Right t) -> (t, jsonFromMsgpack v)
+      EitherError (Right t) -> case (t, v) of
+        ("snd", MP.ObjectBin (decodeAddressMsgpack -> Just js)) -> ("snd", js)
+        ("rcv", MP.ObjectBin (decodeAddressMsgpack -> Just js)) -> ("rcv", js)
+        _ -> (t, jsonFromMsgpack v)
 jsonFromMsgpack (MP.ObjectExt _t _d) = error "ObjectExt is not supported"
 
 -- | Turn a 'JS.Value' into an 'MP.Object'.
@@ -66,16 +71,26 @@ msgpackFromJson (JS.Object o) =
     mapItem :: (Text, JS.Value) -> (MP.Object, MP.Object)
     -- Special hack for the only string field that we have in the protocol.
     mapItem ("type", JS.String s) = (MP.ObjectStr "type", MP.ObjectStr s)
+    -- Special hack for addresses, which are encoded as base32
+    mapItem ("snd", JS.String (decodeAddressJson -> Just mp)) = (MP.ObjectStr "snd", mp)
+    mapItem ("rcv", JS.String (decodeAddressJson -> Just mp)) = (MP.ObjectStr "rcv", mp)
+    -- Default case
     mapItem (k, v) = (MP.toObject k, msgpackFromJson v)
 msgpackFromJson (JS.Array arr) =
   MP.toObject $ map msgpackFromJson $ toList arr
 msgpackFromJson (JS.String s) =
   case decodeBase64 (encodeUtf8 s) of
     Right bs -> MP.ObjectBin bs
-    Left _-> MP.ObjectStr s
+    Left _ -> MP.ObjectStr s
 msgpackFromJson (JS.Number n) =
   case S.toBoundedInteger n of
     Just w -> MP.ObjectWord w
     Nothing -> error "Only Word64 is supported as Number"
 msgpackFromJson (JS.Bool b) = MP.ObjectBool b
 msgpackFromJson JS.Null = MP.ObjectNil
+
+decodeAddressJson :: Text -> Maybe MP.Object
+decodeAddressJson = fmap toAlgoObject . A.fromText
+
+decodeAddressMsgpack :: ByteString -> Maybe JS.Value
+decodeAddressMsgpack = fmap JS.toJSON . fromAlgoObject @A.Address . MP.ObjectBin
