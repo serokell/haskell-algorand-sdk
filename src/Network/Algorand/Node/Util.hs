@@ -72,7 +72,10 @@ lookupAssetBalance Api.Account{..} assetId
   where
     toPair a@Api.Asset{..} = (asAssetId, a)
 
-lookupAppLocalStorage :: Api.Account -> AppIndex -> Maybe (Map ByteString (Either ByteString Word64))
+lookupAppLocalStorage
+  :: Api.Account
+  -> AppIndex
+  -> Maybe (Map ByteString (Either ByteString Word64))
 lookupAppLocalStorage Api.Account{..} appId = do
   Api.LocalState{..} <- aAppsLocalState >>= lookup appId . map toPair
   guard $ isNothing lsDeleted || Just False == lsDeleted
