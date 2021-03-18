@@ -33,6 +33,7 @@ library
       Data.Algorand.Address
       Data.Algorand.Amount
       Data.Algorand.MessagePack
+      Data.Algorand.MessagePack.Json
       Data.Algorand.Transaction
       Data.Algorand.Transaction.Build
       Data.Algorand.Transaction.Group
@@ -63,6 +64,7 @@ library
     , msgpack-binary >=0.0.14 && <0.1
     , msgpack-types >=0.0.4 && <0.1
     , safe-exceptions >=0.1 && <0.2
+    , scientific >=0.3.3 && <0.3.7
     , servant >=0.14 && <0.19
     , servant-client >=0.14 && <0.19
     , servant-client-core >=0.14 && <0.19

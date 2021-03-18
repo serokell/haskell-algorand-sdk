@@ -28,14 +28,12 @@ module Data.Algorand.Transaction
   , serialiseTx
   ) where
 
-import Data.Aeson (FromJSON (..), Options (constructorTagModifier, fieldLabelModifier, sumEncoding), SumEncoding (TaggedObject), ToJSON (..), Value (Object), genericToEncoding, genericToJSON, genericParseJSON)
-import Data.Aeson.Types (withObject)
+import Data.Aeson (FromJSON (..), ToJSON (..))
 import Data.ByteArray (Bytes)
 import Data.ByteArray.Sized (SizedByteArray, unSizedByteArray)
 import Data.ByteString (ByteString)
 import Data.ByteString.Base32 (encodeBase32Unpadded)
 import Data.ByteString.Lazy (toStrict)
-import qualified Data.HashMap.Strict as HM
 import Data.MessagePack (pack)
 import Data.String (IsString)
 import Data.Text (Text)
@@ -47,7 +45,7 @@ import Crypto.Algorand.Hash (hash32)
 import Data.Algorand.Address (Address)
 import Data.Algorand.Amount (Microalgos)
 import Data.Algorand.MessagePack (MessagePackObject (toCanonicalObject), MessageUnpackObject (fromCanonicalObject), Canonical (Canonical), (&), (&<>), (.=), (.=<), (.:), (.:?), (.:>))
-import Network.Algorand.Node.Api.Json (defaultOptions)
+import Data.Algorand.MessagePack.Json (parseCanonicalJson, toCanonicalJson)
 
 
 type AppIndex = Word64
@@ -204,27 +202,11 @@ instance MessageUnpackObject Transaction where
     where
       f = transactionFieldName
 
-transactionJsonOptions :: Options
-transactionJsonOptions = defaultOptions { fieldLabelModifier = transactionFieldName }
-
--- These instances do surgery on @Value@s in order to inline TransactionType
--- into its surrounding Transaction.
--- It is a bit crazy, but hopefully OK, since we have round-trip tests...
 instance ToJSON Transaction where
-  toJSON txn = case toJSON' txn of
-      Object hm -> case HM.lookup "type" hm of
-        Just (Object hm') -> Object $ hm' <> hm  -- union taking "type" form the internal one
-        _ -> error "Incorrect encoding of TransactionType"
-      _ -> error "Incorrect encoding of Transaction"
-    where
-      toJSON' = genericToJSON transactionJsonOptions
+  toJSON = toCanonicalJson
 
 instance FromJSON Transaction where
-  parseJSON o = do
-      txnType <- parseJSON @TransactionType o
-      withObject "Transaction" (parseJSON' . Object . HM.insert "type" (toJSON txnType)) o
-    where
-      parseJSON' = genericParseJSON transactionJsonOptions
+  parseJSON = parseCanonicalJson
 
 
 transactionTypeFieldName :: IsString s => String -> s
@@ -334,19 +316,11 @@ instance MessageUnpackObject TransactionType where
     where
       f = transactionTypeFieldName
 
-transactionTypeJsonOptions :: Options
-transactionTypeJsonOptions = defaultOptions
-  { fieldLabelModifier = transactionTypeFieldName
-  , constructorTagModifier = transactionType
-  , sumEncoding = TaggedObject "type" "_"
-  }
-
 instance ToJSON TransactionType where
-  toJSON = genericToJSON transactionTypeJsonOptions
-  toEncoding = genericToEncoding transactionTypeJsonOptions
+  toJSON = toCanonicalJson
 
 instance FromJSON TransactionType where
-  parseJSON = genericParseJSON transactionTypeJsonOptions
+  parseJSON = parseCanonicalJson
 
 
 stateSchemaFieldName :: IsString s => String -> s
@@ -370,12 +344,8 @@ instance MessageUnpackObject StateSchema where
     where
       f = stateSchemaFieldName
 
-stateSchemaJsonOptions :: Options
-stateSchemaJsonOptions = defaultOptions { fieldLabelModifier = stateSchemaFieldName }
-
 instance ToJSON StateSchema where
-  toJSON = genericToJSON stateSchemaJsonOptions
-  toEncoding = genericToEncoding stateSchemaJsonOptions
+  toJSON = toCanonicalJson
 
 instance FromJSON StateSchema where
-  parseJSON = genericParseJSON stateSchemaJsonOptions
+  parseJSON = parseCanonicalJson

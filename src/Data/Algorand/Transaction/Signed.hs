@@ -26,8 +26,8 @@ import GHC.Generics (Generic)
 import Crypto.Algorand.Signature (SecretKey, Signature, sign, toPublic, verify)
 import Data.Algorand.Address (fromContractCode, fromPublicKey, toPublicKey)
 import Data.Algorand.MessagePack (MessagePackObject (toCanonicalObject), MessageUnpackObject (fromCanonicalObject), (&), (&<>), (.=), (.=<), (.:?), (.:??), (.:>), (.:>?), NonZeroValue (isNonZero))
+import Data.Algorand.MessagePack.Json (parseCanonicalJson, toCanonicalJson)
 import Data.Algorand.Transaction (Transaction (..), serialiseTx)
-import Network.Algorand.Node.Api.Json (defaultOptions)
 
 
 -- | Types of transaction signatures.
@@ -181,12 +181,6 @@ instance FromJSON SignedTransaction where
       f = signedTransactionFieldName
 
 
-transactionSignatureJsonOptions :: JS.Options
-transactionSignatureJsonOptions = defaultOptions
-  { JS.constructorTagModifier = transactionSignatureType
-  , JS.sumEncoding = JS.ObjectWithSingleField
-  }
-
 instance MessagePackObject TransactionSignature where
   toCanonicalObject = \case
       SignatureSimple sig -> mempty
@@ -210,11 +204,10 @@ instance MessageUnpackObject TransactionSignature where
       t = transactionSignatureType :: String -> Text
 
 instance ToJSON TransactionSignature where
-  toJSON = JS.genericToJSON transactionSignatureJsonOptions
-  toEncoding = JS.genericToEncoding transactionSignatureJsonOptions
+  toJSON = toCanonicalJson
 
 instance FromJSON TransactionSignature where
-  parseJSON = JS.genericParseJSON transactionSignatureJsonOptions
+  parseJSON = parseCanonicalJson
 
 
 --multiSignatureFieldName :: IsString s => String -> s
@@ -227,15 +220,11 @@ instance MessagePackObject MultiSignature where
 instance MessageUnpackObject MultiSignature where
   fromCanonicalObject _ = pure MultiSignature  -- TODO
 
-multiSignatureJsonOptions :: JS.Options
-multiSignatureJsonOptions = defaultOptions -- { JS.fieldLabelModifier = multiSignatureFieldName }
-
 instance ToJSON MultiSignature where
-  toJSON = JS.genericToJSON multiSignatureJsonOptions
-  toEncoding = JS.genericToEncoding multiSignatureJsonOptions
+  toJSON = toCanonicalJson
 
 instance FromJSON MultiSignature where
-  parseJSON = JS.genericParseJSON multiSignatureJsonOptions
+  parseJSON = parseCanonicalJson
 
 
 logicSignatureFieldName :: IsString s => String -> s
@@ -260,12 +249,8 @@ instance MessageUnpackObject LogicSignature where
     where
       f = logicSignatureFieldName
 
-logicSignatureJsonOptions :: JS.Options
-logicSignatureJsonOptions = defaultOptions { JS.fieldLabelModifier = logicSignatureFieldName }
-
 instance ToJSON LogicSignature where
-  toJSON = JS.genericToJSON logicSignatureJsonOptions
-  toEncoding = JS.genericToEncoding logicSignatureJsonOptions
+  toJSON = toCanonicalJson
 
 instance FromJSON LogicSignature where
-  parseJSON = JS.genericParseJSON logicSignatureJsonOptions
+  parseJSON = parseCanonicalJson

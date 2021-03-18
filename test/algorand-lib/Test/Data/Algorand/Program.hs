@@ -13,6 +13,6 @@ import qualified Hedgehog.Range as R
 
 -- | Generate a compiled TEAL program.
 --
--- FIXME: Currently, this just generates arbitrary bytes.
+-- FIXME: Currently, this just generates arbitrary (non-empty) bytes.
 genProgram :: MonadGen m => m ByteString
-genProgram = G.bytes (R.linear 0 1000)
+genProgram = G.bytes (R.linear 1 1000)
