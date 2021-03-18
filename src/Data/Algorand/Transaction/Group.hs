@@ -21,6 +21,7 @@ import Data.Function ((&))
 -- | Compute the group ID for a list of transactions.
 --
 -- The order of transactions in the list matters!
+-- Make sure all transactions have all their fields filled in, including sender!
 getGroupIdFor :: [Transaction] -> TransactionGroupId
 getGroupIdFor =
     hash32 . ("TG" <>) . packGroup . map (transactionId' . setGroupId Nothing)
@@ -33,6 +34,7 @@ getGroupIdFor =
 -- This computes the correct group ID for this particular list of transactions
 -- and then overwrites the 'tGroup' field of each of the transactions with
 -- the computed value.
+-- Make sure all transactions have all their fields filled in, including sender!
 makeGroup :: [Transaction] -> [Transaction]
 makeGroup txs = map (setGroupId $ Just (getGroupIdFor txs)) txs
 
