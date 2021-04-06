@@ -395,7 +395,13 @@ cmdPrintBlock rnd url = withNode url $ \(_, api) -> do
   mBlock <- N.getBlock api rnd
   case mBlock of
     Just block -> do
-      let txs = TS.getUnverifiedTransaction <$> B.bTransactions block
+      let txs = TS.getUnverifiedTransaction .
+                TS.toSignedTransaction
+                  True -- false should be used only for some
+                       -- old protocol versions
+                  (B.bGenesisHash block)
+                  (B.bGenesisId block)
+                  <$> B.bTransactions block
       putTextLn $ "Retrieved " +| (if null txs then "empty " else "" :: Text)
         |+ "block for round " +| B.unRound (B.bRound block)
         |+ " created at " +| B.bTimestamp block

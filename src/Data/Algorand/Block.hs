@@ -27,7 +27,7 @@ import Data.Time.Clock.POSIX (posixSecondsToUTCTime)
 import Data.Algorand.Amount (Microalgos)
 import Data.Algorand.MessagePack (AlgoMessagePack (..), MessageUnpackObject (..),  Canonical (..), (.:), (.:?), (.:>))
 import Data.Algorand.Transaction
-import Data.Algorand.Transaction.Signed (SignedTransaction)
+import Data.Algorand.Transaction.Signed (BlockTransaction)
 
 type BlockHash = SizedByteArray 32 Bytes
 type Seed = SizedByteArray 32 Bytes
@@ -143,7 +143,7 @@ data Block = Block
   , bTimestamp :: UTCTime
   -- ^ [ts] Block creation timestamp in seconds
   -- since epoch.
-  , bTransactions :: [SignedTransaction]
+  , bTransactions :: [BlockTransaction]
   -- ^ [txns] list of transactions corresponding
   -- to a given round.
   , bTransactionsRoot :: TransactionsRoot
