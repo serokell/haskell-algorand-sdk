@@ -9,6 +9,7 @@ module Network.Algorand.Node.Api
   ( Api (..)
   , ApiAny (..)
   , ApiV2 (..)
+  , ApiIdx2 (..)
   , msgPackFormat
   , module M
   ) where
@@ -41,12 +42,19 @@ data ApiAny route = ApiAny
   }
   deriving (Generic)
 
+data ApiIdx2 route = ApiIdx2
+  { _accountIdx :: route
+      :- "accounts"
+      :> Capture "address" Address
+      :> QueryParam "round" Round
+      :> Get '[JSON] IdxAccountResponse
+  } deriving stock Generic
+
 -- | Algod API (v2 only).
 data ApiV2 route = ApiV2
   { _account :: route
       :- "accounts"
       :> Capture "address" Address
-      :> QueryParam "round" Round
       :> Get '[JSON] Account
   , _transactions :: route
       :- "transactions"
@@ -91,6 +99,10 @@ data Api route = Api
   , _v2 :: route
       :- "v2"
       :> ToServantApi ApiV2
+  , _idx2 :: route
+      :- "idx2"
+      :> "v2"
+      :> ToServantApi ApiIdx2
   }
   deriving (Generic)
 

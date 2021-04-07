@@ -7,11 +7,13 @@ module Network.Algorand.Node.Util
   ( TransactionStatus (..)
   , transactionStatus
   , getBlock
+  , getAccountAtRound
+  , getAccount
   , lookupAssetBalance
   , lookupAppLocalStorage
   ) where
 
-import Control.Exception.Safe (MonadCatch, handle, throwM)
+import Control.Exception.Safe (MonadCatch, MonadThrow, handle, throwM)
 import Control.Monad (guard)
 import qualified Data.Aeson as J
 import Data.ByteString (ByteString)
@@ -25,8 +27,9 @@ import Data.Word (Word64)
 import Network.HTTP.Types (Status (statusCode))
 import Servant.Client (ClientError (..), ResponseF (..))
 import Servant.Client.Generic (AsClientT)
-import Data.Algorand.Transaction (AppIndex, AssetIndex)
 
+import Data.Algorand.Transaction (AppIndex, AssetIndex)
+import Data.Algorand.Address (Address)
 import Network.Algorand.Node.Api (TransactionInfo (..))
 import qualified Network.Algorand.Node.Api as Api
 import qualified Data.Algorand.Block as B
@@ -46,22 +49,46 @@ transactionStatus TransactionInfo{tiConfirmedRound, tiPoolError} =
       False -> KickedOut tiPoolError
       True -> Waiting
 
+noEntityHandler
+  :: MonadThrow m
+  => Text -> ClientError -> m (Maybe a)
+noEntityHandler noEntityMsg = handler
+  where
+    handler (FailureResponse _req
+              Response{responseStatusCode = s, responseBody = b})
+      | statusCode s == 500 || statusCode s == 404
+      , Just (J.Object errObj) <- J.decode' b
+      , Just (J.String msg) <- HM.lookup "message" errObj
+      , T.take (T.length noEntityMsg) msg == noEntityMsg
+      = pure Nothing
+    handler e = throwM e
+
+getAccountAtRound
+  :: MonadCatch m
+  => Api.ApiIdx2 (AsClientT m)
+  -> Address
+  -> B.Round
+  -> m (Maybe Api.IdxAccountResponse)
+getAccountAtRound api addr rnd = handle (noEntityHandler noAccMsg) $
+  Just <$> Api._accountIdx api addr (Just rnd)
+
+getAccount
+  :: MonadCatch m
+  => Api.ApiV2 (AsClientT m) -> Address -> m (Maybe Api.Account)
+getAccount api addr = handle (noEntityHandler noAccMsg) $
+  Just <$> Api._account api addr
+
+noAccMsg :: Text
+noAccMsg = "no accounts found for address"
+
 getBlock
   :: MonadCatch m
   => Api.ApiV2 (AsClientT m) -> B.Round -> m (Maybe B.Block)
-getBlock api rnd = handle handler $ do
+getBlock api rnd = handle (noEntityHandler noBlockMsg) $ do
   B.BlockWrapped block <- Api._block api rnd Api.msgPackFormat
   pure (Just block)
   where
     noBlockMsg = "ledger does not have entry"
-    handler (FailureResponse _req
-              Response{responseStatusCode = s, responseBody = b})
-      | statusCode s == 500
-      , Just (J.Object errObj) <- J.decode' b
-      , Just (J.String msg) <- HM.lookup "message" errObj
-      , T.take (T.length noBlockMsg) msg == noBlockMsg
-      = pure Nothing
-    handler e = throwM e
 
 lookupAssetBalance :: Api.Account -> AssetIndex -> Word64
 lookupAssetBalance Api.Account{..} assetId

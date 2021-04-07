@@ -412,7 +412,7 @@ cmdPrintBlock rnd url = withNode url $ \(_, api) -> do
 -- | Fetch information about an account.
 cmdNodeFetchAccount :: MonadSubcommand m => A.Address -> NodeUrl -> m ()
 cmdNodeFetchAccount addr url = withNode url $ \(_, api) ->
-  Api._account api addr Nothing >>= putJson
+  Api._account api addr >>= putJson
 
 -- | Fetch a transaction (from the pool).
 cmdNodeFetchTxn :: MonadSubcommand m => Text -> NodeUrl -> m ()

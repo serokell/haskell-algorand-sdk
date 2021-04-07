@@ -9,6 +9,7 @@ module Network.Algorand.Node.Api.Type
   ( BuildVersion (..)
   , Version (..)
   , Account (..)
+  , IdxAccountResponse (..)
   , TransactionsRep (..)
   , TransactionInfo (..)
   , SuggestedParams (..)
@@ -156,6 +157,12 @@ data Account = Account
   }
   deriving (Generic, Show)
 $(deriveJSON algorandTrainOptions 'Account)
+
+data IdxAccountResponse = IdxAccountResponse
+  { iarAccount :: Account
+  , iarCurrentRound :: Round
+  } deriving stock (Generic, Show)
+$(deriveJSON algorandTrainOptions 'IdxAccountResponse)
 
 data TransactionInfo = TransactionInfo
   { tiApplicationIndex :: Maybe AppIndex
