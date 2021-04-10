@@ -24,7 +24,7 @@ import qualified Data.Map as M
 import Data.Text (Text)
 import qualified Data.Text as T
 import Data.Word (Word64)
-import Network.HTTP.Types (Status (statusCode))
+import Network.HTTP.Types (Status (..))
 import Servant.Client (ClientError (..), ResponseF (..))
 import Servant.Client.Generic (AsClientT)
 
@@ -69,13 +69,25 @@ getAccountAtRound
   -> Address
   -> B.Round
   -> m (Maybe Api.IdxAccountResponse)
-getAccountAtRound api addr rnd = handle (noEntityHandler noAccMsg) $
+getAccountAtRound api addr rnd =
+  handle handler502 $
+  handle (noEntityHandler noAccMsg) $
   Just <$> Api._accountIdx api addr (Just rnd)
+  where
+    -- TODO remove this check after indexer stops responding with
+    -- uninformative HTML and 502 error code on an account that
+    -- didn't exist in one of the previous blocks, but was
+    -- created in one of subsequent blocks
+    handler502 (FailureResponse _req
+      Response{responseStatusCode =
+        Status {statusCode = 502}}) = pure Nothing
+    handler502 e = throwM e
 
 getAccount
   :: MonadCatch m
   => Api.ApiV2 (AsClientT m) -> Address -> m (Maybe Api.Account)
-getAccount api addr = handle (noEntityHandler noAccMsg) $
+getAccount api addr =
+  handle (noEntityHandler noAccMsg) $
   Just <$> Api._account api addr
 
 noAccMsg :: Text
