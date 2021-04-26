@@ -146,7 +146,7 @@ data Block = Block
   , bTransactions :: [BlockTransaction]
   -- ^ [txns] list of transactions corresponding
   -- to a given round.
-  , bTransactionsRoot :: TransactionsRoot
+  , bTransactionsRoot :: Maybe TransactionsRoot
   -- ^ [txn] TransactionsRoot authenticates the set of
   -- transactions appearing in the block. More specifically,
   -- it's the root of a merkle tree whose leaves are
@@ -180,7 +180,7 @@ instance MessageUnpackObject Block where
     ts :: Word64 <- o .: "ts"
     let bTimestamp = posixSecondsToUTCTime (realToFrac ts)
     bTransactions <- map unCanonical <$> (o .:? "txns")
-    bTransactionsRoot <- o .: "txn"
+    bTransactionsRoot <- o .:? "txn"
     bTxnCounter <- o .:? "tc"
     bUpgradeState <- fromCanonicalObject o
     bUpgradeVote <- fromCanonicalObject o
