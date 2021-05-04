@@ -54,10 +54,12 @@ data SignedTransaction = SignedTransaction
 --
 -- Note: this function will overwrite the sender of the transaction!
 signSimple :: SecretKey -> Transaction -> SignedTransaction
-signSimple sk txn = SignedTransaction
-  { stTxn = txn { tSender = fromPublicKey (toPublic sk) }
-  , stSig = SignatureSimple $ sign sk (serialiseTx txn)
-  }
+signSimple sk txn =
+  let txn' = txn { tSender = fromPublicKey (toPublic sk) }
+  in SignedTransaction
+    { stTxn = txn'
+    , stSig = SignatureSimple $ sign sk (serialiseTx txn')
+    }
 
 -- | Verify a simple signature transaction.
 verifySimple :: Signature -> Transaction -> Bool
