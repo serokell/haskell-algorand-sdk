@@ -31,8 +31,8 @@ hprop_sign_verify_simple :: Property
 hprop_sign_verify_simple = property $ do
   Just sk <- skFromBytes <$> forAll genSecretKeyBytes
   tx <- forAll genTransaction
-  let tx' = tx { tSender = fromPublicKey (toPublic sk) }
-  tripping tx' (signSimple sk) verifyTransaction
+  let expectedTx = tx { tSender = fromPublicKey (toPublic sk) }
+  (verifyTransaction $ signSimple sk tx) === Just expectedTx
 
 hprop_signSimple_sets_sender :: Property
 hprop_signSimple_sets_sender = property $ do
