@@ -7,7 +7,7 @@ module Network.Algorand.Node
   ( connect
   , NodeUrl
   , BadNode (..)
-
+  , AlgoClient (..)
   , module Api
   ) where
 
@@ -20,7 +20,7 @@ import Servant.API.Generic (fromServant)
 import Servant.Client (mkClientEnv, parseBaseUrl, runClientM)
 import Servant.Client.Generic (AsClientT, genericClientHoist)
 
-import Network.Algorand.Node.Api (Api (..), ApiV2, ApiAny (..), Version (..))
+import Network.Algorand.Node.Api (Api (..), ApiV2, ApiIdx2, ApiAny (..), Version (..))
 import qualified Network.Algorand.Node.Api as Api
 
 
@@ -42,28 +42,37 @@ instance Show BadNode where
 
 instance Exception BadNode
 
+data AlgoClient = AlgoClient
+  { getAlgoClient ::
+      forall m' . MonadIO m' => ApiV2 (AsClientT m')
+  , getAlgoIndexer ::
+      forall m' . MonadIO m' => ApiIdx2 (AsClientT m')
+  }
 
 -- | Connect to a node and make sure it is working on the expected network.
 connect
   :: forall m. (MonadIO m, MonadThrow m)
   => NodeUrl  -- ^ URL of the node.
   -> Text  -- ^ Expected network (genesis id).
-  -> m (Api.Version, ApiV2 (AsClientT m))
+  -> m (Api.Version, AlgoClient)
 connect url net = do
     manager <- newTlsManager
     env <- mkClientEnv manager <$> parseBaseUrl (T.unpack url)
 
     let
-      apiClient :: Api (AsClientT m)
+      apiClient :: forall m' . MonadIO m' => Api (AsClientT m')
       apiClient = genericClientHoist (\x -> liftIO $ runClientM x env >>= either throwM pure)
 
       apiAny :: ApiAny (AsClientT m)
       apiAny = fromServant $ _vAny apiClient
 
-      apiV2Client :: ApiV2 (AsClientT m)
+      apiV2Client :: forall m' . MonadIO m' => ApiV2 (AsClientT m')
       apiV2Client = fromServant $ _v2 apiClient
+
+      apiIdx2Client :: forall m' . MonadIO m' => ApiIdx2 (AsClientT m')
+      apiIdx2Client = fromServant $ _idx2 apiClient
 
     version@Version{vGenesisId} <- _version apiAny
     case vGenesisId == net of
       False -> throwM $ WrongNetwork net vGenesisId
-      True -> pure (version, apiV2Client)
+      True -> pure (version, AlgoClient apiV2Client apiIdx2Client)

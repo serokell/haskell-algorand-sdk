@@ -21,11 +21,13 @@ import Data.Word (Word64)
 import Fmt ((+|), (|+), pretty)
 import Main.Utf8 (withUtf8)
 import Servant.Client.Generic (AsClientT)
+import Data.Bifunctor (second)
 import qualified System.IO.Error as IOE
 import UnliftIO (MonadIO, MonadUnliftIO, liftIO)
 import UnliftIO.Directory (doesPathExist)
 import UnliftIO.IO (IOMode (ReadMode, WriteMode), withFile)
 
+import qualified Data.Algorand.Block as B
 import Crypto.Algorand.Signature (SecretKey)
 import qualified Crypto.Algorand.Signature as S
 import qualified Data.Algorand.Address as A
@@ -34,7 +36,7 @@ import qualified Data.Algorand.Transaction as T
 import qualified Data.Algorand.Transaction.Build as T
 import qualified Data.Algorand.Transaction.Group as T
 import qualified Data.Algorand.Transaction.Signed as TS
-import Network.Algorand.Node (NodeUrl, connect)
+import Network.Algorand.Node (NodeUrl, connect, AlgoClient (..))
 import Network.Algorand.Node.Api (ApiV2)
 import qualified Network.Algorand.Node.Api as Api
 import qualified Network.Algorand.Node.Util as N
@@ -78,6 +80,7 @@ opts = (,) <$> optsGlobal <*> hsubparser optsCommand
           contractOpts
           (progDesc "Work with TEAL programs")
       ]
+
 
 -- | Main.
 main :: IO ()
@@ -340,7 +343,18 @@ nodeOpts = cmdNode <$> optNodeUrl <*> sub
       , command "txn-status" $ info
           (cmdNodeTxnStatus <$> argTxId)
           (progDesc "Get the status of a transaction in the pool")
+      , command "status" $ info
+          (pure cmdNodeStatus)
+          (progDesc "Show the status of the node that will be used")
+      , command "block" $ info
+          (cmdPrintBlock <$> roundOpt)
+          (progDesc "Retrieve block")
       ]
+
+    roundOpt = B.Round <$> option auto
+      ( long "round"
+           <> metavar "INTEGER"
+           <> help "Round number of Algorand blockchain" )
 
     argTxId :: Parser Text
     argTxId = strArgument $ mconcat
@@ -371,11 +385,29 @@ withNode
   -> m a
 withNode url act = do
   net <- asks goNetwork
-  connect url net >>= handleApiError . act
+  connect url net >>= handleApiError . act . second getAlgoClient
 
 cmdNodeVersion :: MonadSubcommand m => NodeUrl -> m ()
 cmdNodeVersion url = withNode url $ \(v, _) -> putJson v
 
+cmdPrintBlock :: MonadSubcommand m => B.Round -> NodeUrl -> m ()
+cmdPrintBlock rnd url = withNode url $ \(_, api) -> do
+  mBlock <- N.getBlock api rnd
+  case mBlock of
+    Just block -> do
+      let txs = TS.getUnverifiedTransaction .
+                TS.toSignedTransaction
+                  True -- false should be used only for some
+                       -- old protocol versions
+                  (B.bGenesisHash block)
+                  (B.bGenesisId block)
+                  <$> B.bTransactions block
+      putTextLn $ "Retrieved " +| (if null txs then "empty " else "" :: Text)
+        |+ "block for round " +| B.unRound (B.bRound block)
+        |+ " created at " +| B.bTimestamp block
+        |+ (if null txs then "" else " with txs:")
+      mapM_ putJson txs
+    _ -> putTextLn "No block found"
 
 -- | Fetch information about an account.
 cmdNodeFetchAccount :: MonadSubcommand m => A.Address -> NodeUrl -> m ()
@@ -402,7 +434,6 @@ cmdNodeTxnStatus txId url = withNode url $ \(_, api) ->
     N.KickedOut reason -> die $ "Kicked out: "+|reason|+""
     N.Confirmed r -> putTextLn . pretty $ "Confirmed in round " <> show r
 
-
 argProgramSourceFile :: Parser FilePath
 argProgramSourceFile = strArgument $ mconcat
   [ metavar "<program source file>"
@@ -424,7 +455,7 @@ contractOpts = hsubparser $ mconcat
 cmdContractCompile :: MonadSubcommand m => FilePath -> NodeUrl -> m ()
 cmdContractCompile sourcePath url = withNode url $ \(_, api) -> do
   source <- liftIO $ T.readFile sourcePath
-  bin <- Api.tcrResult <$> Api._tealCompile api source
+  bin <- Api.unTealCode . Api.tcrResult <$> Api._compileTeal api source
   let outPath = sourcePath <> ".tok"
   putNoticeLn $ "Writing compiled program to `"+|outPath|+"`"
   liftIO $ BS.writeFile outPath bin
@@ -434,3 +465,7 @@ cmdContractAddress :: MonadSubcommand m => FilePath -> m ()
 cmdContractAddress programPath = do
   program <- liftIO $ BS.readFile programPath
   putTextLn (A.toText . A.fromContractCode $ program)
+
+cmdNodeStatus :: MonadSubcommand m => NodeUrl -> m ()
+cmdNodeStatus url = withNode url $ \(_, api) ->
+  Api._status api >>= putJson

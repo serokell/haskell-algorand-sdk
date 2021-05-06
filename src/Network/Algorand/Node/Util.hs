@@ -6,14 +6,33 @@
 module Network.Algorand.Node.Util
   ( TransactionStatus (..)
   , transactionStatus
+  , getBlock
+  , getAccountAtRound
+  , getAccount
+  , lookupAssetBalance
+  , lookupAppLocalStorage
   ) where
 
+import Control.Exception.Safe (MonadCatch, MonadThrow, handle, throwM)
+import Control.Monad (guard)
+import qualified Data.Aeson as J
+import Data.ByteString (ByteString)
+import qualified Data.HashMap.Strict as HM
+import Data.Maybe (isNothing)
+import Data.Map (Map)
+import qualified Data.Map as M
 import Data.Text (Text)
 import qualified Data.Text as T
 import Data.Word (Word64)
+import Network.HTTP.Types (Status (..))
+import Servant.Client (ClientError (..), ResponseF (..))
+import Servant.Client.Generic (AsClientT)
 
+import Data.Algorand.Transaction (AppIndex, AssetIndex)
+import Data.Algorand.Address (Address)
 import Network.Algorand.Node.Api (TransactionInfo (..))
-
+import qualified Network.Algorand.Node.Api as Api
+import qualified Data.Algorand.Block as B
 
 -- | Status of a transaction in the pool.
 data TransactionStatus
@@ -29,3 +48,84 @@ transactionStatus TransactionInfo{tiConfirmedRound, tiPoolError} =
     Nothing -> case T.null tiPoolError of
       False -> KickedOut tiPoolError
       True -> Waiting
+
+noEntityHandler
+  :: MonadThrow m
+  => Text -> ClientError -> m (Maybe a)
+noEntityHandler noEntityMsg = handler
+  where
+    handler (FailureResponse _req
+              Response{responseStatusCode = s, responseBody = b})
+      | statusCode s == 500 || statusCode s == 404
+      , Just (J.Object errObj) <- J.decode' b
+      , Just (J.String msg) <- HM.lookup "message" errObj
+      , T.take (T.length noEntityMsg) msg == noEntityMsg
+      = pure Nothing
+    handler e = throwM e
+
+getAccountAtRound
+  :: MonadCatch m
+  => Api.ApiIdx2 (AsClientT m)
+  -> Address
+  -> B.Round
+  -> m (Maybe Api.IdxAccountResponse)
+getAccountAtRound api addr rnd =
+  handle handler502 $
+  handle (noEntityHandler noAccMsg) $
+  Just <$> Api._accountIdx api addr (Just rnd)
+  where
+    -- TODO remove this check after indexer stops responding with
+    -- uninformative HTML and 502 error code on an account that
+    -- didn't exist in one of the previous blocks, but was
+    -- created in one of subsequent blocks
+    handler502 (FailureResponse _req
+      Response{responseStatusCode =
+        Status {statusCode = 502}}) = pure Nothing
+    handler502 e = throwM e
+
+getAccount
+  :: MonadCatch m
+  => Api.ApiV2 (AsClientT m) -> Address -> m (Maybe Api.Account)
+getAccount api addr =
+  handle (noEntityHandler noAccMsg) $
+  Just <$> Api._account api addr
+
+noAccMsg :: Text
+noAccMsg = "no accounts found for address"
+
+getBlock
+  :: MonadCatch m
+  => Api.ApiV2 (AsClientT m) -> B.Round -> m (Maybe B.Block)
+getBlock api rnd = handle (noEntityHandler noBlockMsg) $ do
+  B.BlockWrapped block <- Api._block api rnd Api.msgPackFormat
+  pure (Just block)
+  where
+    noBlockMsg = "ledger does not have entry"
+
+lookupAssetBalance :: Api.Account -> AssetIndex -> Word64
+lookupAssetBalance Api.Account{..} assetId
+  | Just Api.Asset{..} <- aAssets >>= lookup assetId . map toPair
+  , isNothing asDeleted || Just False == asDeleted
+  , not asIsFrozen = asAmount
+  | otherwise = 0
+  where
+    toPair a@Api.Asset{..} = (asAssetId, a)
+
+lookupAppLocalStorage
+  :: Api.Account
+  -> AppIndex
+  -> Maybe (Map ByteString (Either ByteString Word64))
+lookupAppLocalStorage Api.Account{..} appId = do
+  Api.LocalState{..} <- aAppsLocalState >>= lookup appId . map toPair
+  guard $ isNothing lsDeleted || Just False == lsDeleted
+  M.fromList . map toEntry <$> lsKeyValue
+  where
+    toPair a@Api.LocalState{..} = (lsId, a)
+    toEntry Api.TealKvEntry{..}
+      | Api.tvType tkeValue == Api.tealValueBytesType
+      = (tkeKey, Left $ Api.tvBytes tkeValue)
+      | Api.tvType tkeValue == Api.tealValueUintType
+      = (tkeKey, Right $ Api.tvUint tkeValue)
+      | otherwise = error $
+        "lookupAppLocalStorage: unknown teal value type "
+          <> show (Api.tvType tkeValue)

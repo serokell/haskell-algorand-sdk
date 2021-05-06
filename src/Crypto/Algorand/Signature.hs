@@ -111,7 +111,6 @@ skFromBytes bs = case Sig.secretKey bs of
   CryptoPassed sk -> Just $ SecretKey sk (Sig.toPublic sk)
   CryptoFailed _ -> Nothing
 
-
 -- | Cryptographic signature.
 newtype Signature = Signature Sig.Signature
   deriving (ByteArrayAccess, Eq, Show)
