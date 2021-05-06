@@ -93,7 +93,7 @@ $ halgo node version
 is formatted as JSON. Here is an easy way to check your balance:
 
 ```text
-$ halgo node fetch acc HNVCPPGOW2SC2YVDVDICU3YNONSTEFLXDXREHJR2YBEKDC2Z3IUZSC6YGI | jq '.amount'
+$ halgo node fetch acc $(halgo acc show ./example.acc) | jq '.amount'
 100000000
 ```
 
@@ -166,21 +166,22 @@ $ cat /tmp/transaction | halgo txn sign ./example.acc | halgo txn show
 Enough of looking at intermediate results, let’s submit it to the node:
 
 ```text
-$ cat /tmp/transaction | halgo txn sign ./example.acc | halgo node send
+$ TXN_ID=$(cat /tmp/transaction | halgo txn sign ./example.acc | halgo node send)
+$ echo $TXN_ID
 7MJLZW6SHUZOXVJOY2TEGHE4RQNOKDX5JB3HYWSDSKM75EUQD3SQ
 ```
 
 The node returns the transaction ID, which we can now use to query the status:
 
 ```text
-$ halgo node txn-status 7MJLZW6SHUZOXVJOY2TEGHE4RQNOKDX5JB3HYWSDSKM75EUQD3SQ
+$ halgo node txn-status $TXN_ID
 Confirmed in round 12717084
 ```
 
 and even fetch the transaction from the node (as long as it remains in its pool):
 
 ```text
-$ halgo node fetch txn 7MJLZW6SHUZOXVJOY2TEGHE4RQNOKDX5JB3HYWSDSKM75EUQD3SQ
+$ halgo node fetch txn $TXN_ID
 {
     "txn": {
         "gh": "SGO1GKSzyE7IEPItTxCByw9x8FmnrCDexi9/cOUJOiI=",
@@ -256,12 +257,10 @@ $ cat /tmp/group | halgo txn sign ./example.acc | halgo node send
 FWX2THG4UQHUB36M4WRSH6Z4YQ3C7W4DWR7VYEXKBAVYWK6XKCXQ
 ```
 
-We can now query the status of the group as a whole or of individual
-transactions:
+The `send` command prints the ID of the first transaction in the group,
+but we can query the status of individual transactions:
 
 ```text
-$ halgo node txn-status FWX2THG4UQHUB36M4WRSH6Z4YQ3C7W4DWR7VYEXKBAVYWK6XKCXQ
-Confirmed in round 12899884
 $ cat /tmp/group | halgo txn id | xargs -L1 halgo node txn-status
 Confirmed in round 12899884
 Confirmed in round 12899884
