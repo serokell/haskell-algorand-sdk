@@ -12,6 +12,8 @@ module Network.Algorand.Node.Api
 
   , BuildVersion (..)
   , Version (..)
+  , NanoSec (..)
+  , NodeStatus (..)
   , Account (..)
   , TransactionsRep (..)
   , TransactionInfo (..)
@@ -21,6 +23,7 @@ module Network.Algorand.Node.Api
 
 import GHC.Generics (Generic)
 
+import Data.Aeson (FromJSON, ToJSON)
 import Data.Aeson.TH (deriveJSON)
 import Data.ByteString (ByteString)
 import qualified Data.ByteString.Lazy as BSL
@@ -61,6 +64,49 @@ data Version = Version
   }
   deriving (Generic, Show)
 $(deriveJSON algorandSnakeOptions 'Version)
+
+newtype NanoSec = NanoSec { unNanoSec :: Integer }
+  deriving stock (Eq, Ord, Show)
+  deriving newtype (ToJSON, FromJSON)
+
+data NodeStatus = NodeStatus
+  { nsCatchupTime :: NanoSec
+  , nsLastRound :: Word64
+  , nsLastVersion :: Text
+  -- ^ indicates the last consensus version supported
+  , nsNextVersion :: Text
+  -- ^ the next version of consensus protocol to use
+  , nsNextVersionRound :: Word64
+  -- ^ round at which the next consensus version will apply
+  , nsNextVersionSupported :: Bool
+  -- ^ indicates whether the next consensus version
+  -- is supported by this node
+  , nsStoppedAtUnsupportedRound :: Bool
+  -- ^ indicates that the node does not support
+  -- the new rounds and has stopped making progress
+  , nsTimeSinceLastRound :: NanoSec
+  , nsCatchpoint :: Maybe Text
+  -- ^ The current catchpoint that is being caught up to
+  , nsCatchpointAcquiredBlocks :: Maybe Integer
+  -- ^ The number of blocks that have already been
+  -- obtained by the node as part of the catchup
+  , nsCatchpointProcessedAccounts :: Maybe Integer
+  -- ^ The number of accounts from the current catchpoint
+  -- that have been processed so far as part of the catchup
+  , nsCatchpointTotalAccounts :: Maybe Integer
+  -- ^ The total number of accounts included in
+  -- the current catchpoint
+  , nsCatchpointTotalBlocks :: Maybe Integer
+  -- ^ The total number of blocks that are required to complete
+  -- the current catchpoint catchup
+  , nsCatchpointVerifiedAccounts :: Maybe Integer
+  -- ^ The number of accounts from the current catchpoint that
+  -- have been verified so far as part of the catchup
+  , nsLastCatchpoint :: Maybe Text
+  -- ^ The last catchpoint seen by the node
+  }
+$(deriveJSON algorandTrainOptions 'NodeStatus)
+
 
 data TransactionsRep = TransactionsRep
   { trTxId :: Text
@@ -140,7 +186,10 @@ data ApiAny route = ApiAny
 
 -- | Algod API (v2 only).
 data ApiV2 route = ApiV2
-  { _account :: route
+  { _status :: route
+      :- "status"
+      :> Get '[JSON] NodeStatus
+  , _account :: route
       :- "accounts"
       :> Capture "address" Address
       :> Get '[JSON] Account
