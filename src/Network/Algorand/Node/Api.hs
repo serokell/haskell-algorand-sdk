@@ -65,12 +65,32 @@ data Version = Version
   deriving (Generic, Show)
 $(deriveJSON algorandSnakeOptions 'Version)
 
-newtype NanoSec = NanoSec { unNanoSec :: Integer }
-  deriving stock (Eq, Ord, Show)
-  deriving newtype (ToJSON, FromJSON)
+newtype NanoSec = NanoSec { unNanoSec :: Word64 }
+  deriving stock (Eq, Show, Ord)
+  deriving newtype (Enum, Integral, Num, Real)
+  deriving newtype (FromJSON, ToJSON)
 
 data NodeStatus = NodeStatus
-  { nsCatchupTime :: NanoSec
+  { nsCatchpoint :: Maybe Text
+  -- ^ The current catchpoint that is being caught up to
+  , nsCatchpointAcquiredBlocks :: Maybe Word64
+  -- ^ The number of blocks that have already been
+  -- obtained by the node as part of the catchup
+  , nsCatchpointProcessedAccounts :: Maybe Word64
+  -- ^ The number of accounts from the current catchpoint
+  -- that have been processed so far as part of the catchup
+  , nsCatchpointTotalAccounts :: Maybe Word64
+  -- ^ The total number of accounts included in
+  -- the current catchpoint
+  , nsCatchpointTotalBlocks :: Maybe Word64
+  -- ^ The total number of blocks that are required to complete
+  -- the current catchpoint catchup
+  , nsCatchpointVerifiedAccounts :: Maybe Word64
+  -- ^ The number of accounts from the current catchpoint that
+  -- have been verified so far as part of the catchup
+  , nsCatchupTime :: NanoSec
+  , nsLastCatchpoint :: Maybe Text
+  -- ^ The last catchpoint seen by the node
   , nsLastRound :: Word64
   , nsLastVersion :: Text
   -- ^ indicates the last consensus version supported
@@ -85,25 +105,6 @@ data NodeStatus = NodeStatus
   -- ^ indicates that the node does not support
   -- the new rounds and has stopped making progress
   , nsTimeSinceLastRound :: NanoSec
-  , nsCatchpoint :: Maybe Text
-  -- ^ The current catchpoint that is being caught up to
-  , nsCatchpointAcquiredBlocks :: Maybe Integer
-  -- ^ The number of blocks that have already been
-  -- obtained by the node as part of the catchup
-  , nsCatchpointProcessedAccounts :: Maybe Integer
-  -- ^ The number of accounts from the current catchpoint
-  -- that have been processed so far as part of the catchup
-  , nsCatchpointTotalAccounts :: Maybe Integer
-  -- ^ The total number of accounts included in
-  -- the current catchpoint
-  , nsCatchpointTotalBlocks :: Maybe Integer
-  -- ^ The total number of blocks that are required to complete
-  -- the current catchpoint catchup
-  , nsCatchpointVerifiedAccounts :: Maybe Integer
-  -- ^ The number of accounts from the current catchpoint that
-  -- have been verified so far as part of the catchup
-  , nsLastCatchpoint :: Maybe Text
-  -- ^ The last catchpoint seen by the node
   }
 $(deriveJSON algorandTrainOptions 'NodeStatus)
 
