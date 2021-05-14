@@ -65,7 +65,7 @@ $ halgo --network mainnet-v1.0 node --url https://example.com/ url
 https://example.com/
 ```
 
-Use `halgo node version` to get basic information about the node:
+Use `halgo node version` and `halgo node status` to get basic information about the node:
 
 ```text
 $ halgo node version
@@ -84,6 +84,25 @@ $ halgo node version
         "v2"
     ],
     "genesis_id": "testnet-v1.0"
+}
+
+$ halgo node status
+{
+    "time-since-last-round": 2848631166,
+    "catchpoint-verified-accounts": 0,
+    "last-round": 14004250,
+    "next-version": "https://github.com/algorandfoundation/specs/tree/d050b3cade6d5c664df8bd729bf219f179812595",
+    "catchup-time": 0,
+    "next-version-supported": true,
+    "last-catchpoint": "14000000#T2ETVH3DU4OMNFGYBNHOB26SAPGK477VVHG4XXXA62YTFNLS7BHQ",
+    "catchpoint-total-blocks": 0,
+    "catchpoint": "",
+    "catchpoint-total-accounts": 0,
+    "catchpoint-processed-accounts": 0,
+    "next-version-round": 14004251,
+    "catchpoint-acquired-blocks": 0,
+    "last-version": "https://github.com/algorandfoundation/specs/tree/d050b3cade6d5c664df8bd729bf219f179812595",
+    "stopped-at-unsupported-round": false
 }
 ```
 

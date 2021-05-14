@@ -324,6 +324,9 @@ nodeOpts = cmdNode <$> optNodeUrl <*> sub
       , command "version" $ info
           (pure cmdNodeVersion)
           (progDesc "Query the version information of the node")
+      , command "status" $ info
+          (pure cmdNodeStatus)
+          (progDesc "Show the status of the node that will be used")
       , command "fetch" $ info
           (hsubparser $ mconcat
             [ command "acc" $ info
@@ -376,6 +379,9 @@ withNode url act = do
 cmdNodeVersion :: MonadSubcommand m => NodeUrl -> m ()
 cmdNodeVersion url = withNode url $ \(v, _) -> putJson v
 
+cmdNodeStatus :: MonadSubcommand m => NodeUrl -> m ()
+cmdNodeStatus url = withNode url $ \(_, api) ->
+  Api._status api >>= putJson
 
 -- | Fetch information about an account.
 cmdNodeFetchAccount :: MonadSubcommand m => A.Address -> NodeUrl -> m ()
