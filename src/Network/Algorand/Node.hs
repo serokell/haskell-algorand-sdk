@@ -45,8 +45,8 @@ instance Exception BadNode
 data AlgoClient = AlgoClient
   { getAlgoClient ::
       forall m' . MonadIO m' => ApiV2 (AsClientT m')
-  , getAlgoIndexer ::
-      forall m' . MonadIO m' => ApiIdx2 (AsClientT m')
+--  , getAlgoIndexer ::
+--      forall m' . MonadIO m' => ApiIdx2 (AsClientT m')
   }
 
 -- | Connect to a node and make sure it is working on the expected network.
@@ -75,4 +75,4 @@ connect url net = do
     version@Version{vGenesisId} <- _version apiAny
     case vGenesisId == net of
       False -> throwM $ WrongNetwork net vGenesisId
-      True -> pure (version, AlgoClient apiV2Client apiIdx2Client)
+      True -> pure (version, AlgoClient apiV2Client ) -- apiIdx2Client)
