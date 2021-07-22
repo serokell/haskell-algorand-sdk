@@ -28,6 +28,8 @@ module Data.Algorand.Transaction
   , serialiseTx
   ) where
 
+import qualified Data.Text as T
+
 import Data.Aeson (FromJSON (..), ToJSON (..))
 import Data.ByteArray (Bytes)
 import Data.ByteArray.Sized (SizedByteArray, unSizedByteArray)
@@ -37,14 +39,15 @@ import Data.ByteString.Lazy (toStrict)
 import Data.MessagePack (pack)
 import Data.String (IsString)
 import Data.Text (Text)
-import qualified Data.Text as T
 import Data.Word (Word64)
 import GHC.Generics (Generic)
 
 import Crypto.Algorand.Hash (hash32)
 import Data.Algorand.Address (Address)
 import Data.Algorand.Amount (Microalgos)
-import Data.Algorand.MessagePack (MessagePackObject (toCanonicalObject), MessageUnpackObject (fromCanonicalObject), Canonical (Canonical), (&), (&<>), (.=), (.=<), (.:), (.:?), (.:>))
+import Data.Algorand.MessagePack (Canonical (Canonical), MessagePackObject (toCanonicalObject),
+                                  MessageUnpackObject (fromCanonicalObject), (&), (&<>), (.:),
+                                  (.:>), (.:?), (.=), (.=<))
 import Data.Algorand.MessagePack.Json (parseCanonicalJson, toCanonicalJson)
 
 
@@ -65,16 +68,14 @@ data Transaction = Transaction
   , tLastValid :: Word64
   , tNote :: Maybe ByteString
   , tGenesisId :: Maybe Text
-  , tGenesisHash :: GenesisHash
-
+  , tGenesisHash :: Maybe GenesisHash
   , tTxType :: TransactionType
   , tGroup :: Maybe TransactionGroupId
   , tLease :: Maybe Lease
   , tRekeyTo :: Maybe Address
 
   -- TxType is set automatically
-  }
-  deriving (Eq, Generic, Show)
+  } deriving (Eq, Generic, Show)
 
 -- | Specific types of Algorand transactions.
 data TransactionType
@@ -128,8 +129,7 @@ onCompleteDeleteApplication = 5
 data StateSchema = StateSchema
   { ssNumUint :: Word64
   , ssNumByteSlice :: Word64
-  }
-  deriving (Eq, Generic, Show)
+  } deriving (Eq, Generic, Show)
 
 
 -- | Get transaction ID.
@@ -193,7 +193,7 @@ instance MessageUnpackObject Transaction where
       tLastValid <- o .:? f "tLastValid"
       tNote <- o .:? f "tNote"
       tGenesisId <- o .:? f "tGenesisId"
-      tGenesisHash <- o .: f "tGenesisHash"
+      tGenesisHash <- o .:? f "tGenesisHash"
       tGroup <- o .:? f "tGroup"
       tLease <- o .:? f "tLease"
       tRekeyTo <- o .:? f "tRekeyTo"

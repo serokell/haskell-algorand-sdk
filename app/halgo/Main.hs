@@ -7,38 +7,39 @@ module Main
   ( main
   ) where
 
-
-import Options.Applicative
+import qualified Data.ByteString as BS
+import qualified Data.Text as T
+import qualified Data.Text.IO as T
+import qualified System.IO.Error as IOE
 
 import Control.Exception.Safe (MonadCatch, handle, throwIO)
 import Control.Monad (forM_, when, (>=>))
 import Control.Monad.Reader (MonadReader, ReaderT, asks, runReaderT)
 import Data.Bifunctor (second)
-import qualified Data.ByteString as BS
 import Data.Text (Text)
-import qualified Data.Text as T
-import qualified Data.Text.IO as T
 import Data.Word (Word64)
 import Fmt (pretty, (+|), (|+))
 import Main.Utf8 (withUtf8)
+import Options.Applicative
 import Servant.Client.Generic (AsClientT)
-import qualified System.IO.Error as IOE
 import UnliftIO (MonadIO, MonadUnliftIO, liftIO)
 import UnliftIO.Directory (doesPathExist)
 import UnliftIO.IO (IOMode (ReadMode, WriteMode), withFile)
 
-import Crypto.Algorand.Signature (SecretKey)
 import qualified Crypto.Algorand.Signature as S
 import qualified Data.Algorand.Address as A
 import qualified Data.Algorand.Amount as A
+import qualified Data.Algorand.Block as B
 import qualified Data.Algorand.Transaction as T
 import qualified Data.Algorand.Transaction.Build as T
 import qualified Data.Algorand.Transaction.Group as T
 import qualified Data.Algorand.Transaction.Signed as TS
-import Network.Algorand.Node (AlgoClient (..), NodeUrl, connect)
-import Network.Algorand.Node.Api (ApiV2)
 import qualified Network.Algorand.Node.Api as Api
 import qualified Network.Algorand.Node.Util as N
+
+import Crypto.Algorand.Signature (SecretKey)
+import Network.Algorand.Node (AlgoClient (..), NodeUrl, connect)
+import Network.Algorand.Node.Api (ApiV2)
 
 import Halgo.IO (putItemsB64, putItemsJson, putJson, putNoticeLn, putTextLn, readItemsB64,
                  readItemsJson)
@@ -266,7 +267,7 @@ cmdTxnId json = do
   txns <- if json then readItemsJson else readItemsB64
   mapM_ (putTextLn . T.transactionId) txns
 
--- | Create or check a group of transactionsl
+-- | Create or check a group of transactions
 cmdTxnGroup :: MonadSubcommand m => Bool -> Bool -> m ()
 cmdTxnGroup json check = do
   txns <- if json then readItemsJson else readItemsB64
@@ -307,14 +308,12 @@ argAddress helpText = argument reader $ mconcat
       Just a -> Right a
 
 optNodeUrl :: Parser (Maybe NodeUrl)
-optNodeUrl
-  =   Just <$> (strOption $ mconcat
-        [ long "url"
-        , short 'u'
-        , metavar "NODE_URL"
-        , help "URL of the node to connect to (default: AlgoExplorer node based on the chosen network)"
-        ])
-  <|> pure Nothing
+optNodeUrl = optional . strOption $ mconcat
+  [ long "url"
+  , short 'u'
+  , metavar "NODE_URL"
+  , help "URL of the node to connect to (default: AlgoExplorer node based on the chosen network)"
+  ]
 
 nodeOpts :: Parser Subcommand
 nodeOpts = cmdNode <$> optNodeUrl <*> sub
@@ -329,6 +328,9 @@ nodeOpts = cmdNode <$> optNodeUrl <*> sub
       , command "status" $ info
           (pure cmdNodeStatus)
           (progDesc "Show the status of the node that will be used")
+      , command "block" $ info
+          (cmdPrintBlock <$> roundOpt)
+          (progDesc "Retrieve block")
       , command "fetch" $ info
           (hsubparser $ mconcat
             [ command "acc" $ info
@@ -347,14 +349,21 @@ nodeOpts = cmdNode <$> optNodeUrl <*> sub
           (progDesc "Get the status of a transaction in the pool")
       ]
 
+    roundOpt :: Parser B.Round
+    roundOpt = B.Round <$> option auto (mconcat
+      [ long "round"
+      , metavar "<round number>"
+      , help "Round number of Algorand blockchain"
+      ])
+
     argTxId :: Parser Text
     argTxId = strArgument $ mconcat
-        [ metavar "<transaction id>"
-        , help "ID of a transaction"
-        ]
+      [ metavar "<transaction id>"
+      , help "ID of a transaction"
+      ]
 
 cmdNode :: MonadSubcommand m => Maybe NodeUrl -> (NodeUrl -> m ()) -> m ()
-cmdNode murl sub = getNodeUrl murl >>= sub
+cmdNode url sub = getNodeUrl url >>= sub
   where
     getNodeUrl :: MonadSubcommand m => Maybe NodeUrl -> m NodeUrl
     getNodeUrl (Just u) = pure u
@@ -366,7 +375,7 @@ cmdNode murl sub = getNodeUrl murl >>= sub
 
 -- | Display the URL that we will be using.
 cmdNodeUrl :: MonadSubcommand m => NodeUrl -> m ()
-cmdNodeUrl url = putTextLn url
+cmdNodeUrl = putTextLn
 
 -- | Connect to a node and check that its network is what we expect.
 withNode
@@ -378,12 +387,26 @@ withNode url act = do
   net <- asks goNetwork
   connect url net >>= handleApiError . act . second getAlgoClient
 
+-- | Get node version.
 cmdNodeVersion :: MonadSubcommand m => NodeUrl -> m ()
 cmdNodeVersion url = withNode url $ \(v, _) -> putJson v
 
+-- | Get node status.
 cmdNodeStatus :: MonadSubcommand m => NodeUrl -> m ()
 cmdNodeStatus url = withNode url $ \(_, api) ->
   Api._status api >>= putJson
+
+-- | Print block info.
+cmdPrintBlock :: MonadSubcommand m => B.Round -> NodeUrl -> m ()
+cmdPrintBlock rnd url = withNode url $ \(_, api) -> do
+  B.BlockWrapped block <- Api._block api rnd Api.msgPackFormat
+  let txs = TS.getUnverifiedTransaction <$> B.bTransactions block
+  putTextLn $
+    "Retrieved " +| (if null txs then "empty " else "" :: Text)
+    |+ "block for round " +| B.unRound (B.bRound block)
+    |+ " created at " +| B.bTimestamp block
+    |+ (if null txs then "" else " with txs:")
+  mapM_ putJson txs
 
 -- | Fetch information about an account.
 cmdNodeFetchAccount :: MonadSubcommand m => A.Address -> NodeUrl -> m ()
@@ -406,7 +429,7 @@ cmdNodeSend json url = do
 cmdNodeTxnStatus :: MonadSubcommand m => Text -> NodeUrl -> m ()
 cmdNodeTxnStatus txId url = withNode url $ \(_, api) ->
   N.transactionStatus <$> Api._transactionsPending api txId >>= \case
-    N.Waiting -> putTextLn $ "Waiting"
+    N.Waiting -> putTextLn "Waiting"
     N.KickedOut reason -> die $ "Kicked out: "+|reason|+""
     N.Confirmed r -> putTextLn . pretty $ "Confirmed in round " <> show r
 
