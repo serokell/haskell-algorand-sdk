@@ -19,30 +19,31 @@ module Data.Algorand.Address
 
 import Prelude hiding (length)
 
+import qualified Data.ByteArray.Sized (zero)
+import qualified Data.Text as T
+
 import Control.Applicative (empty)
 import Control.Monad (guard)
 import Data.Aeson (FromJSON (..), ToJSON (..))
-import Data.ByteArray (Bytes, ByteArrayAccess, View, convert, eq, length, view)
+import Data.ByteArray (ByteArrayAccess, Bytes, View, convert, eq, length, view)
 import Data.ByteArray.Sized (SizedByteArray, sizedByteArray, unSizedByteArray)
-import qualified Data.ByteArray.Sized (zero)
 import Data.ByteString (ByteString)
 import Data.ByteString.Base32 (decodeBase32Unpadded, encodeBase32Unpadded)
 import Data.String (IsString (fromString))
 import Data.Text (Text)
-import qualified Data.Text as T
 import Data.Text.Encoding (encodeUtf8)
+import Fmt (Buildable (..))
 import Servant.API (ToHttpApiData (toQueryParam))
+
+import qualified Data.Algorand.MessagePack (zero)
 
 import Crypto.Algorand.Hash (hash32)
 import Crypto.Algorand.Signature (PublicKey, pkFromBytes, pkSize)
-import Data.Algorand.MessagePack (CanonicalZero, NonZeroValue (isNonZero), AlgoMessagePack (..))
-import qualified Data.Algorand.MessagePack (zero)
-
+import Data.Algorand.MessagePack (AlgoMessagePack (..), CanonicalZero, NonZeroValue (isNonZero))
 
 -- | The length of the checksum appended to a public key.
 checksumSize :: Int
 checksumSize = 4
-
 
 -- | An address on the Algorand blockchain.
 --
@@ -50,10 +51,13 @@ checksumSize = 4
 -- over the network as raw bytes, however when obtaining it from external
 -- sources, it contains an additional checksum and is encoded in base32.
 newtype Address = Address (SizedByteArray 32 Bytes)
-  deriving (Eq)
+  deriving (ByteArrayAccess, Eq)
 
 instance Show Address where
   show = T.unpack . toText
+
+instance Buildable Address where
+  build = build . toText
 
 instance IsString Address where
   fromString s = case fromText (T.pack s) of
@@ -85,11 +89,9 @@ instance FromJSON Address where
     Just a -> pure a
     Nothing -> empty
 
-
 -- | Dummy zero address. Can be used as a placeholder value.
 zero :: Address
-zero = Address $ Data.ByteArray.Sized.zero
-
+zero = Address Data.ByteArray.Sized.zero
 
 -- | Try to interpret raw bytes as 'Address'.
 --
@@ -117,7 +119,6 @@ fromText t = case decodeBase32Unpadded (encodeUtf8 t) of
   Left _ -> Nothing
   Right bs -> fromBytes bs
 
-
 -- | Convert a 'PublicKey' to the corresponding algorand 'Address'.
 fromPublicKey :: PublicKey -> Address
 fromPublicKey pk = case sizedByteArray (convert pk) of
@@ -131,15 +132,14 @@ fromPublicKey pk = case sizedByteArray (convert pk) of
 toPublicKey :: Address -> Maybe PublicKey
 toPublicKey (Address bs) = pkFromBytes bs
 
-
 -- | Get an address of a stateless smart contract.
 --
 -- This is used in conjunction with Logic Signatures as a Cotnract Account.
 fromContractCode
-  :: ByteString  -- ^ Compiled contract code.
+  :: ByteString
+  -- ^ Compiled contract code.
   -> Address
 fromContractCode = Address . hash32 . ("Program" <>)
-
 
 -- | Compute the checksum of a public key.
 checksum :: ByteArrayAccess bs => bs -> View Bytes

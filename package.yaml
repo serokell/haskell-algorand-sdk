@@ -20,13 +20,13 @@ extra-source-files:
   - CHANGELOG.md
   - README.md
 
-
 dependencies:
   - base >= 4.7 && < 4.15
   - bytestring >= 0.9 && < 0.11
   - memory >= 0.1 && < 0.16
   - safe-exceptions >= 0.1 && < 0.2
   - text >= 0.1 && < 1.3
+  - fmt >= 0.6 && < 0.7
 
 library:
   source-dirs: src
@@ -48,6 +48,7 @@ library:
     - servant-client >= 0.14 && < 0.19
     - servant-client-core >= 0.14 && < 0.19
     - scientific >= 0.3.3 && < 0.3.7
+    - time
     - unordered-containers >= 0.1.3 && < 0.3
 
 executables:
@@ -63,10 +64,9 @@ executables:
       - base64
       - directory >= 1.2.7.0 && < 1.4
       - filepath >= 1.0 && < 1.5
-      - fmt >= 0.6 && < 0.7
       - http-types >= 0.1.1 && < 0.13
       - mtl >= 1.0 && < 2.3
-      - optparse-applicative >= 0.15 && < 0.17  # the lower bound is not tight
+      - optparse-applicative >= 0.15 && < 0.17 # the lower bound is not tight
       - servant-client
       - servant-client-core
       - text
@@ -94,7 +94,6 @@ tests:
 
     build-tools:
       - tasty-discover:tasty-discover
-
 
 default-extensions:
   - AllowAmbiguousTypes

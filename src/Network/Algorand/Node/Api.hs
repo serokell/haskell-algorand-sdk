@@ -18,7 +18,8 @@ module Network.Algorand.Node.Api
   , TransactionsRep (..)
   , TransactionInfo (..)
   , SuggestedParams (..)
-  , TealCompileRep (..)
+  , TealCode (..)
+  , TealCompilationResult (..)
   ) where
 
 import GHC.Generics (Generic)
@@ -31,7 +32,7 @@ import Data.Int (Int64)
 import Data.Text (Text)
 import Data.Word (Word64)
 import Network.HTTP.Media ((//))
-import Servant.API ((:>), Capture, Get, JSON, PlainText, Post, ReqBody)
+import Servant.API (Capture, Get, JSON, PlainText, Post, ReqBody, (:>))
 import qualified Servant.API.ContentTypes as Mime
 import Servant.API.Generic (ToServantApi, (:-))
 
@@ -40,7 +41,8 @@ import Data.Algorand.Amount (Microalgos)
 import qualified Data.Algorand.MessagePack as MP
 import Data.Algorand.Transaction (AppIndex, AssetIndex, GenesisHash)
 import Data.Algorand.Transaction.Signed (SignedTransaction)
-import Network.Algorand.Node.Api.Json (algorandCamelOptions, algorandSnakeOptions, algorandTrainOptions)
+import Network.Algorand.Node.Api.Json (algorandCamelOptions, algorandSnakeOptions,
+                                       algorandTrainOptions)
 
 
 -- | Node software build version information.
@@ -165,13 +167,15 @@ data SuggestedParams = SuggestedParams
   }
 $(deriveJSON algorandTrainOptions 'SuggestedParams)
 
+newtype TealCode = TealCode
+  { unTealCode :: ByteString
+  } deriving newtype (FromJSON, ToJSON)
 
-data TealCompileRep = TealCompileRep
-  { tcrResult :: ByteString
-  --, tcrHash :: Base32 bytes  -- why
+data TealCompilationResult = TealCompilationResult
+  { tcrHash :: Address
+  , tcrResult :: TealCode
   }
-$(deriveJSON algorandTrainOptions 'TealCompileRep)
-
+$(deriveJSON algorandTrainOptions 'TealCompilationResult)
 
 -- | The part of the API that does not depend on the version.
 data ApiAny route = ApiAny
@@ -211,11 +215,11 @@ data ApiV2 route = ApiV2
       :- "transactions"
       :> "params"
       :> Get '[JSON] SuggestedParams
-  , _tealCompile :: route
+  , _compileTeal :: route
       :- "teal"
       :> "compile"
       :> ReqBody '[PlainText] Text
-      :> Post '[JSON] TealCompileRep
+      :> Post '[JSON] TealCompilationResult
   }
   deriving (Generic)
 

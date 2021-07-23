@@ -11,14 +11,15 @@ module Main
 import Options.Applicative
 
 import Control.Exception.Safe (MonadCatch, handle, throwIO)
-import Control.Monad ((>=>), forM_, when)
+import Control.Monad (forM_, when, (>=>))
 import Control.Monad.Reader (MonadReader, ReaderT, asks, runReaderT)
+import Data.Bifunctor (second)
 import qualified Data.ByteString as BS
 import Data.Text (Text)
 import qualified Data.Text as T
 import qualified Data.Text.IO as T
 import Data.Word (Word64)
-import Fmt ((+|), (|+), pretty)
+import Fmt (pretty, (+|), (|+))
 import Main.Utf8 (withUtf8)
 import Servant.Client.Generic (AsClientT)
 import qualified System.IO.Error as IOE
@@ -34,12 +35,13 @@ import qualified Data.Algorand.Transaction as T
 import qualified Data.Algorand.Transaction.Build as T
 import qualified Data.Algorand.Transaction.Group as T
 import qualified Data.Algorand.Transaction.Signed as TS
-import Network.Algorand.Node (NodeUrl, connect)
+import Network.Algorand.Node (AlgoClient (..), NodeUrl, connect)
 import Network.Algorand.Node.Api (ApiV2)
 import qualified Network.Algorand.Node.Api as Api
 import qualified Network.Algorand.Node.Util as N
 
-import Halgo.IO (putItemsB64, putItemsJson, putJson, putNoticeLn, putTextLn, readItemsB64, readItemsJson)
+import Halgo.IO (putItemsB64, putItemsJson, putJson, putNoticeLn, putTextLn, readItemsB64,
+                 readItemsJson)
 import Halgo.Util (die, handleApiError)
 
 
@@ -374,7 +376,7 @@ withNode
   -> m a
 withNode url act = do
   net <- asks goNetwork
-  connect url net >>= handleApiError . act
+  connect url net >>= handleApiError . act . second getAlgoClient
 
 cmdNodeVersion :: MonadSubcommand m => NodeUrl -> m ()
 cmdNodeVersion url = withNode url $ \(v, _) -> putJson v
@@ -430,7 +432,7 @@ contractOpts = hsubparser $ mconcat
 cmdContractCompile :: MonadSubcommand m => FilePath -> NodeUrl -> m ()
 cmdContractCompile sourcePath url = withNode url $ \(_, api) -> do
   source <- liftIO $ T.readFile sourcePath
-  bin <- Api.tcrResult <$> Api._tealCompile api source
+  bin <- Api.unTealCode . Api.tcrResult <$> Api._compileTeal api source
   let outPath = sourcePath <> ".tok"
   putNoticeLn $ "Writing compiled program to `"+|outPath|+"`"
   liftIO $ BS.writeFile outPath bin
