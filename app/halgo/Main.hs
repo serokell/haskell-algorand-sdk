@@ -399,14 +399,16 @@ cmdNodeStatus url = withNode url $ \(_, api) ->
 -- | Print block info.
 cmdPrintBlock :: MonadSubcommand m => B.Round -> NodeUrl -> m ()
 cmdPrintBlock rnd url = withNode url $ \(_, api) -> do
-  B.BlockWrapped block <- Api._block api rnd Api.msgPackFormat
-  let txs = TS.getUnverifiedTransaction <$> B.bTransactions block
-  putTextLn $
-    "Retrieved " +| (if null txs then "empty " else "" :: Text)
-    |+ "block for round " +| B.unRound (B.bRound block)
-    |+ " created at " +| B.bTimestamp block
-    |+ (if null txs then "" else " with txs:")
-  mapM_ putJson txs
+  mBlock <- N.getBlock api rnd
+  case mBlock of
+    Just block -> do
+      let txs = TS.getUnverifiedTransaction <$> B.bTransactions block
+      putTextLn $ "Retrieved " +| (if null txs then "empty " else "" :: Text)
+        |+ "block for round " +| B.unRound (B.bRound block)
+        |+ " created at " +| B.bTimestamp block
+        |+ (if null txs then "" else " with txs:")
+      mapM_ putJson txs
+    _ -> putTextLn "No block found"
 
 -- | Fetch information about an account.
 cmdNodeFetchAccount :: MonadSubcommand m => A.Address -> NodeUrl -> m ()
