@@ -13,22 +13,28 @@ module Data.Algorand.Transaction.Signed
   , verifyTransaction
   , getSignature
   , getUnverifiedTransaction
+
+  , BlockTransaction
+  , toSignedTransaction
   ) where
 
-import Data.Aeson (FromJSON (..), ToJSON (..))
 import qualified Data.Aeson as JS
-import Data.ByteString (ByteString)
 import qualified Data.HashMap.Strict as HM
+
+import Data.Aeson (FromJSON (..), ToJSON (..))
+import Data.ByteString (ByteString)
 import Data.String (IsString)
 import Data.Text (Text)
 import GHC.Generics (Generic)
 
 import Crypto.Algorand.Signature (SecretKey, Signature, sign, toPublic, verify)
 import Data.Algorand.Address (fromContractCode, fromPublicKey, toPublicKey)
-import Data.Algorand.MessagePack (MessagePackObject (toCanonicalObject), MessageUnpackObject (fromCanonicalObject), (&), (&<>), (.=), (.=<), (.:?), (.:??), (.:>), (.:>?), NonZeroValue (isNonZero))
+import Data.Algorand.MessagePack (MessagePackObject (toCanonicalObject),
+                                  MessageUnpackObject (fromCanonicalObject),
+                                  NonZeroValue (isNonZero), (&), (&<>), (.:>), (.:>?), (.:?),
+                                  (.:??), (.=), (.=<))
 import Data.Algorand.MessagePack.Json (parseCanonicalJson, toCanonicalJson)
-import Data.Algorand.Transaction (Transaction (..), serialiseTx)
-
+import Data.Algorand.Transaction (GenesisHash, Transaction (..), serialiseTx)
 
 -- | Types of transaction signatures.
 data TransactionSignature
@@ -44,8 +50,7 @@ instance NonZeroValue TransactionSignature where
 data SignedTransaction = SignedTransaction
   { stSig :: TransactionSignature
   , stTxn :: Transaction
-  }
-  deriving (Eq, Generic, Show)
+  } deriving (Eq, Generic, Show)
 
 
 {- Simple signature -}
@@ -102,7 +107,6 @@ signFromContractAccount lsLogic lsArgs txn = SignedTransaction{..}
   where
     stTxn = txn { tSender = fromContractCode lsLogic }
     stSig = SignatureLogic $ ContractAccountSignature{lsLogic, lsArgs}
-
 
 -- | Verify a signed transaction.
 verifyTransaction :: SignedTransaction -> Maybe Transaction
@@ -182,7 +186,6 @@ instance FromJSON SignedTransaction where
     where
       f = signedTransactionFieldName
 
-
 instance MessagePackObject TransactionSignature where
   toCanonicalObject = \case
       SignatureSimple sig -> mempty
@@ -211,7 +214,6 @@ instance ToJSON TransactionSignature where
 instance FromJSON TransactionSignature where
   parseJSON = parseCanonicalJson
 
-
 --multiSignatureFieldName :: IsString s => String -> s
 --multiSignatureFieldName = \case
 --  x -> error $ "Unmapped multi signature field name: " <> x
@@ -227,7 +229,6 @@ instance ToJSON MultiSignature where
 
 instance FromJSON MultiSignature where
   parseJSON = parseCanonicalJson
-
 
 logicSignatureFieldName :: IsString s => String -> s
 logicSignatureFieldName = \case
@@ -256,3 +257,52 @@ instance ToJSON LogicSignature where
 
 instance FromJSON LogicSignature where
   parseJSON = parseCanonicalJson
+
+data BlockTransaction = BlockTransaction
+  { btSig :: TransactionSignature
+  , btTxn :: Transaction
+  , btHgh :: Bool
+  -- ^ [btHgh] whether the tx has genesis hash included in serialized representation.
+  , btHgi :: Bool
+  -- ^ [btHgi] whether the tx has genesis id included in serialized representation.
+  -- , btApplyData :: ApplyData
+  } deriving (Eq, Generic, Show)
+
+instance MessageUnpackObject BlockTransaction where
+  fromCanonicalObject o = do
+    btTxn <- o .:> "txn"
+    btSig <- fromCanonicalObject o
+    btHgi <- o .:? "hgi"
+    btHgh <- o .:? "hgh"
+    pure BlockTransaction{..}
+
+instance MessagePackObject BlockTransaction where
+  toCanonicalObject BlockTransaction{..} = mempty
+      & "txn" .=< btTxn
+      & "hgi" .= btHgi
+      & "hgh" .= btHgh
+      &<> btSig
+
+-- | Convert block tx to signed tx
+toSignedTransaction
+  :: Bool
+  -- ^ Is genesis hash required (parameter of consensus protocol)
+  -> GenesisHash
+  -> Text
+  -- ^ Genesis id
+  -> BlockTransaction
+  -> SignedTransaction
+toSignedTransaction requireGH gh gid BlockTransaction{..} =
+  SignedTransaction
+    { stSig = btSig
+    , stTxn = btTxn
+        { tGenesisId =
+            if btHgi
+            then Just gid
+            else tGenesisId btTxn
+        , tGenesisHash =
+            if btHgh || requireGH
+            then Just gh
+            else tGenesisHash btTxn
+        }
+    }

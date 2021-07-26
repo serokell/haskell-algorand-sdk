@@ -184,6 +184,10 @@ instance NonZeroValue [a] where
 instance NonZeroValue (SizedByteArray 32 b) where
   isNonZero _ = True
 
+instance NonZeroValue Bool where
+  isNonZero = id
+instance CanonicalZero Bool where
+  zero = False
 
 -- | An intermediate representation for non-primitive MessagePack objects
 -- that makes it easier to ensure that it is canonical.
