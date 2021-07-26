@@ -36,7 +36,7 @@ type Addr = SizedByteArray 32 Bytes
 
 newtype Round = Round { unRound :: Word64 }
   deriving stock (Eq, Ord, Show)
-  deriving newtype (ToHttpApiData, ToJSON, FromJSON)
+  deriving newtype (Enum, ToHttpApiData, ToJSON, FromJSON)
 
 instance AlgoMessagePack Round where
   toAlgoObject = toAlgoObject . unRound

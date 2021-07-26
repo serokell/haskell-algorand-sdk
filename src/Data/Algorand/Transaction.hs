@@ -26,16 +26,19 @@ module Data.Algorand.Transaction
   , transactionId'
 
   , serialiseTx
+  , encodeUintAppArgument
+  , decodeUintAppArgument
   ) where
 
 import qualified Data.Text as T
 
 import Data.Aeson (FromJSON (..), ToJSON (..))
+import Data.Binary (decodeOrFail, encode)
 import Data.ByteArray (Bytes)
 import Data.ByteArray.Sized (SizedByteArray, unSizedByteArray)
 import Data.ByteString (ByteString)
 import Data.ByteString.Base32 (encodeBase32Unpadded)
-import Data.ByteString.Lazy (toStrict)
+import Data.ByteString.Lazy (fromStrict, toStrict)
 import Data.MessagePack (pack)
 import Data.String (IsString)
 import Data.Text (Text)
@@ -349,3 +352,16 @@ instance ToJSON StateSchema where
 
 instance FromJSON StateSchema where
   parseJSON = parseCanonicalJson
+
+-- | Convert integer contract arguments (which passed as ByteString) to uint
+decodeUintAppArgument :: ByteString -> Maybe Word64
+decodeUintAppArgument = either (const Nothing) (pure . i3)
+  . decodeOrFail
+  . fromStrict
+  where
+    i3 (_, _, a) = a
+
+-- | Convert uint to ByteString
+-- (this is reversed version of 'decodeUintAppArgument')
+encodeUintAppArgument :: Word64 -> ByteString
+encodeUintAppArgument = toStrict . encode
