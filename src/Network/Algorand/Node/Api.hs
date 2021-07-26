@@ -20,6 +20,13 @@ module Network.Algorand.Node.Api
   , SuggestedParams (..)
   , TealCode (..)
   , TealCompilationResult (..)
+  , Asset (..)
+  , TealValue (..)
+  , TealKvEntry (..)
+  , TealKvStore
+  , LocalState (..)
+  , tealValueBytesType
+  , tealValueUintType
 
   , msgPackFormat
   ) where
@@ -71,8 +78,7 @@ $(deriveJSON algorandSnakeOptions 'Version)
 
 newtype NanoSec = NanoSec { unNanoSec :: Word64 }
   deriving stock (Eq, Show, Ord)
-  deriving newtype (Enum, Integral, Num, Real)
-  deriving newtype (FromJSON, ToJSON)
+  deriving newtype (Enum, Integral, Num, Real, FromJSON, ToJSON)
 
 data NodeStatus = NodeStatus
   { nsCatchpoint :: Maybe Text
@@ -117,13 +123,70 @@ newtype TransactionsRep = TransactionsRep
   } deriving (Generic, Show)
 $(deriveJSON algorandCamelOptions 'TransactionsRep)
 
+data TealValue = TealValue
+  { tvBytes :: ByteString
+  , tvUint :: Word64
+  , tvType :: Word64
+  } deriving stock Show
+$(deriveJSON algorandTrainOptions 'TealValue)
+
+tealValueBytesType :: Word64
+tealValueBytesType = 1
+
+tealValueUintType :: Word64
+tealValueUintType = 2
+
+data TealKvEntry = TealKvEntry
+  { tkeKey :: ByteString
+  , tkeValue :: TealValue
+  } deriving stock Show
+$(deriveJSON algorandTrainOptions 'TealKvEntry)
+
+type TealKvStore = [TealKvEntry]
+
+data Asset = Asset
+  { asAmount :: Word64
+  -- ^ Number of units held.
+  , asAssetId :: AssetIndex
+  -- ^ Asset ID of the holding.
+  , asCreator :: Address
+  -- ^ Address that created this asset.
+  -- This is the address where the parameters for this asset can be found, and
+  -- also the address where unwanted asset units can be sent in the worst case.
+  , asDeleted :: Maybe Bool
+  -- ^ Whether or not the asset holding is currently deleted from its account.
+  , asIsFrozen :: Bool
+  -- ^ Whether or not the holding is frozen.
+  , asOptedInAtRound :: Maybe Round
+  -- ^ Round during which the account opted into this asset holding.
+  , asOptedOutAtRound :: Maybe Round
+  }
+  deriving stock Show
+$(deriveJSON algorandTrainOptions 'Asset)
+
+data LocalState = LocalState
+  { lsClosedOutAtRound :: Maybe Round
+  -- ^ Round when account closed out of the application.
+  , lsDeleted :: Maybe Bool
+  -- ^ Whether or not the application local state is currently deleted from
+  -- its account.
+  , lsId :: AppIndex
+  -- ^ The application which this local state is for.
+  , lsKeyValue :: Maybe TealKvStore
+  -- ^ Storage associated with the account and the application.
+  , lsOptedInAtRound :: Maybe Round
+  -- ^ Round when the account opted into the application.
+  -- , schema :: ApplicationStateSchema
+  } deriving stock Show
+$(deriveJSON algorandTrainOptions 'LocalState)
+
 data Account = Account
   { aAddress :: Address
   , aAmount :: Microalgos
   , aAmountWithoutPendingRewards :: Microalgos
-  --, aAppsLocalState :: Maybe StateSchema
+  , aAppsLocalState :: Maybe [LocalState]
   --, aAppsTotalSchema :: Maybe StateSchema
-  --, aAssets :: Maybe
+  , aAssets :: Maybe [Asset]
   , aAuthAddr :: Maybe Address
   --, aCreatedApps :: Maybe
   --, aCreatedAssets :: Maybe
