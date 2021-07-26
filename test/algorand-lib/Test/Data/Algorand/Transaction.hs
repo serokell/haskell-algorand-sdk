@@ -6,6 +6,9 @@
 
 module Test.Data.Algorand.Transaction where
 
+import qualified Hedgehog.Gen as G
+import qualified Hedgehog.Range as R
+
 import Data.Aeson (fromJSON, toJSON)
 import Data.ByteArray (Bytes, ByteArrayAccess, convert)
 import Data.ByteArray.Sized (SizedByteArray, sizedByteArray)
@@ -14,10 +17,7 @@ import Data.ByteString.Lazy (toStrict)
 import Data.MessagePack (pack, unpack)
 import Data.Proxy (Proxy (Proxy))
 import GHC.TypeLits (KnownNat, natVal)
-
 import Hedgehog (MonadGen, Property, forAll, property, tripping)
-import qualified Hedgehog.Gen as G
-import qualified Hedgehog.Range as R
 import Test.Tasty.HUnit (Assertion, (@?=))
 
 import Data.Algorand.Address (Address, fromPublicKey)
@@ -78,7 +78,7 @@ genTransaction =
   <*> G.word64 R.constantBounded
   <*> G.maybe (G.bytes $ R.linear 1 100)  -- cannot be empty
   <*> G.maybe (G.text (R.singleton 44) G.unicode)
-  <*> genSizedBytes genBytes
+  <*> G.maybe (genSizedBytes genBytes)
   <*> genTransactionType
   <*> G.maybe (genSizedBytes genBytes)
   <*> G.maybe (genSizedBytes genBytes)
@@ -108,7 +108,7 @@ unit_simple = do
       , tLastValid = 5100
       , tNote = Nothing
       , tGenesisId = Nothing
-      , tGenesisHash = genesisHash
+      , tGenesisHash = Just genesisHash
 
       , tTxType = PaymentTransaction
         { ptReceiver = sender

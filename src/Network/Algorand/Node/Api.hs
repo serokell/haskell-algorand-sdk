@@ -20,30 +20,34 @@ module Network.Algorand.Node.Api
   , SuggestedParams (..)
   , TealCode (..)
   , TealCompilationResult (..)
+
+  , msgPackFormat
   ) where
 
-import GHC.Generics (Generic)
+import qualified Data.Binary as Binary
+import qualified Data.ByteString.Lazy as BSL
+import qualified Servant.API.ContentTypes as Mime
 
 import Data.Aeson (FromJSON, ToJSON)
 import Data.Aeson.TH (deriveJSON)
 import Data.ByteString (ByteString)
-import qualified Data.ByteString.Lazy as BSL
 import Data.Int (Int64)
 import Data.Text (Text)
 import Data.Word (Word64)
+import GHC.Generics (Generic)
 import Network.HTTP.Media ((//))
-import Servant.API (Capture, Get, JSON, PlainText, Post, ReqBody, (:>))
-import qualified Servant.API.ContentTypes as Mime
+import Servant.API (Capture, Get, JSON, PlainText, Post, QueryParam, ReqBody, (:>))
 import Servant.API.Generic (ToServantApi, (:-))
+
+import qualified Data.Algorand.MessagePack as MP
 
 import Data.Algorand.Address (Address)
 import Data.Algorand.Amount (Microalgos)
-import qualified Data.Algorand.MessagePack as MP
+import Data.Algorand.Block (BlockWrapped, Round)
 import Data.Algorand.Transaction (AppIndex, AssetIndex, GenesisHash)
 import Data.Algorand.Transaction.Signed (SignedTransaction)
 import Network.Algorand.Node.Api.Json (algorandCamelOptions, algorandSnakeOptions,
                                        algorandTrainOptions)
-
 
 -- | Node software build version information.
 data BuildVersion = BuildVersion
@@ -53,8 +57,7 @@ data BuildVersion = BuildVersion
   , bvCommitHash :: Text
   , bvMajor :: Int64
   , bvMinor :: Int64
-  }
-  deriving (Generic, Show)
+  } deriving (Generic, Show)
 $(deriveJSON algorandSnakeOptions 'BuildVersion)
 
 -- | algod version information.
@@ -63,8 +66,7 @@ data Version = Version
   , vGenesisHashB64 :: Text
   , vGenesisId :: Text
   , vVersions :: [Text]
-  }
-  deriving (Generic, Show)
+  } deriving (Generic, Show)
 $(deriveJSON algorandSnakeOptions 'Version)
 
 newtype NanoSec = NanoSec { unNanoSec :: Word64 }
@@ -110,13 +112,10 @@ data NodeStatus = NodeStatus
   }
 $(deriveJSON algorandTrainOptions 'NodeStatus)
 
-
-data TransactionsRep = TransactionsRep
+newtype TransactionsRep = TransactionsRep
   { trTxId :: Text
-  }
-  deriving (Generic, Show)
+  } deriving (Generic, Show)
 $(deriveJSON algorandCamelOptions 'TransactionsRep)
-
 
 data Account = Account
   { aAddress :: Address
@@ -135,10 +134,8 @@ data Account = Account
   , aRound :: Word64
   --, aSigType :: Maybe
   , aStatus :: Text
-  }
-  deriving (Generic, Show)
+  } deriving (Generic, Show)
 $(deriveJSON algorandTrainOptions 'Account)
-
 
 data TransactionInfo = TransactionInfo
   { tiApplicationIndex :: Maybe AppIndex
@@ -155,7 +152,6 @@ data TransactionInfo = TransactionInfo
   , tiTxn :: SignedTransaction
   }
 $(deriveJSON algorandTrainOptions 'TransactionInfo)
-
 
 data SuggestedParams = SuggestedParams
   { spConsensusVersion :: Text
@@ -185,15 +181,19 @@ data ApiAny route = ApiAny
   , _version :: route
       :- "versions"
       :> Get '[JSON] Version
-  }
-  deriving (Generic)
-
+  } deriving (Generic)
 
 -- | Algod API (v2 only).
 data ApiV2 route = ApiV2
   { _status :: route
       :- "status"
       :> Get '[JSON] NodeStatus
+  , _block :: route
+      :- "blocks"
+      :> Capture "round" Round
+      :> QueryParam "format" Text
+      -- do not try passing format other than msgpack here
+      :> Get '[MsgPack] BlockWrapped
   , _account :: route
       :- "accounts"
       :> Capture "address" Address
@@ -220,9 +220,10 @@ data ApiV2 route = ApiV2
       :> "compile"
       :> ReqBody '[PlainText] Text
       :> Post '[JSON] TealCompilationResult
-  }
-  deriving (Generic)
+  } deriving (Generic)
 
+msgPackFormat :: Maybe Text
+msgPackFormat = Just "msgpack"
 
 -- | Algod API.
 data Api route = Api
@@ -231,8 +232,7 @@ data Api route = Api
   , _v2 :: route
       :- "v2"
       :> ToServantApi ApiV2
-  }
-  deriving (Generic)
+  } deriving (Generic)
 
 
 {-
@@ -253,3 +253,18 @@ instance Mime.MimeRender Binary BSL.ByteString where
 
 instance Mime.MimeRender Binary [SignedTransaction] where
   mimeRender _ = mconcat . map (MP.pack . MP.Canonical)
+
+-- | Content type for the endpoints which can return msgpack.
+data MsgPack
+
+instance Mime.Accept MsgPack where
+  contentType _ = "application" // "msgpack"
+
+instance MP.MessageUnpackObject a => Mime.MimeUnrender MsgPack a where
+  mimeUnrender _ bs = MP.runEitherError $
+    eitherToM (Binary.decodeOrFail bs)
+      >>= MP.fromAlgoObject . MP.unCompatObject
+      >>= MP.fromCanonicalObject
+    where
+      eitherToM (Left  (_, _, msg)) = fail msg
+      eitherToM (Right (_, _, res)) = pure res

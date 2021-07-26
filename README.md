@@ -106,6 +106,20 @@ $ halgo node status
 }
 ```
 
+Use `halgo node block --round N` to get information about block:
+
+```text
+$ halgo node block --round 1
+{
+    "lv": 1000,
+    "amt": 100000000,
+    "fee": 10000,
+    "rcv": "3NVE2MK2QYZQFOZ5XIRQTM7JRHNPUBV7QKLYLT7OO6QXFHXMRIAUXXNCBM",
+    "type": "pay",
+    "snd": "GD64YIY3TWGDMCNPP553DZPPR6LDUSFQOIJVFDPPXWEG3FVOJCCDBBHU5A"
+}
+```
+
 #### Check your balance
 
 `halgo node fetch` queries node for information about an account. The output

@@ -9,7 +9,6 @@ module Test.Data.Algorand.Transaction.AssetTransfer where
 import Data.ByteString (ByteString)
 import Data.ByteString.Lazy (fromStrict)
 import Data.MessagePack (pack)
-
 import Test.Tasty.HUnit (Assertion, (@?=))
 
 import Data.Algorand.MessagePack (Canonical (Canonical))
@@ -28,7 +27,7 @@ example = Transaction
   , tLastValid = 9010
   , tNote = Nothing
   , tGenesisId = Just "unit-test"
-  , tGenesisHash = genesisHashFromBytes "Mf0h6zjkEIEZPtNM3zsrg+iHQFS0fZxhgr7w35I464M="
+  , tGenesisHash = Just $ genesisHashFromBytes "Mf0h6zjkEIEZPtNM3zsrg+iHQFS0fZxhgr7w35I464M="
 
   , tTxType = AssetTransferTransaction
     { attXferAsset = 1234

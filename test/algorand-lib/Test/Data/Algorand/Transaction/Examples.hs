@@ -13,12 +13,12 @@ import Data.ByteString (ByteString)
 import Data.ByteString.Base64 (decodeBase64)
 import Data.ByteString.Lazy (fromStrict)
 import Data.MessagePack (pack, unpack)
-
 import Test.Tasty.HUnit (Assertion, (@?=), assertFailure)
 
 import Data.Algorand.Address (Address)
 import Data.Algorand.MessagePack (Canonical (Canonical, unCanonical))
-import Data.Algorand.Transaction (GenesisHash, StateSchema (..), Transaction (..), TransactionType (..), onCompleteNoOp, transactionId)
+import Data.Algorand.Transaction (GenesisHash, StateSchema (..), Transaction (..),
+                                  TransactionType (..), onCompleteNoOp, transactionId)
 import Data.Algorand.Transaction.Signed (getUnverifiedTransaction, verifyTransaction)
 
 
@@ -43,7 +43,7 @@ example_21 = Transaction
   , tLastValid = 9010
   , tNote = Nothing
   , tGenesisId = Nothing
-  , tGenesisHash = genesisHash
+  , tGenesisHash = Just genesisHash
 
   , tTxType = ApplicationCallTransaction
     { actApplicationId = 100
