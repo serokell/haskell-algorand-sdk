@@ -50,6 +50,7 @@ getBlock api rnd = handle handler $ do
   B.BlockWrapped block <- Api._block api rnd Api.msgPackFormat
   pure (Just block)
   where
+    -- note: this message depends on format, this one is for msgpack
     noBlockMsg = "ledger does not have entry"
     handler (FailureResponse _req
               Response { responseStatusCode = s, responseBody = b })
