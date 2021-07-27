@@ -17,10 +17,8 @@ import qualified Data.Map as M
 import qualified Data.Text as T
 
 import Control.Exception.Safe (MonadCatch, handle, throwM)
-import Control.Monad (guard)
 import Data.ByteString (ByteString)
 import Data.Map (Map)
-import Data.Maybe (isNothing)
 import Data.Text (Text)
 import Data.Word (Word64)
 import Network.HTTP.Types (Status (statusCode))
@@ -73,7 +71,6 @@ getBlock api rnd = handle handler $ do
 lookupAssetBalance :: Api.Account -> AssetIndex -> Word64
 lookupAssetBalance Api.Account{..} assetId
   | Just Api.Asset{..} <- aAssets >>= lookup assetId . map toPair
-  , isNothing asDeleted || Just False == asDeleted
   , not asIsFrozen = asAmount
   | otherwise = 0
   where
@@ -86,11 +83,10 @@ lookupAppLocalState
   -> Maybe (Map ByteString (Either ByteString Word64))
 lookupAppLocalState Api.Account{..} appId = do
   Api.LocalState{..} <- aAppsLocalState >>= lookup appId . map toPair
-  guard $ isNothing lsDeleted || Just False == lsDeleted
   M.fromList . map toEntry <$> lsKeyValue
   where
     toPair a@Api.LocalState{..} = (lsId, a)
-    toEntry Api.TealKvEntry{..}
+    toEntry Api.TealKeyValue{..}
       | Api.tvType tkeValue == Api.tealValueBytesType
       = (tkeKey, Left $ Api.tvBytes tkeValue)
       | Api.tvType tkeValue == Api.tealValueUintType
