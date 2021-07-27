@@ -260,20 +260,24 @@ instance FromJSON LogicSignature where
 
 data BlockTransaction = BlockTransaction
   { btSig :: TransactionSignature
+  -- , btMsig :: MultiSignature
+  -- , btLsig :: LogicSig
   , btTxn :: Transaction
+  -- , btAuthAddr :: Address
   , btHgh :: Bool
   -- ^ [btHgh] whether the tx has genesis hash included in serialized representation.
   , btHgi :: Bool
   -- ^ [btHgi] whether the tx has genesis id included in serialized representation.
   -- , btApplyData :: ApplyData
+  -- https://github.com/algorand/go-algorand/blob/916154b5088e25472f68cc7f2971b63176a3889d/data/transactions/transaction.go#L102
   } deriving (Eq, Generic, Show)
 
 instance MessageUnpackObject BlockTransaction where
   fromCanonicalObject o = do
-    btTxn <- o .:> "txn"
     btSig <- fromCanonicalObject o
-    btHgi <- o .:? "hgi"
+    btTxn <- o .:> "txn"
     btHgh <- o .:? "hgh"
+    btHgi <- o .:? "hgi"
     pure BlockTransaction{..}
 
 instance MessagePackObject BlockTransaction where
