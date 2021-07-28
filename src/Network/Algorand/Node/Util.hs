@@ -7,13 +7,18 @@ module Network.Algorand.Node.Util
   ( TransactionStatus (..)
   , transactionStatus
   , getBlock
+  , lookupAssetBalance
+  , lookupAppLocalState
   ) where
 
 import qualified Data.Aeson as J
 import qualified Data.HashMap.Strict as HM
+import qualified Data.Map as M
 import qualified Data.Text as T
 
 import Control.Exception.Safe (MonadCatch, handle, throwM)
+import Data.ByteString (ByteString)
+import Data.Map (Map)
 import Data.Text (Text)
 import Data.Word (Word64)
 import Network.HTTP.Types (Status (statusCode))
@@ -23,6 +28,7 @@ import Servant.Client.Generic (AsClientT)
 import qualified Data.Algorand.Block as B
 import qualified Network.Algorand.Node.Api as Api
 
+import Data.Algorand.Transaction (AppIndex, AssetIndex)
 import Network.Algorand.Node.Api (TransactionInfo (..))
 
 
@@ -60,3 +66,31 @@ getBlock api rnd = handle handler $ do
       , T.take (T.length noBlockMsg) msg == noBlockMsg
       = pure Nothing
     handler e = throwM e
+
+-- | Helper to get asset balance at account
+lookupAssetBalance :: Api.Account -> AssetIndex -> Word64
+lookupAssetBalance Api.Account{..} assetId
+  | Just Api.Asset{..} <- aAssets >>= lookup assetId . map toPair
+  , not asIsFrozen = asAmount
+  | otherwise = 0
+  where
+    toPair a@Api.Asset{..} = (asAssetId, a)
+
+-- | Helper to get account local state
+lookupAppLocalState
+  :: Api.Account
+  -> AppIndex
+  -> Maybe (Map ByteString (Either ByteString Word64))
+lookupAppLocalState Api.Account{..} appId = do
+  Api.LocalState{..} <- aAppsLocalState >>= lookup appId . map toPair
+  M.fromList . map toEntry <$> lsKeyValue
+  where
+    toPair a@Api.LocalState{..} = (lsId, a)
+    toEntry Api.TealKeyValue{..}
+      | Api.tvType tkeValue == Api.tealValueBytesType
+      = (tkeKey, Left $ Api.tvBytes tkeValue)
+      | Api.tvType tkeValue == Api.tealValueUintType
+      = (tkeKey, Right $ Api.tvUint tkeValue)
+      | otherwise = error $
+        "lookupAppLocalState: unknown teal value type "
+          <> show (Api.tvType tkeValue)
