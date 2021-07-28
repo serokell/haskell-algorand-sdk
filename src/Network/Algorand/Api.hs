@@ -5,10 +5,11 @@
 -- | The REST API v2 of Algod, the Algorand node.
 --
 -- See <https://developer.algorand.org/docs/reference/rest-apis/algod/v2/>
-module Network.Algorand.Node.Api
+module Network.Algorand.Api
   ( Api (..)
   , ApiAny (..)
   , ApiV2 (..)
+  , ApiIdx2 (..)
 
   , module Content
   , module Type
@@ -17,14 +18,26 @@ module Network.Algorand.Node.Api
 import Data.ByteString (ByteString)
 import Data.Text (Text)
 import GHC.Generics (Generic)
-import Servant.API (Capture, Get, JSON, PlainText, Post, QueryParam, ReqBody, (:>))
+import Servant.API (Capture, Get, JSON, NoContent, PlainText, Post, QueryParam, ReqBody, (:>))
 import Servant.API.Generic (ToServantApi, (:-))
 
 import Data.Algorand.Address (Address)
 import Data.Algorand.Block (BlockWrapped, Round)
 import Data.Algorand.Transaction.Signed (SignedTransaction)
-import Network.Algorand.Node.Api.Content as Content
-import Network.Algorand.Node.Api.Type as Type
+import Network.Algorand.Api.Content as Content
+import Network.Algorand.Api.Type as Type
+
+-- | Algod API.
+data Api route = Api
+  { _vAny :: route
+      :- ToServantApi ApiAny
+  , _v2 :: route
+      :- "v2"
+      :> ToServantApi ApiV2
+  , _idx2 :: route
+      :- "v2"
+      :> ToServantApi ApiIdx2
+  } deriving (Generic)
 
 -- | The part of the API that does not depend on the version.
 data ApiAny route = ApiAny
@@ -75,11 +88,8 @@ data ApiV2 route = ApiV2
       :> Post '[JSON] TealCompilationResult
   } deriving (Generic)
 
--- | Algod API.
-data Api route = Api
-  { _vAny :: route
-      :- ToServantApi ApiAny
-  , _v2 :: route
-      :- "v2"
-      :> ToServantApi ApiV2
+newtype ApiIdx2 route = ApiIdx2
+  { _stub :: route
+    :- "stub"
+    :> Get '[JSON] NoContent
   } deriving (Generic)

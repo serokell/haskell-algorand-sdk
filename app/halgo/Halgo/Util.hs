@@ -7,6 +7,7 @@ module Halgo.Util
   ( die
   , handleApiError
   , withNode
+  , withIndexer
   ) where
 
 import qualified Data.ByteString.Lazy as BSL
@@ -25,10 +26,11 @@ import Network.HTTP.Types (Status (statusCode, statusMessage))
 import Servant.Client (ClientError (..), ResponseF (..))
 import Servant.Client.Generic (AsClientT)
 
-import Network.Algorand.Node (NodeUrl, connect, getAlgoClient)
-import Network.Algorand.Node.Api (ApiV2)
+import Network.Algorand.Api (ApiIdx2, ApiV2)
+import Network.Algorand.Client (AlgoIndexer (..), AlgoNode (..), connectToIndexer, connectToNode)
+import Network.Algorand.Definitions (Host, Network)
 
-import qualified Network.Algorand.Node.Api as Api
+import qualified Network.Algorand.Api as Api
 
 import Halgo.CLA.Type (MonadSubCommand, goNetwork)
 
@@ -60,9 +62,19 @@ handleApiError = handle showErr
 -- | Connect to a node and check that its network is what we expect.
 withNode
   :: MonadSubCommand m
-  => NodeUrl
+  => Host
   -> ((Api.Version, ApiV2 (AsClientT m)) -> m a)
   -> m a
 withNode url act = do
   net <- asks goNetwork
-  connect url net >>= handleApiError . act . second getAlgoClient
+  connectToNode url net >>= handleApiError . act . second getAlgoNode
+
+-- | Connect to an indexer and check that its network is what we expect.
+withIndexer
+  :: MonadSubCommand m
+  => Host
+  -> ((Network, ApiIdx2 (AsClientT m)) -> m a)
+  -> m a
+withIndexer url act = do
+  net <- asks goNetwork
+  connectToIndexer url net >>= handleApiError . act . second getAlgoIndexer

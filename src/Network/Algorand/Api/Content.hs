@@ -3,7 +3,7 @@
 -- SPDX-License-Identifier: MPL-2.0
 
 -- | Custom content types for API
-module Network.Algorand.Node.Api.Content
+module Network.Algorand.Api.Content
   ( Binary
   , MsgPack
   , msgPackFormat

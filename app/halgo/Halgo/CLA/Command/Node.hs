@@ -6,7 +6,7 @@
 module Halgo.CLA.Command.Node
   ( nodeOpts
   , cmdNode
-  , optNodeUrl
+  , optNodeHost
   ) where
 
 
@@ -19,10 +19,10 @@ import Options.Applicative (Parser, auto, command, help, hsubparser, info, long,
 import qualified Data.Algorand.Address as A
 import qualified Data.Algorand.Block as B
 import qualified Data.Algorand.Transaction.Signed as TS
-import qualified Network.Algorand.Node.Api as Api
-import qualified Network.Algorand.Node.Util as N
+import qualified Network.Algorand.Api as Api
+import qualified Network.Algorand.Util as N
 
-import Network.Algorand.Node (NodeUrl)
+import Network.Algorand.Definitions (DefaultHost (ahNode), Host, getDefaultHost)
 
 import Halgo.CLA.Argument (argAddress, argTxId)
 import Halgo.CLA.Flag (flagJson)
@@ -30,12 +30,12 @@ import Halgo.CLA.Type (MonadSubCommand, SubCommand, goNetwork)
 import Halgo.IO (putJson, putTextLn, readItemsB64, readItemsJson)
 import Halgo.Util (die, withNode)
 
-optNodeUrl :: Parser (Maybe NodeUrl)
-optNodeUrl = optional . strOption $ mconcat
-  [ long "url"
-  , short 'u'
-  , metavar "NODE_URL"
-  , help "URL of the node to connect to (default: AlgoExplorer node based on the chosen network)"
+optNodeHost :: Parser (Maybe Host)
+optNodeHost = optional . strOption $ mconcat
+  [ long "node-host"
+  , short 'n'
+  , metavar "NODE_HOST"
+  , help "HOST of the node to connect to (default: AlgoExplorer node based on the chosen network)"
   ]
 
 optRound :: Parser B.Round
@@ -46,10 +46,10 @@ optRound = B.Round <$> option auto (mconcat
   ])
 
 nodeOpts :: Parser SubCommand
-nodeOpts = cmdNode <$> optNodeUrl <*> hsubparser (mconcat
-  [ command "url"
-    $ info (pure cmdNodeUrl)
-    $ progDesc "Show the URL of the node that will be used"
+nodeOpts = cmdNode <$> optNodeHost <*> hsubparser (mconcat
+  [ command "host"
+    $ info (pure cmdNodeHost)
+    $ progDesc "Show the HOST of the node that will be used"
 
   , command "version"
     $ info (pure cmdNodeVersion)
@@ -84,32 +84,33 @@ nodeOpts = cmdNode <$> optNodeUrl <*> hsubparser (mconcat
     $ progDesc "Get the status of a transaction in the pool"
   ])
 
-cmdNode :: MonadSubCommand m => Maybe NodeUrl -> (NodeUrl -> m ()) -> m ()
-cmdNode url sub = getNodeUrl url >>= sub
+cmdNode :: MonadSubCommand m => Maybe Host -> (Host -> m ()) -> m ()
+cmdNode url sub = getNodeHost url >>= sub
   where
-    getNodeUrl :: MonadSubCommand m => Maybe NodeUrl -> m NodeUrl
-    getNodeUrl (Just u) = pure u
-    getNodeUrl Nothing = asks goNetwork >>= \case
-      "mainnet-v1.0" -> pure "https://api.algoexplorer.io/"
-      "testnet-v1.0" -> pure "https://api.testnet.algoexplorer.io/"
-      "betanet-v1.0" -> pure "https://api.betanet.algoexplorer.io/"
-      net -> die $ "Unknown network `"+|net|+"`. Please, provide --url."
+    getNodeHost :: MonadSubCommand m => Maybe Host -> m Host
+    getNodeHost (Just u) = pure u
+    getNodeHost Nothing = do
+      network <- asks goNetwork
+      case getDefaultHost network of
+        Just host -> pure $ ahNode host
+        Nothing -> die $
+          "Unknown network `"+| show network |+"`. Please, provide --node-host."
 
 -- | Display the URL that we will be using.
-cmdNodeUrl :: MonadSubCommand m => NodeUrl -> m ()
-cmdNodeUrl = putTextLn
+cmdNodeHost :: MonadSubCommand m => Host -> m ()
+cmdNodeHost = putTextLn
 
 -- | Get node version.
-cmdNodeVersion :: MonadSubCommand m => NodeUrl -> m ()
+cmdNodeVersion :: MonadSubCommand m => Host -> m ()
 cmdNodeVersion url = withNode url $ \(v, _) -> putJson v
 
 -- | Get node status.
-cmdNodeStatus :: MonadSubCommand m => NodeUrl -> m ()
+cmdNodeStatus :: MonadSubCommand m => Host -> m ()
 cmdNodeStatus url = withNode url $ \(_, api) ->
   Api._status api >>= putJson
 
 -- | Print block info.
-cmdPrintBlock :: MonadSubCommand m => B.Round -> NodeUrl -> m ()
+cmdPrintBlock :: MonadSubCommand m => B.Round -> Host -> m ()
 cmdPrintBlock rnd url = withNode url $ \(_, api) -> do
   mBlock <- N.getBlock api rnd
   case mBlock of
@@ -127,24 +128,24 @@ cmdPrintBlock rnd url = withNode url $ \(_, api) -> do
     _ -> putTextLn "No block found"
 
 -- | Fetch information about an account.
-cmdNodeFetchAccount :: MonadSubCommand m => A.Address -> NodeUrl -> m ()
+cmdNodeFetchAccount :: MonadSubCommand m => A.Address -> Host -> m ()
 cmdNodeFetchAccount addr url = withNode url $ \(_, api) ->
   Api._account api addr >>= putJson
 
 -- | Fetch a transaction (from the pool).
-cmdNodeFetchTxn :: MonadSubCommand m => Text -> NodeUrl -> m ()
+cmdNodeFetchTxn :: MonadSubCommand m => Text -> Host -> m ()
 cmdNodeFetchTxn txId url = withNode url $ \(_, api) ->
   Api._transactionsPending api txId >>= putJson . Api.tiTxn
 
 -- | Send transactions.
-cmdNodeSend :: MonadSubCommand m => Bool -> NodeUrl -> m ()
+cmdNodeSend :: MonadSubCommand m => Bool -> Host -> m ()
 cmdNodeSend json url = do
     txns <- if json then readItemsJson else readItemsB64
     withNode url $ \(_, api) ->
       Api._transactions api txns >>= putTextLn . Api.trTxId
 
 -- | Get txn status
-cmdNodeTxnStatus :: MonadSubCommand m => Text -> NodeUrl -> m ()
+cmdNodeTxnStatus :: MonadSubCommand m => Text -> Host -> m ()
 cmdNodeTxnStatus txId url = withNode url $ \(_, api) ->
   N.transactionStatus <$> Api._transactionsPending api txId >>= \case
     N.Waiting -> putTextLn "Waiting"

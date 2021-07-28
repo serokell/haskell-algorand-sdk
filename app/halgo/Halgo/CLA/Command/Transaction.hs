@@ -20,14 +20,14 @@ import qualified Data.Algorand.Transaction as T
 import qualified Data.Algorand.Transaction.Build as T
 import qualified Data.Algorand.Transaction.Group as T
 import qualified Data.Algorand.Transaction.Signed as TS
-import qualified Network.Algorand.Node.Api as Api
+import qualified Network.Algorand.Api as Api
 
-import Network.Algorand.Node (NodeUrl)
+import Network.Algorand.Definitions (Host)
 
 import Halgo.CLA.Argument (argAddress, argAmount, argAssetAmount, argAssetIndex, argProgramFile,
                            argSecretFile)
 import Halgo.CLA.Command.Account (loadAccount)
-import Halgo.CLA.Command.Node (cmdNode, optNodeUrl)
+import Halgo.CLA.Command.Node (cmdNode, optNodeHost)
 import Halgo.CLA.Flag (flagB64, flagGroupCheck, flagJson, flagVerify)
 import Halgo.CLA.Type (MonadSubCommand, SubCommand)
 import Halgo.IO (putItemsB64, putItemsJson, putTextLn, readItemsB64, readItemsJson)
@@ -56,7 +56,7 @@ transactionOpts = hsubparser $ mconcat
     $ progDesc "Calculate transaction ID"
 
   , command "new"
-    $ info (cmdNode <$> optNodeUrl <*> hsubparser (mconcat
+    $ info (cmdNode <$> optNodeHost <*> hsubparser (mconcat
       [ command "pay"
         $ info (cmdTxnNewPay <$> argAddress "Receiver" <*> argAmount)
         $ progDesc "Create a new Payment transaction"
@@ -120,14 +120,14 @@ cmdTxnGroup json check = do
       True -> putItemsB64 txns
     False -> putItemsB64 $ T.makeGroup txns
 
-cmdTxnNewPay :: MonadSubCommand m => A.Address -> A.Microalgos -> NodeUrl -> m ()
+cmdTxnNewPay :: MonadSubCommand m => A.Address -> A.Microalgos -> Host -> m ()
 cmdTxnNewPay to amnt url = withNode url $ \(_, api) -> do
   params <- Api._transactionsParams api
   let payment = T.PaymentTransaction to amnt Nothing
   let txn = T.buildTransaction params A.zero payment
   putItemsB64 [txn]
 
-cmdTxnNewAxfr :: MonadSubCommand m => T.AssetIndex -> A.Address -> Word64 -> NodeUrl -> m ()
+cmdTxnNewAxfr :: MonadSubCommand m => T.AssetIndex -> A.Address -> Word64 -> Host -> m ()
 cmdTxnNewAxfr index to amnt url = withNode url $ \(_, api) -> do
   params <- Api._transactionsParams api
   let payment = T.AssetTransferTransaction index amnt Nothing to Nothing

@@ -15,12 +15,12 @@ import Options.Applicative (Parser, command, hsubparser, info, progDesc)
 import UnliftIO (liftIO)
 
 import qualified Data.Algorand.Address as A
-import qualified Network.Algorand.Node.Api as Api
+import qualified Network.Algorand.Api as Api
 
-import Network.Algorand.Node (NodeUrl)
+import Network.Algorand.Definitions (Host)
 
 import Halgo.CLA.Argument (argProgramFile, argProgramSourceFile)
-import Halgo.CLA.Command.Node (cmdNode, optNodeUrl)
+import Halgo.CLA.Command.Node (cmdNode, optNodeHost)
 import Halgo.CLA.Type (MonadSubCommand, SubCommand)
 import Halgo.IO (putNoticeLn, putTextLn)
 import Halgo.Util (withNode)
@@ -28,7 +28,7 @@ import Halgo.Util (withNode)
 contractOpts :: Parser SubCommand
 contractOpts = hsubparser $ mconcat
   [ command "compile"
-    $ info (cmdNode <$> optNodeUrl <*> (cmdContractCompile <$> argProgramSourceFile))
+    $ info (cmdNode <$> optNodeHost <*> (cmdContractCompile <$> argProgramSourceFile))
     $ progDesc "Compile source code to binary. Appends `.tok` to the input file name."
 
   , command "address"
@@ -36,7 +36,7 @@ contractOpts = hsubparser $ mconcat
     $ progDesc "Show the address of the compiled contract account"
   ]
 
-cmdContractCompile :: MonadSubCommand m => FilePath -> NodeUrl -> m ()
+cmdContractCompile :: MonadSubCommand m => FilePath -> Host -> m ()
 cmdContractCompile sourcePath url = withNode url $ \(_, api) -> do
   source <- liftIO $ TIO.readFile sourcePath
   bin <- Api.unTealCode . Api.tcrResult <$> Api._compileTeal api source

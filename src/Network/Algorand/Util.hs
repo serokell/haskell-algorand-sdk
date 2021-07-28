@@ -3,7 +3,7 @@
 -- SPDX-License-Identifier: MPL-2.0
 
 -- | Convenience wrappers around the node API.
-module Network.Algorand.Node.Util
+module Network.Algorand.Util
   ( TransactionStatus (..)
   , transactionStatus
   , getBlock
@@ -26,11 +26,10 @@ import Servant.Client (ClientError (..), ResponseF (..))
 import Servant.Client.Generic (AsClientT)
 
 import qualified Data.Algorand.Block as B
-import qualified Network.Algorand.Node.Api as Api
+import qualified Network.Algorand.Api as Api
 
 import Data.Algorand.Transaction (AppIndex, AssetIndex)
-import Network.Algorand.Node.Api (TransactionInfo (..))
-
+import Network.Algorand.Api.Type (TransactionInfo (..))
 
 -- | Status of a transaction in the pool.
 data TransactionStatus
@@ -38,7 +37,7 @@ data TransactionStatus
   | Confirmed Word64  -- ^ Transaction was confirmed at this round.
   | KickedOut Text  -- ^ It was kicked out of this node’s pool for this reason.
 
--- | Summarise 'TransactionInfo' as 'TransactionStatus'.
+-- | Summarize 'TransactionInfo' as 'TransactionStatus'.
 transactionStatus :: TransactionInfo -> TransactionStatus
 transactionStatus TransactionInfo{tiConfirmedRound, tiPoolError} =
   case tiConfirmedRound of
@@ -93,4 +92,4 @@ lookupAppLocalState Api.Account{..} appId = do
       = (tkeKey, Right $ Api.tvUint tkeValue)
       | otherwise = error $
         "lookupAppLocalState: unknown teal value type "
-          <> show (Api.tvType tkeValue)
+        <> show (Api.tvType tkeValue)

@@ -11,12 +11,13 @@ module Halgo.CLA.Type
 
 import Control.Exception.Safe (MonadCatch)
 import Control.Monad.Reader (MonadReader, ReaderT)
-import Data.Text (Text)
 import UnliftIO (MonadUnliftIO)
+
+import Network.Algorand.Definitions (Network)
 
 -- | CLI options applicable to all commands.
 newtype GlobalOptions = GlobalOptions
-  { goNetwork :: Text
+  { goNetwork :: Network
   }
 
 type SubCommand = ReaderT GlobalOptions IO ()

@@ -10,17 +10,17 @@ module Halgo.CLA.Flag
   , flagGroupCheck
   ) where
 
-import Options.Applicative (Parser, flag, help, long, short)
+import Options.Applicative (Parser, flag, help, long, short, switch)
 
 flagB64 :: Parser Bool
-flagB64 = flag False True $ mconcat
+flagB64 = switch $ mconcat
   [ long "base64"
   , short 'b'
   , help "Print transactions as base64 instead of JSON"
   ]
 
 flagJson :: Parser Bool
-flagJson = flag False True $ mconcat
+flagJson = switch $ mconcat
   [ long "json"
   , short 'j'
   , help "Read transactions as JSON instead of default base64"
@@ -34,7 +34,7 @@ flagVerify = flag True False $ mconcat
   ]
 
 flagGroupCheck :: Parser Bool
-flagGroupCheck = flag False True $ mconcat
+flagGroupCheck = switch $ mconcat
   [ long "check"
   , help "Check that the transactions are a valid group instead of making a new one"
   ]
