@@ -115,6 +115,14 @@ library
 executable halgo
   main-is: Main.hs
   other-modules:
+      Halgo.CLA
+      Halgo.CLA.Argument
+      Halgo.CLA.Command.Account
+      Halgo.CLA.Command.Contract
+      Halgo.CLA.Command.Node
+      Halgo.CLA.Command.Transaction
+      Halgo.CLA.Flag
+      Halgo.CLA.Type
       Halgo.IO
       Halgo.Util
       Paths_algorand_sdk
