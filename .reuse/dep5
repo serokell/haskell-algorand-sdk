@@ -1,0 +1,9 @@
+Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
+
+Files: .github/*
+Copyright: 2021 Serokell <https://serokell.io>
+License: CC0-1.0
+
+Files: test/algorand-lib/resources/*
+Copyright: 2021 Serokell <https://serokell.io>
+License: CC0-1.0

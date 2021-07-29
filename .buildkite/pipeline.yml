@@ -1,0 +1,30 @@
+# SPDX-FileCopyrightText: 2021 Serokell <https://serokell.io>
+#
+# SPDX-License-Identifier: MPL-2.0
+
+steps:
+  - label: REUSE lint
+    commands:
+      - nix-build -A checks.x86_64-linux.reuse-lint
+
+  - label: Check trailing whitespaces
+    commands:
+      - nix-build -A checks.x86_64-linux.trailing-whitespace
+
+  - label: build
+    commands:
+      - nix-build -A checks.x86_64-linux.build-all
+
+  - label: hlint
+    commands:
+      - nix run -f. legacyPackages.x86_64-linux.haskellPackages.hlint
+        -c hlint -j --hint .hlint.yaml */
+
+  - label: weeder
+    commands:
+      - nix-build -A weeder-script
+      - ./result
+
+  - label: tests
+    commands:
+      - nix-build -A checks.x86_64-linux.test
