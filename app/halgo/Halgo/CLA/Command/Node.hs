@@ -13,8 +13,8 @@ module Halgo.CLA.Command.Node
 import Control.Monad.Reader (asks)
 import Data.Text (Text)
 import Fmt (pretty, (+|), (|+))
-import Options.Applicative (Parser, auto, command, help, hsubparser, info, long, metavar, option,
-                            optional, progDesc, short, strOption)
+import Options.Applicative (Parser, command, help, hsubparser, info, long, metavar, optional,
+                            progDesc, short, strOption)
 
 import qualified Data.Algorand.Address as A
 import qualified Data.Algorand.Block as B
@@ -26,6 +26,7 @@ import Network.Algorand.Definitions (DefaultHost (ahNode), Host, getDefaultHost)
 
 import Halgo.CLA.Argument (argAddress, argTxId)
 import Halgo.CLA.Flag (flagJson)
+import Halgo.CLA.Option (optRound)
 import Halgo.CLA.Type (MonadSubCommand, SubCommand, goNetwork)
 import Halgo.IO (putJson, putTextLn, readItemsB64, readItemsJson)
 import Halgo.Util (die, withNode)
@@ -35,15 +36,9 @@ optNodeHost = optional . strOption $ mconcat
   [ long "node-host"
   , short 'n'
   , metavar "NODE_HOST"
-  , help "HOST of the node to connect to (default: AlgoExplorer node based on the chosen network)"
+  , help "HOST of the node to connect to \
+        \(default: AlgoExplorer node based on the chosen network)"
   ]
-
-optRound :: Parser B.Round
-optRound = B.Round <$> option auto (mconcat
-  [ long "round"
-  , metavar "<round number>"
-  , help "Round number of Algorand blockchain"
-  ])
 
 nodeOpts :: Parser SubCommand
 nodeOpts = cmdNode <$> optNodeHost <*> hsubparser (mconcat

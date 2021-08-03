@@ -13,11 +13,17 @@ import Fmt ((+|), (|+))
 import Options.Applicative (Parser, command, help, hsubparser, info, long, metavar, optional,
                             progDesc, short, strOption)
 
+import qualified Network.Algorand.Util as N
+
+import Data.Algorand.Address (Address)
+import Data.Algorand.Block (Round)
 import Network.Algorand.Definitions (DefaultHost (ahIndexer), Host, getDefaultHost)
 
+import Halgo.CLA.Argument (argAddress)
+import Halgo.CLA.Option (optRound)
 import Halgo.CLA.Type (MonadSubCommand, SubCommand, goNetwork)
-import Halgo.IO (putTextLn)
-import Halgo.Util (die)
+import Halgo.IO (putJson, putTextLn)
+import Halgo.Util (die, withIndexer)
 
 optIndexerHost :: Parser (Maybe Host)
 optIndexerHost = optional . strOption $ mconcat
@@ -34,6 +40,17 @@ indexerOpts = cmdIndexer <$> optIndexerHost <*> hsubparser (mconcat
     $ info (pure cmdIndexerHost)
     $ progDesc "Show the HOST of the indexer that will be used"
 
+  , command "fetch"
+    $ info (hsubparser $ mconcat
+      [ command "account"
+        $ info
+          (   cmdIndexerFetchAccount
+          <$> argAddress "Account to fetch"
+          <*> optional optRound
+          )
+        $ progDesc "Fetch information about an account"
+      ])
+    $ progDesc "Fetch something from the indexer"
   ])
 
 cmdIndexer :: MonadSubCommand m => Maybe Host -> (Host -> m ()) -> m ()
@@ -51,3 +68,10 @@ cmdIndexer url sub = getIndexerHost url >>= sub
 -- | Display the URL that we will be using.
 cmdIndexerHost :: MonadSubCommand m => Host -> m ()
 cmdIndexerHost = putTextLn
+
+-- | Fetch information about an account.
+cmdIndexerFetchAccount
+  :: MonadSubCommand m
+  => Address -> Maybe Round -> Host -> m ()
+cmdIndexerFetchAccount addr rnd url = withIndexer url $ \(_, api) ->
+  N.getAccountAtRound api addr rnd >>= putJson

@@ -124,6 +124,7 @@ executable halgo
       Halgo.CLA.Command.Node
       Halgo.CLA.Command.Transaction
       Halgo.CLA.Flag
+      Halgo.CLA.Option
       Halgo.CLA.Type
       Halgo.IO
       Halgo.Util

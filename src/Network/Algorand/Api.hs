@@ -18,7 +18,7 @@ module Network.Algorand.Api
 import Data.ByteString (ByteString)
 import Data.Text (Text)
 import GHC.Generics (Generic)
-import Servant.API (Capture, Get, JSON, NoContent, PlainText, Post, QueryParam, ReqBody, (:>))
+import Servant.API (Capture, Get, JSON, PlainText, Post, QueryParam, ReqBody, (:>))
 import Servant.API.Generic (ToServantApi, (:-))
 
 import Data.Algorand.Address (Address)
@@ -89,7 +89,9 @@ data ApiV2 route = ApiV2
   } deriving (Generic)
 
 newtype ApiIdx2 route = ApiIdx2
-  { _stub :: route
-    :- "stub"
-    :> Get '[JSON] NoContent
+  { _accountIdx :: route
+      :- "accounts"
+      :> Capture "address" Address
+      :> QueryParam "round" Round
+      :> Get '[JSON] IdxAccountResponse
   } deriving (Generic)

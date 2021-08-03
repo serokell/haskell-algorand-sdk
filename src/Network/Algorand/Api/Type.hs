@@ -20,6 +20,8 @@ module Network.Algorand.Api.Type
   , TealKeyValueStore
   , LocalState (..)
 
+  , IdxAccountResponse (..)
+
   , tealValueBytesType
   , tealValueUintType
   ) where
@@ -34,6 +36,7 @@ import GHC.Generics (Generic)
 
 import Data.Algorand.Address (Address)
 import Data.Algorand.Amount (Microalgos)
+import Data.Algorand.Block (Round)
 import Data.Algorand.Transaction (AppIndex, AssetIndex, GenesisHash)
 import Data.Algorand.Transaction.Signed (SignedTransaction)
 import Network.Algorand.Api.Json (algorandCamelOptions, algorandSnakeOptions, algorandTrainOptions)
@@ -136,8 +139,11 @@ data Asset = Asset
   -- ^ Number of units held.
   , asAssetId :: AssetIndex
   -- ^ Asset ID of the holding.
-  , asCreator :: Address
-  -- ^ Address that created this asset.
+  -- TODO: uncomment after indexer is fixed and returns proper value for this
+  -- field (at the date, 04 Aug 2021, indexer always returns an
+  -- empty string which triggers a parsing error)
+  -- , asCreator :: Address
+  -- Address that created this asset.
   -- This is the address where the parameters for this asset can be found, and
   -- also the address where unwanted asset units can be sent in the worst case.
   , asIsFrozen :: Bool
@@ -232,3 +238,9 @@ data TealCompilationResult = TealCompilationResult
   , tcrResult :: TealCode
   }
 $(deriveJSON algorandTrainOptions 'TealCompilationResult)
+
+data IdxAccountResponse = IdxAccountResponse
+  { iarAccount :: Account
+  , iarCurrentRound :: Round
+  } deriving stock (Generic, Show)
+$(deriveJSON algorandTrainOptions 'IdxAccountResponse)
