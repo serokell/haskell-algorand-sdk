@@ -349,7 +349,7 @@ is just a bunch of boilerplate code that follows the same pattern for
 all data types (it is absolutely possible to generate it using Generics
 and, hopefully, this will happen in the future). See `Data.Algorand.Transaction`.
 
-The definition of the node API is in `Network.Algorand.Node.Api` and adding
+The definition of the APIs is in `Network.Algorand.Api` and adding
 missing endpoints should be pretty straightforward.
 
 

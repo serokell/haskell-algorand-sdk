@@ -39,12 +39,13 @@ library
       Data.Algorand.Transaction.Build
       Data.Algorand.Transaction.Group
       Data.Algorand.Transaction.Signed
-      Network.Algorand.Node
-      Network.Algorand.Node.Api
-      Network.Algorand.Node.Api.Content
-      Network.Algorand.Node.Api.Json
-      Network.Algorand.Node.Api.Type
-      Network.Algorand.Node.Util
+      Network.Algorand.Api
+      Network.Algorand.Api.Content
+      Network.Algorand.Api.Json
+      Network.Algorand.Api.Type
+      Network.Algorand.Client
+      Network.Algorand.Definitions
+      Network.Algorand.Util
   other-modules:
       Paths_algorand_sdk
   hs-source-dirs:
@@ -115,6 +116,16 @@ library
 executable halgo
   main-is: Main.hs
   other-modules:
+      Halgo.CLA
+      Halgo.CLA.Argument
+      Halgo.CLA.Command.Account
+      Halgo.CLA.Command.Contract
+      Halgo.CLA.Command.Indexer
+      Halgo.CLA.Command.Node
+      Halgo.CLA.Command.Transaction
+      Halgo.CLA.Flag
+      Halgo.CLA.Option
+      Halgo.CLA.Type
       Halgo.IO
       Halgo.Util
       Paths_algorand_sdk

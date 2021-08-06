@@ -8,25 +8,25 @@
 --
 -- Interestingly, different types in the algod API use differet style
 -- for field names, so we have to provide multiple options.
-module Network.Algorand.Node.Api.Json
+module Network.Algorand.Api.Json
   ( algorandCamelOptions
   , algorandSnakeOptions
   , algorandTrainOptions
   , defaultOptions
   ) where
 
-import Data.Aeson (FromJSON (..), Options (fieldLabelModifier, omitNothingFields), ToJSON (..))
 import qualified Data.Aeson (defaultOptions)
+import qualified Data.Text as T
+
+import Data.Aeson (FromJSON (..), Options (fieldLabelModifier, omitNothingFields), ToJSON (..))
 import Data.Aeson.Casing (aesonPrefix, camelCase, snakeCase, trainCase)
 import Data.Aeson.Types (parseFail)
 import Data.ByteArray (ByteArray, Bytes, convert)
 import Data.ByteArray.Sized (SizedByteArray, sizedByteArray, unSizedByteArray)
 import Data.ByteString (ByteString)
 import Data.ByteString.Base64 (decodeBase64, encodeBase64)
-import qualified Data.Text as T
 import Data.Text.Encoding (encodeUtf8)
 import GHC.TypeLits (KnownNat)
-
 
 defaultOptions :: Options
 defaultOptions = Data.Aeson.defaultOptions { omitNothingFields = True }
@@ -46,7 +46,6 @@ algorandTrainOptions :: Options
 algorandTrainOptions = defaultOptions
   { fieldLabelModifier = fieldLabelModifier (aesonPrefix trainCase) }
 
-
 instance ToJSON ByteString where
   toJSON = toJSON . encodeBase64
   toEncoding = toEncoding . encodeBase64
@@ -58,14 +57,12 @@ instance FromJSON ByteString where
       Right bs -> pure bs
       Left err -> parseFail $ T.unpack err
 
-
 instance ToJSON Bytes where
   toJSON = toJSON @ByteString . convert
   toEncoding = toEncoding @ByteString . convert
 
 instance FromJSON Bytes where
   parseJSON = fmap convert . parseJSON @ByteString
-
 
 instance (ByteArray b, ToJSON b, KnownNat n) => ToJSON  (SizedByteArray n b) where
   toJSON = toJSON . unSizedByteArray

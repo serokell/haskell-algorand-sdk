@@ -14,7 +14,7 @@ import Data.Algorand.Address (Address)
 import Data.Algorand.Amount (Microalgos)
 import Data.Algorand.MessagePack (Canonical (Canonical), pack)
 import Data.Algorand.Transaction (Transaction (..), TransactionType)
-import Network.Algorand.Node.Api (SuggestedParams (..))
+import Network.Algorand.Api (SuggestedParams (..))
 
 -- | Pre-fills transaction header with recommended parameters
 -- obtained from the node.

@@ -36,7 +36,7 @@ import Crypto.Error (CryptoFailable (CryptoFailed, CryptoPassed))
 import qualified Crypto.PubKey.Ed25519 as Sig
 
 import Data.Algorand.MessagePack (AlgoMessagePack (..), NonZeroValue (isNonZero))
-import Network.Algorand.Node.Api.Json ()  -- instances for Bytes
+import Network.Algorand.Api.Json ()  -- instances for Bytes
 
 
 -- | Signing secret key.

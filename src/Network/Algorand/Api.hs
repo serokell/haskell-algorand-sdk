@@ -5,10 +5,11 @@
 -- | The REST API v2 of Algod, the Algorand node.
 --
 -- See <https://developer.algorand.org/docs/reference/rest-apis/algod/v2/>
-module Network.Algorand.Node.Api
+module Network.Algorand.Api
   ( Api (..)
   , ApiAny (..)
   , ApiV2 (..)
+  , ApiIdx2 (..)
 
   , module Content
   , module Type
@@ -23,8 +24,20 @@ import Servant.API.Generic (ToServantApi, (:-))
 import Data.Algorand.Address (Address)
 import Data.Algorand.Block (BlockWrapped, Round)
 import Data.Algorand.Transaction.Signed (SignedTransaction)
-import Network.Algorand.Node.Api.Content as Content
-import Network.Algorand.Node.Api.Type as Type
+import Network.Algorand.Api.Content as Content
+import Network.Algorand.Api.Type as Type
+
+-- | Algod API.
+data Api route = Api
+  { _vAny :: route
+      :- ToServantApi ApiAny
+  , _v2 :: route
+      :- "v2"
+      :> ToServantApi ApiV2
+  , _idx2 :: route
+      :- "v2"
+      :> ToServantApi ApiIdx2
+  } deriving (Generic)
 
 -- | The part of the API that does not depend on the version.
 data ApiAny route = ApiAny
@@ -75,11 +88,10 @@ data ApiV2 route = ApiV2
       :> Post '[JSON] TealCompilationResult
   } deriving (Generic)
 
--- | Algod API.
-data Api route = Api
-  { _vAny :: route
-      :- ToServantApi ApiAny
-  , _v2 :: route
-      :- "v2"
-      :> ToServantApi ApiV2
+newtype ApiIdx2 route = ApiIdx2
+  { _accountIdx :: route
+      :- "accounts"
+      :> Capture "address" Address
+      :> QueryParam "round" Round
+      :> Get '[JSON] IdxAccountResponse
   } deriving (Generic)
