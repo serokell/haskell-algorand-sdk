@@ -9,8 +9,6 @@ module Network.Algorand.Client
 
   , AlgoIndexer (..)
   , connectToIndexer
-
-  , module Api
   ) where
 
 import qualified Data.Text as T
@@ -18,21 +16,15 @@ import qualified Data.Text as T
 import Control.Exception.Safe (MonadThrow, throwM)
 import Control.Monad.IO.Class (MonadIO, liftIO)
 import Network.HTTP.Client.TLS (newTlsManager)
-import Servant.API.Generic (fromServant)
-import Servant.Client (ClientEnv, mkClientEnv, parseBaseUrl, runClientM)
+import Servant.Client (mkClientEnv, parseBaseUrl, runClientM)
 import Servant.Client.Generic (AsClientT, genericClientHoist)
 
-import qualified Network.Algorand.Api as Api
-
-import Network.Algorand.Api (Api (..), ApiAny (..), ApiIdx2, ApiV2, Version (..))
-import Network.Algorand.Definitions (Host, Network, NetworkError (WrongNetwork))
-
-apiClient :: forall m' . MonadIO m' => ClientEnv -> Api (AsClientT m')
-apiClient env = genericClientHoist $
-  \x -> liftIO $ runClientM x env >>= either throwM pure
+import Network.Algorand.Api.Indexer (IndexerApi)
+import Network.Algorand.Api.Node (NodeApi)
+import Network.Algorand.Definitions (Host, Network)
 
 newtype AlgoNode = AlgoNode
-  { getAlgoNode  :: forall m' . MonadIO m' => ApiV2 (AsClientT m')
+  { getAlgoNode  :: forall m . MonadIO m => NodeApi (AsClientT m)
   }
 
 -- | Connect to a node and make sure it is working on the expected network.
@@ -42,24 +34,18 @@ connectToNode
   -- ^ Host of the node.
   -> Network
   -- ^ Expected network (genesis id).
-  -> m (Api.Version, AlgoNode)
+  -> m (Network, AlgoNode)
 connectToNode host net = do
   manager <- newTlsManager
   env <- mkClientEnv manager <$> parseBaseUrl (T.unpack host)
   let
-    apiAny :: ApiAny (AsClientT m)
-    apiAny = fromServant $ _vAny $ apiClient env
-
-    apiV2Client :: forall m' . MonadIO m' => ApiV2 (AsClientT m')
-    apiV2Client = fromServant $ _v2 $ apiClient env
-
-  version@Version{vGenesisId} <- _version apiAny
-  if vGenesisId == net
-  then pure (version, AlgoNode apiV2Client)
-  else throwM $ WrongNetwork net vGenesisId
+    apiNodeClient :: forall m' . MonadIO m' => NodeApi (AsClientT m')
+    apiNodeClient = genericClientHoist $ \x ->
+      liftIO $ runClientM x env >>= either throwM pure
+  pure (net, AlgoNode apiNodeClient)
 
 newtype AlgoIndexer = AlgoIndexer
-  { getAlgoIndexer :: forall m' . MonadIO m' => ApiIdx2 (AsClientT m')
+  { getAlgoIndexer :: forall m . MonadIO m => IndexerApi (AsClientT m)
   }
 
 -- | Connect to an indexer.
@@ -69,12 +55,12 @@ connectToIndexer
   -- ^ Host of the indexer.
   -> Network
   -- ^ Expected network (genesis id).
-  -> m (Network , AlgoIndexer)
+  -> m (Network, AlgoIndexer)
 connectToIndexer host net = do
   manager <- newTlsManager
   env <- mkClientEnv manager <$> parseBaseUrl (T.unpack host)
   let
-    apiIdx2Client :: forall m' . MonadIO m' => ApiIdx2 (AsClientT m')
-    apiIdx2Client = fromServant $ _idx2 $ apiClient env
-
-  pure (net, AlgoIndexer apiIdx2Client)
+    apiIndexerClient :: forall m' . MonadIO m' => IndexerApi (AsClientT m')
+    apiIndexerClient = genericClientHoist $ \x ->
+      liftIO $ runClientM x env >>= either throwM pure
+  pure (net, AlgoIndexer apiIndexerClient)

@@ -46,10 +46,6 @@ nodeOpts = cmdNode <$> optNodeHost <*> hsubparser (mconcat
     $ info (pure cmdNodeHost)
     $ progDesc "Show the HOST of the node that will be used"
 
-  , command "version"
-    $ info (pure cmdNodeVersion)
-    $ progDesc "Query the version information of the node"
-
   , command "status"
     $ info (pure cmdNodeStatus)
     $ progDesc "Show the status of the node that will be used"
@@ -95,10 +91,6 @@ cmdNode url sub = getNodeHost url >>= sub
 cmdNodeHost :: MonadSubCommand m => Host -> m ()
 cmdNodeHost = putTextLn
 
--- | Get node version.
-cmdNodeVersion :: MonadSubCommand m => Host -> m ()
-cmdNodeVersion url = withNode url $ \(v, _) -> putJson v
-
 -- | Get node status.
 cmdNodeStatus :: MonadSubCommand m => Host -> m ()
 cmdNodeStatus url = withNode url $ \(_, api) ->
@@ -122,6 +114,7 @@ cmdPrintBlock rnd url = withNode url $ \(_, api) -> do
       mapM_ putJson txs
     _ -> putTextLn "No block found"
 
+{-# DEPRECATED cmdNodeFetchAccount "Use `cmdIndexerFetchAccount` instead" #-}
 -- | Fetch information about an account.
 cmdNodeFetchAccount :: MonadSubCommand m => A.Address -> Host -> m ()
 cmdNodeFetchAccount addr url = withNode url $ \(_, api) ->

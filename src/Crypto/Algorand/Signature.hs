@@ -21,23 +21,25 @@ module Crypto.Algorand.Signature
   , Signature
   , sign
   , verify
+
+  , SignatureType (..)
   ) where
 
+import qualified Crypto.PubKey.Ed25519 as Sig
+import qualified Data.ByteString as BS
+
 import Control.Monad (guard)
+import Control.Monad.IO.Class (MonadIO, liftIO)
+import Crypto.Error (CryptoFailable (CryptoFailed, CryptoPassed))
 import Data.Aeson (FromJSON (..), ToJSON (..))
 import Data.Aeson.Types (parseFail)
 import Data.ByteArray (ByteArrayAccess, Bytes, convert)
 import Data.ByteString (ByteString)
-import qualified Data.ByteString as BS
 import Data.ByteString.Base64 (decodeBase64, encodeBase64)
 import Data.Text (Text)
-import Control.Monad.IO.Class (MonadIO, liftIO)
-import Crypto.Error (CryptoFailable (CryptoFailed, CryptoPassed))
-import qualified Crypto.PubKey.Ed25519 as Sig
 
 import Data.Algorand.MessagePack (AlgoMessagePack (..), NonZeroValue (isNonZero))
-import Network.Algorand.Api.Json ()  -- instances for Bytes
-
+import Network.Algorand.Api.Json ()
 
 -- | Signing secret key.
 data SecretKey where
@@ -58,7 +60,6 @@ keypair = do
 -- | Compute the public key corresponding to the given secret key.
 toPublic :: SecretKey -> PublicKey
 toPublic (SecretKey _ pk) = pk
-
 
 -- | Export a secret key in base64.
 --
@@ -84,7 +85,6 @@ skFromText t = do
   guard $ pk == toPublic sk
   pure sk
 
-
 -- | Size of a 'PublicKey' in bytes.
 pkSize :: Int
 pkSize = Sig.publicKeySize
@@ -92,7 +92,8 @@ pkSize = Sig.publicKeySize
 -- | Try to interpret bytes as a 'PublicKey'.
 pkFromBytes
   :: ByteArrayAccess pkBytes
-  => pkBytes  -- ^ Bytes containing the key.
+  => pkBytes
+  -- ^ Bytes containing the key.
   -> Maybe PublicKey
 pkFromBytes bs = case Sig.publicKey bs of
   CryptoPassed pk -> Just pk
@@ -105,12 +106,12 @@ skSize = Sig.secretKeySize
 -- | Try to interpret bytes as a 'SecretKey'.
 skFromBytes
   :: ByteArrayAccess skBytes
-  => skBytes  -- ^ Bytes containing the key.
+  => skBytes
+  -- ^ Bytes containing the key.
   -> Maybe SecretKey
 skFromBytes bs = case Sig.secretKey bs of
   CryptoPassed sk -> Just $ SecretKey sk (Sig.toPublic sk)
   CryptoFailed _ -> Nothing
-
 
 -- | Cryptographic signature.
 newtype Signature = Signature Sig.Signature
@@ -140,25 +141,52 @@ instance FromJSON Signature where
 
 sigFromBytes
   :: ByteArrayAccess sigBytes
-  => sigBytes  -- ^ Bytes containing the signature.
+  => sigBytes
+  -- ^ Bytes containing the signature.
   -> Maybe Signature
 sigFromBytes bs = case Sig.signature bs of
   CryptoPassed sig -> Just $ Signature sig
   CryptoFailed _ -> Nothing
 
--- | Produce a cryptograhic signature for the data.
+-- | Produce a cryptographic signature for the data.
 sign
   :: ByteArrayAccess dataBytes
-  => SecretKey  -- ^ Secret key used for signing.
-  -> dataBytes  -- ^ Bytes to sign.
+  => SecretKey
+  -- ^ Secret key used for signing.
+  -> dataBytes
+  -- ^ Bytes to sign.
   -> Signature
 sign (SecretKey sk pk) = Signature . Sig.sign sk pk
 
 -- | Verify a signature produced by 'sign'.
 verify
   :: ByteArrayAccess dataBytes
-  => PublicKey  -- ^ Public key corresponding to the secret key used for singing.
-  -> dataBytes  -- ^ Originally signed bytes.
-  -> Signature  -- ^ Signature to verify.
+  => PublicKey
+  -- ^ Public key corresponding to the secret key used for singing.
+  -> dataBytes
+  -- ^ Originally signed bytes.
+  -> Signature
+  -- ^ Signature to verify.
   -> Bool
 verify pk bs (Signature sig) = Sig.verify pk bs sig
+
+data SignatureType = Sig | Msig | Lsig
+  deriving (Show, Eq, Enum)
+
+instance ToJSON SignatureType where
+  toJSON v = toJSON (sigType :: Text)
+    where
+      sigType = case v of
+        Sig -> "sig"
+        Msig -> "msig"
+        Lsig -> "lsig"
+
+
+instance FromJSON SignatureType where
+  parseJSON o = do
+    value :: Text <- parseJSON o
+    case value of
+      "sig" -> pure Sig
+      "msig" -> pure Msig
+      "lsig" -> pure Lsig
+      _ -> fail "Unknown signature type"

@@ -35,14 +35,16 @@ library
       Data.Algorand.Block
       Data.Algorand.MessagePack
       Data.Algorand.MessagePack.Json
+      Data.Algorand.Teal
       Data.Algorand.Transaction
       Data.Algorand.Transaction.Build
       Data.Algorand.Transaction.Group
       Data.Algorand.Transaction.Signed
       Network.Algorand.Api
       Network.Algorand.Api.Content
+      Network.Algorand.Api.Indexer
       Network.Algorand.Api.Json
-      Network.Algorand.Api.Type
+      Network.Algorand.Api.Node
       Network.Algorand.Client
       Network.Algorand.Definitions
       Network.Algorand.Util

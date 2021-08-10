@@ -2,65 +2,37 @@
 --
 -- SPDX-License-Identifier: MPL-2.0
 
--- | Types which describe our API
-module Network.Algorand.Api.Type
-  ( BuildVersion (..)
-  , Version (..)
-  , Account (..)
+-- | Types which describe our Node API
+-- See <https://developer.algorand.org/docs/reference/rest-apis/algod/v2/>
+module Network.Algorand.Api.Node
+  ( Account (..)
   , TransactionsRep (..)
   , TransactionInfo (..)
   , SuggestedParams (..)
   , NanoSec (..)
   , NodeStatus (..)
-  , TealCode (..)
-  , TealCompilationResult (..)
   , Asset (..)
-  , TealValue (..)
-  , TealKeyValue (..)
-  , TealKeyValueStore
   , LocalState (..)
-
-  , IdxAccountResponse (..)
-
-  , tealValueBytesType
-  , tealValueUintType
+  , NodeApi (..)
   ) where
 
 import Data.Aeson (FromJSON, ToJSON)
 import Data.Aeson.TH (deriveJSON)
 import Data.ByteString (ByteString)
-import Data.Int (Int64)
 import Data.Text (Text)
 import Data.Word (Word64)
 import GHC.Generics (Generic)
+import Servant.API (Capture, Get, JSON, PlainText, Post, QueryParam, ReqBody, (:>))
+import Servant.API.Generic ((:-))
 
 import Data.Algorand.Address (Address)
 import Data.Algorand.Amount (Microalgos)
-import Data.Algorand.Block (Round)
+import Data.Algorand.Block (BlockWrapped, Round)
+import Data.Algorand.Teal (TealCompilationResult, TealKeyValueStore)
 import Data.Algorand.Transaction (AppIndex, AssetIndex, GenesisHash)
 import Data.Algorand.Transaction.Signed (SignedTransaction)
-import Network.Algorand.Api.Json (algorandCamelOptions, algorandSnakeOptions, algorandTrainOptions)
-import Network.Algorand.Definitions (Network)
-
--- | Node software build version information.
-data BuildVersion = BuildVersion
-  { bvBranch :: Text
-  , bvBuildNumber :: Int64
-  , bvChannel :: Text
-  , bvCommitHash :: Text
-  , bvMajor :: Int64
-  , bvMinor :: Int64
-  } deriving (Generic, Show)
-$(deriveJSON algorandSnakeOptions 'BuildVersion)
-
--- | algod version information.
-data Version = Version
-  { vBuild :: BuildVersion
-  , vGenesisHashB64 :: Text
-  , vGenesisId :: Network
-  , vVersions :: [Text]
-  } deriving (Generic, Show)
-$(deriveJSON algorandSnakeOptions 'Version)
+import Network.Algorand.Api.Content (Binary, MsgPack)
+import Network.Algorand.Api.Json (algorandCamelOptions, algorandTrainOptions)
 
 newtype NanoSec = NanoSec { unNanoSec :: Word64 }
   deriving stock (Eq, Show, Ord)
@@ -110,46 +82,18 @@ newtype TransactionsRep = TransactionsRep
   } deriving (Generic, Show)
 $(deriveJSON algorandCamelOptions 'TransactionsRep)
 
-data TealValue = TealValue
-  { tvBytes :: ByteString
-  -- ^ bytes value.
-  , tvUint :: Word64
-  -- ^ uint type.
-  , tvType :: Word64
-  -- ^ value type.
-  } deriving stock Show
-$(deriveJSON algorandTrainOptions 'TealValue)
-
-tealValueBytesType :: Word64
-tealValueBytesType = 1
-
-tealValueUintType :: Word64
-tealValueUintType = 2
-
-data TealKeyValue = TealKeyValue
-  { tkeKey :: ByteString
-  , tkeValue :: TealValue
-  } deriving stock Show
-$(deriveJSON algorandTrainOptions 'TealKeyValue)
-
-type TealKeyValueStore = [TealKeyValue]
-
 data Asset = Asset
   { asAmount :: Word64
   -- ^ Number of units held.
   , asAssetId :: AssetIndex
   -- ^ Asset ID of the holding.
-  -- TODO: uncomment after indexer is fixed and returns proper value for this
-  -- field (at the date, 04 Aug 2021, indexer always returns an
-  -- empty string which triggers a parsing error)
-  -- , asCreator :: Address
-  -- Address that created this asset.
+  , asCreator :: Address
+  -- ^ Address that created this asset.
   -- This is the address where the parameters for this asset can be found, and
   -- also the address where unwanted asset units can be sent in the worst case.
   , asIsFrozen :: Bool
   -- ^ Whether or not the holding is frozen.
-  }
-  deriving stock Show
+  } deriving stock Show
 $(deriveJSON algorandTrainOptions 'Asset)
 
 data LocalState = LocalState
@@ -157,8 +101,6 @@ data LocalState = LocalState
   -- ^ The application which this local state is for.
   , lsKeyValue :: Maybe TealKeyValueStore
   -- ^ Storage associated with the account and the application.
-  -- , schema :: ApplicationStateSchema
-  -- ^ Specifies maximums on the number of each type that may be stored.
   } deriving stock Show
 $(deriveJSON algorandTrainOptions 'LocalState)
 
@@ -171,22 +113,12 @@ data Account = Account
   -- ^ specifies the amount of MicroAlgos in the account, without the pending rewards.
   , aAppsLocalState :: Maybe [LocalState]
   -- ^ applications local data stored in this account.
-  --, aAppsTotalExtraPages :: Maybe
-  -- ^ the sum of all extra application program pages for this account.
-  --, aAppsTotalSchema :: Maybe StateSchema
-  -- ^ specifies maximums on the number of each type that may be stored.
   , aAssets :: Maybe [Asset]
   -- ^ assets held by this account.
   , aAuthAddr :: Maybe Address
   -- ^ the address against which signing should be checked.
   -- If empty, the address of the current account is used. This field can be
   -- updated in any transaction by setting the RekeyTo field.
-  --, aCreatedApps :: Maybe
-  -- ^ parameters of applications created by this account including app global data.
-  --, aCreatedAssets :: Maybe
-  -- ^ parameters of assets created by this account.
-  --, aAccuntParticipation :: Maybe
-  -- ^ describes the parameters used by this account in consensus protocol.
   , aPendingRewards :: Microalgos
   -- ^ amount of MicroAlgos of pending rewards in this account.
   , aRewardBase :: Maybe Microalgos
@@ -196,8 +128,6 @@ data Account = Account
   -- ^ total rewards of MicroAlgos the account has received, including pending rewards.
   , aRound :: Word64
   -- ^ the round for which this information is relevant.
-  --, aSigType :: Maybe
-  -- ^ indicates what type of signature is used by this account
   , aStatus :: Text
   -- ^ delegation status of the account's MicroAlgos
   } deriving (Generic, Show)
@@ -209,9 +139,6 @@ data TransactionInfo = TransactionInfo
   , tiCloseRewards :: Maybe Microalgos
   , tiClosingAmount :: Maybe Microalgos
   , tiConfirmedRound :: Maybe Word64
--- TODO:
---  , tiGlobalStateDelta :: Maybe ...
---  , tiLocalStateDelta :: Maybe ...
   , tiPoolError :: Text
   , tiReceiverRewards :: Maybe Microalgos
   , tiSenderRewards :: Maybe Microalgos
@@ -229,18 +156,48 @@ data SuggestedParams = SuggestedParams
   }
 $(deriveJSON algorandTrainOptions 'SuggestedParams)
 
-newtype TealCode = TealCode
-  { unTealCode :: ByteString
-  } deriving newtype (FromJSON, ToJSON)
-
-data TealCompilationResult = TealCompilationResult
-  { tcrHash :: Address
-  , tcrResult :: TealCode
-  }
-$(deriveJSON algorandTrainOptions 'TealCompilationResult)
-
-data IdxAccountResponse = IdxAccountResponse
-  { iarAccount :: Account
-  , iarCurrentRound :: Round
-  } deriving stock (Generic, Show)
-$(deriveJSON algorandTrainOptions 'IdxAccountResponse)
+-- | Algod Node API
+data NodeApi route = NodeApi
+  { _status :: route
+      :- "status"
+      :> Get '[JSON] NodeStatus
+  , _block :: route
+      :- "v2"
+      :> "blocks"
+      :> Capture "round" Round
+      :> QueryParam "format" Text
+      -- do not try passing format other than msgpack here
+      :> Get '[MsgPack] BlockWrapped
+  , _account :: route
+      :- "v2"
+      :> "accounts"
+      :> Capture "address" Address
+      :> Get '[JSON] Account
+  , _transactions :: route
+      :- "v2"
+      :> "transactions"
+      :> ReqBody '[Binary] [SignedTransaction]
+      :> Post '[JSON] TransactionsRep
+  , _transactionsRaw :: route
+      :- "v2"
+      :> "transactions"
+      :> ReqBody '[Binary] ByteString
+      :> Post '[JSON] TransactionsRep
+  , _transactionsPending :: route
+      :- "v2"
+      :> "transactions"
+      :> "pending"
+      :> Capture "txId" Text
+      :> Get '[JSON] TransactionInfo
+  , _transactionsParams :: route
+      :- "v2"
+      :> "transactions"
+      :> "params"
+      :> Get '[JSON] SuggestedParams
+  , _compileTeal :: route
+      :- "v2"
+      :> "teal"
+      :> "compile"
+      :> ReqBody '[PlainText] Text
+      :> Post '[JSON] TealCompilationResult
+  } deriving (Generic)

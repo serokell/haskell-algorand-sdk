@@ -26,11 +26,9 @@ import Network.HTTP.Types (Status (statusCode, statusMessage))
 import Servant.Client (ClientError (..), ResponseF (..))
 import Servant.Client.Generic (AsClientT)
 
-import Network.Algorand.Api (ApiIdx2, ApiV2)
+import Network.Algorand.Api (IndexerApi, NodeApi)
 import Network.Algorand.Client (AlgoIndexer (..), AlgoNode (..), connectToIndexer, connectToNode)
 import Network.Algorand.Definitions (Host, Network)
-
-import qualified Network.Algorand.Api as Api
 
 import Halgo.CLA.Type (MonadSubCommand, goNetwork)
 
@@ -63,7 +61,7 @@ handleApiError = handle showErr
 withNode
   :: MonadSubCommand m
   => Host
-  -> ((Api.Version, ApiV2 (AsClientT m)) -> m a)
+  -> ((Network, NodeApi (AsClientT m)) -> m a)
   -> m a
 withNode url act = do
   net <- asks goNetwork
@@ -73,7 +71,7 @@ withNode url act = do
 withIndexer
   :: MonadSubCommand m
   => Host
-  -> ((Network, ApiIdx2 (AsClientT m)) -> m a)
+  -> ((Network, IndexerApi (AsClientT m)) -> m a)
   -> m a
 withIndexer url act = do
   net <- asks goNetwork
