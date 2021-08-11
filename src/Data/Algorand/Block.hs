@@ -17,6 +17,7 @@ module Data.Algorand.Block
   , toSignedTransaction
   ) where
 
+import Data.Aeson.TH (deriveJSON)
 import Data.ByteArray (Bytes)
 import Data.ByteArray.Sized (SizedByteArray)
 import Data.Text (Text)
@@ -26,26 +27,27 @@ import Data.Word (Word64)
 import GHC.Generics (Generic)
 
 import Crypto.Algorand.Signature (SignatureType)
+import Data.Algorand.Address (Address)
 import Data.Algorand.Amount (Microalgos)
 import Data.Algorand.MessagePack (Canonical (..), MessagePackObject (..), MessageUnpackObject (..),
                                   (&), (&<>), (.:), (.:>), (.:?), (.=), (.=<))
 import Data.Algorand.Round (Round)
 import Data.Algorand.Transaction (GenesisHash, Transaction (..))
 import Data.Algorand.Transaction.Signed (SignedTransaction (..))
+import Network.Algorand.Api.Json (algorandTrainOptions)
 
 type BlockHash = SizedByteArray 32 Bytes
 type Seed = SizedByteArray 32 Bytes
 type TransactionsRoot = SizedByteArray 32 Bytes
-type Addr = SizedByteArray 32 Bytes
 
 -- | Fields relating to rewards
 data Rewards = Rewards
-  { bFeeSink :: Addr
+  { bFeeSink :: Address
   -- ^ [fees] accepts transaction fees, it can only spend to the incentive pool.
   , bRewardsLevel :: Maybe Microalgos
   -- ^ [earn] How many rewards, in MicroAlgos, have been distributed to each
   -- RewardUnit of MicroAlgos since genesis.
-  , bRewardsPool :: Addr
+  , bRewardsPool :: Address
   -- ^ [rwd] accepts periodic injections from the fee-sink and continually
   -- redistributes them as rewards.
   , bRewardsRate :: Maybe Microalgos
@@ -57,6 +59,7 @@ data Rewards = Rewards
   , bRewardsCalculationRound :: Round
   -- ^ [rwcalr] the round at which the RewardsRate will be recalculated.
   } deriving stock (Eq, Generic, Show)
+$(deriveJSON algorandTrainOptions 'Rewards)
 
 instance MessageUnpackObject Rewards where
   fromCanonicalObject o = do
@@ -84,6 +87,7 @@ data UpgradeState = UpgradeState
   -- adopted. If there is no upgrade taking place, nor a wait for the next
   -- protocol, this would be zero.
   } deriving stock (Eq, Generic, Show)
+$(deriveJSON algorandTrainOptions 'UpgradeState)
 
 instance MessageUnpackObject UpgradeState where
   fromCanonicalObject o = do
@@ -103,6 +107,7 @@ data UpgradeVote = UpgradeVote
   , bUpgradeApprove :: Maybe Bool
   -- ^ [upgradeyes] Indicates a yes vote for the current proposal.
   } deriving stock (Eq, Generic, Show)
+$(deriveJSON algorandTrainOptions 'UpgradeVote)
 
 instance MessageUnpackObject UpgradeVote where
   fromCanonicalObject o = do

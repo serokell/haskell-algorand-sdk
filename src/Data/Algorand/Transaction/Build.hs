@@ -15,7 +15,7 @@ import Data.Algorand.Amount (Microalgos)
 import Data.Algorand.MessagePack (Canonical (Canonical), pack)
 import Data.Algorand.Round (Round (..))
 import Data.Algorand.Transaction (Transaction (..), TransactionType)
-import Network.Algorand.Api (SuggestedParams (..))
+import Network.Algorand.Api.Node (SuggestedParams (..))
 
 -- | Pre-fills transaction header with recommended parameters
 -- obtained from the node.
@@ -24,9 +24,12 @@ import Network.Algorand.Api (SuggestedParams (..))
 -- the transaction, but if you do, use 'suggestedFee' to recalculate the fee
 -- taking into account the changes you made.
 buildTransaction
-  :: SuggestedParams  -- ^ Parameters suggested by the node.
-  -> Address  -- ^ Sender of the transaction.
-  -> TransactionType  -- ^ Type-specific data.
+  :: SuggestedParams
+  -- ^ Parameters suggested by the node.
+  -> Address
+  -- ^ Sender of the transaction.
+  -> TransactionType
+  -- ^ Type-specific data.
   -> Transaction
 buildTransaction sp@SuggestedParams{..} sender tt = tx1{ tFee = suggestedFee sp tx1 }
   where

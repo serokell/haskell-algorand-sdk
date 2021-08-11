@@ -9,22 +9,26 @@ module Network.Algorand.Api.Indexer
   , AccountData (..)
   , ApplicationLocalState (..)
   , AssetHolding (..)
+  , BlockResp (..)
   , IdxAccountResponse (..)
   ) where
 
 import Data.Aeson.TH (deriveJSON)
 import Data.Text (Text)
+import Data.Time.Clock.POSIX (POSIXTime)
 import Data.Word (Word64)
 import GHC.Generics (Generic)
 import Servant.API (Capture, Get, JSON, QueryParam, (:>))
 import Servant.API.Generic ((:-))
 
-import Crypto.Algorand.Signature (SignatureType)
+import Crypto.Algorand.Signature (SignatureType (..))
 import Data.Algorand.Address (Address)
 import Data.Algorand.Amount (Microalgos)
+import Data.Algorand.Block (BlockHash, Rewards (..), Seed, TransactionsRoot, UpgradeState (..),
+                            UpgradeVote (..))
 import Data.Algorand.Round (Round)
 import Data.Algorand.Teal (TealKeyValueStore)
-import Data.Algorand.Transaction (AppIndex, AssetIndex)
+import Data.Algorand.Transaction (AppIndex, AssetIndex, GenesisHash, Transaction)
 import Network.Algorand.Api.Json (algorandTrainOptions)
 
 -- | Stores local state associated with an application.
@@ -101,12 +105,57 @@ data IdxAccountResponse = IdxAccountResponse
   } deriving stock (Generic, Show)
 $(deriveJSON algorandTrainOptions 'IdxAccountResponse)
 
+-- | An Algorand Block information.
+data BlockResp = BlockResp
+  { brGenesisHash :: GenesisHash
+  -- ^ [gh] hash to which this block belongs.
+  , brGenesisId :: Text
+  -- ^ [gen] ID to which this block belongs.
+  , brPreviousBlockHash :: BlockHash
+  -- ^ [prev] hash of the previous block.
+  , brRewards :: Maybe Rewards
+  , brRound :: Round
+  -- ^ [rnd] Current round on which this block was appended to the chain.
+  , brSeed :: Seed
+  -- ^ [seed] Sortition seed.
+  , brTimestamp :: POSIXTime
+  -- ^ [ts] Block creation timestamp in seconds since epoch.
+  , brTransactions :: Maybe [Transaction]
+  -- ^ [txns] list of transactions corresponding
+  -- to a given round.
+  -- Note: for some reasons indexer doesn't return this field at all instead
+  -- of empty list in case when there aro no transactions
+  , brTransactionsRoot :: Maybe TransactionsRoot
+  -- ^ [txn] TransactionsRoot authenticates the set of transactions appearing
+  -- in the block. More specifically, it's the root of a merkle tree whose
+  -- leaves are the block's Txids, in lexicographic order.
+  -- For the empty block, it's 0. Note that the TxnRoot does not authenticate
+  -- the signatures on the transactions, only the transactions themselves.
+  -- Two blocks with the same transactions but in a different order and with
+  -- different signatures will have the same TxnRoot.
+  , brTxnCounter :: Maybe Word64
+  -- ^ [tc] TxnCounter counts the number of transactions committed in the
+  -- ledger, from the time at which support for this feature was introduced.
+  -- Specifically, this counter is the number of the next transaction that will
+  -- be committed after this block.
+  -- It is 0 when no transactions have ever been committed (since counter
+  -- started being supported).
+  , brUpgradeState :: Maybe UpgradeState
+  , brUpgradeVote :: Maybe UpgradeVote
+  } deriving stock (Generic, Show)
+$(deriveJSON algorandTrainOptions 'BlockResp)
+
 -- | Algod Indexer API
-newtype IndexerApi route = IndexerApi
+data IndexerApi route = IndexerApi
   { _accountIdx :: route
       :- "v2"
       :> "accounts"
       :> Capture "address" Address
       :> QueryParam "round" Round
       :> Get '[JSON] IdxAccountResponse
+  , _blockIdx :: route
+      :- "v2"
+      :> "blocks"
+      :> Capture "round" Round
+      :> Get '[JSON] BlockResp
   } deriving (Generic)

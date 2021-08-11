@@ -6,7 +6,9 @@
 module Network.Algorand.Util
   ( TransactionStatus (..)
   , transactionStatus
+
   , getBlock
+  , getBlockAtRound
 
   , getAccount
   , getAccountAtRound
@@ -72,6 +74,7 @@ noEntityHandler
   = pure Nothing
 noEntityHandler _ e = throwM e
 
+{-# DEPRECATED getBlock "Use `getBlockAtRound` instead" #-}
 -- | Helper to get block from node
 getBlock
   :: MonadCatch m
@@ -81,6 +84,15 @@ getBlock api rnd = handle (noEntityHandler noBlockMsg) $ do
   pure (Just block)
   where
     noBlockMsg = "ledger does not have entry"
+
+-- | Helper to get block from indexer
+getBlockAtRound
+  :: MonadCatch m
+  => Api.IndexerApi (AsClientT m) -> Round -> m (Maybe Api.BlockResp)
+getBlockAtRound api rnd = handle (noEntityHandler noBlockMsg) $ do
+  Just <$> Api._blockIdx api rnd
+  where
+    noBlockMsg = "no blocks found"
 
 {-# DEPRECATED getAccount "Use `getAccountAtRound` instead" #-}
 -- | Helper to get account from node

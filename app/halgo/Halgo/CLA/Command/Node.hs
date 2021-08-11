@@ -97,6 +97,7 @@ cmdNodeStatus :: MonadSubCommand m => Host -> m ()
 cmdNodeStatus url = withNode url $ \(_, api) ->
   Api._status api >>= putJson
 
+{-# DEPRECATED cmdPrintBlock "Use `cmdFetchBlock` instead" #-}
 -- | Print block info.
 cmdPrintBlock :: MonadSubCommand m => Round -> Host -> m ()
 cmdPrintBlock rnd url = withNode url $ \(_, api) -> do

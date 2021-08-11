@@ -32,7 +32,7 @@ module Data.Algorand.Transaction
 
 import qualified Data.Text as T
 
-import Data.Aeson (FromJSON (..), ToJSON (..))
+import Data.Aeson.TH (deriveJSON)
 import Data.Binary (decodeOrFail, encode)
 import Data.ByteArray (Bytes)
 import Data.ByteArray.Sized (SizedByteArray, unSizedByteArray)
@@ -51,9 +51,8 @@ import Data.Algorand.Amount (Microalgos)
 import Data.Algorand.MessagePack (Canonical (Canonical), MessagePackObject (toCanonicalObject),
                                   MessageUnpackObject (fromCanonicalObject), (&), (&<>), (.:),
                                   (.:>), (.:?), (.=), (.=<))
-import Data.Algorand.MessagePack.Json (parseCanonicalJson, toCanonicalJson)
 import Data.Algorand.Round (Round)
-
+import Network.Algorand.Api.Json (algorandTrainOptions)
 
 type AppIndex = Word64
 type AssetIndex = Word64
@@ -64,22 +63,14 @@ type TransactionGroupId = SizedByteArray 32 Bytes
 
 type Lease = SizedByteArray 32 Bytes
 
--- | An Algorand transaction (only Header fields).
-data Transaction = Transaction
-  { tSender :: Address
-  , tFee :: Microalgos
-  , tFirstValid :: Round
-  , tLastValid :: Round
-  , tNote :: Maybe ByteString
-  , tGenesisId :: Maybe Text
-  , tGenesisHash :: Maybe GenesisHash
-  , tTxType :: TransactionType
-  , tGroup :: Maybe TransactionGroupId
-  , tLease :: Maybe Lease
-  , tRekeyTo :: Maybe Address
+type OnComplete = Word64
 
-  -- TxType is set automatically
+-- | The 'StateSchema' object.
+data StateSchema = StateSchema
+  { ssNumUint :: Word64
+  , ssNumByteSlice :: Word64
   } deriving (Eq, Generic, Show)
+$(deriveJSON algorandTrainOptions 'StateSchema)
 
 -- | Specific types of Algorand transactions.
 data TransactionType
@@ -115,11 +106,28 @@ data TransactionType
   | AssetFreezeTransaction
     {}
   deriving (Eq, Generic, Show)
+$(deriveJSON algorandTrainOptions 'PaymentTransaction) -- HERE!
+
+-- | An Algorand transaction (only Header fields).
+data Transaction = Transaction
+  { tSender :: Address
+  , tFee :: Microalgos
+  , tFirstValid :: Round
+  , tLastValid :: Round
+  , tNote :: Maybe ByteString
+  , tGenesisId :: Maybe Text
+  , tGenesisHash :: Maybe GenesisHash
+  , tTxType :: TransactionType
+  , tGroup :: Maybe TransactionGroupId
+  , tLease :: Maybe Lease
+  , tRekeyTo :: Maybe Address
+
+  -- TxType is set automatically
+  } deriving (Eq, Generic, Show)
+$(deriveJSON algorandTrainOptions 'Transaction)
 
 -- | Constants for @OnComplete@.
 --
-type OnComplete = Word64
-
 onCompleteNoOp, onCompleteOptIn, onCompleteCloseOut, onCompleteClearState, onCompleteUpdateApplication, onCompleteDeleteApplication :: OnComplete
 onCompleteNoOp = 0
 onCompleteOptIn = 1
@@ -127,14 +135,6 @@ onCompleteCloseOut = 2
 onCompleteClearState = 3
 onCompleteUpdateApplication = 4
 onCompleteDeleteApplication = 5
-
-
--- | The 'StateSchema' object.
-data StateSchema = StateSchema
-  { ssNumUint :: Word64
-  , ssNumByteSlice :: Word64
-  } deriving (Eq, Generic, Show)
-
 
 -- | Get transaction ID.
 transactionId :: Transaction -> Text
@@ -144,11 +144,9 @@ transactionId = encodeBase32Unpadded . transactionId'
 transactionId' :: Transaction -> ByteString
 transactionId' = unSizedByteArray . hash32 . serialiseTx
 
-
 -- | Internal: pack a transaction into byte with prefix.
 serialiseTx :: Transaction -> ByteString
 serialiseTx = toStrict . ("TX" <>) . pack . Canonical
-
 
 {-
  - What comes below is pretty annoying. Basically, it is a ton of boilerplate
@@ -205,13 +203,6 @@ instance MessageUnpackObject Transaction where
       pure Transaction{..}
     where
       f = transactionFieldName
-
-instance ToJSON Transaction where
-  toJSON = toCanonicalJson
-
-instance FromJSON Transaction where
-  parseJSON = parseCanonicalJson
-
 
 transactionTypeFieldName :: IsString s => String -> s
 transactionTypeFieldName = \case
@@ -320,12 +311,6 @@ instance MessageUnpackObject TransactionType where
     where
       f = transactionTypeFieldName
 
-instance ToJSON TransactionType where
-  toJSON = toCanonicalJson
-
-instance FromJSON TransactionType where
-  parseJSON = parseCanonicalJson
-
 
 stateSchemaFieldName :: IsString s => String -> s
 stateSchemaFieldName = \case
@@ -347,12 +332,6 @@ instance MessageUnpackObject StateSchema where
       pure StateSchema{..}
     where
       f = stateSchemaFieldName
-
-instance ToJSON StateSchema where
-  toJSON = toCanonicalJson
-
-instance FromJSON StateSchema where
-  parseJSON = parseCanonicalJson
 
 -- | Convert integer contract arguments (which passed as ByteString) to uint
 decodeUintAppArgument :: ByteString -> Maybe Word64
