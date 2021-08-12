@@ -36,6 +36,7 @@ import qualified Data.Algorand.Block as B
 import qualified Network.Algorand.Api as Api
 
 import Data.Algorand.Address (Address)
+import Data.Algorand.Round (Round)
 import Data.Algorand.Teal (TealKeyValue (..), TealValue (..), tealValueBytesType, tealValueUintType)
 import Data.Algorand.Transaction (AppIndex, AssetIndex)
 import Network.Algorand.Api.Node (TransactionInfo (..))
@@ -44,7 +45,7 @@ import Network.Algorand.Api.Node (TransactionInfo (..))
 data TransactionStatus
   = Waiting
   -- ^ Still in the pool waiting to be confirmed.
-  | Confirmed Word64
+  | Confirmed Round
   -- ^ Transaction was confirmed at this round.
   | KickedOut Text
   -- ^ It was kicked out of this node’s pool for this reason.
@@ -74,7 +75,7 @@ noEntityHandler _ e = throwM e
 -- | Helper to get block from node
 getBlock
   :: MonadCatch m
-  => Api.NodeApi (AsClientT m) -> B.Round -> m (Maybe B.Block)
+  => Api.NodeApi (AsClientT m) -> Round -> m (Maybe B.Block)
 getBlock api rnd = handle (noEntityHandler noBlockMsg) $ do
   B.BlockWrapped block <- Api._block api rnd Api.msgPackFormat
   pure (Just block)
@@ -94,7 +95,7 @@ getAccountAtRound
   :: MonadCatch m
   => Api.IndexerApi (AsClientT m)
   -> Address
-  -> Maybe B.Round
+  -> Maybe Round
   -> m (Maybe Api.IdxAccountResponse)
 getAccountAtRound api addr rnd = handle (noEntityHandler noAccMsg) $
   Just <$> Api._accountIdx api addr rnd
@@ -159,4 +160,3 @@ getAppLocalState Api.AccountData{..} appId = do
       | otherwise = error $
         "getAppLocalState: unknown teal value type "
         <> show (tvType tkeValue)
-

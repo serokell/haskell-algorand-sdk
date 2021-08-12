@@ -5,15 +5,18 @@
 -- | Algorand block.
 module Data.Algorand.Block
   ( Block (..)
+  , BlockTransaction
   , Rewards (..)
   , UpgradeState (..)
   , UpgradeVote (..)
   , BlockWrapped (..)
   , BlockHash
-  , Round (..)
+  , TransactionsRoot
+  , Seed
+
+  , toSignedTransaction
   ) where
 
-import Data.Aeson (FromJSON, ToJSON)
 import Data.ByteArray (Bytes)
 import Data.ByteArray.Sized (SizedByteArray)
 import Data.Text (Text)
@@ -21,27 +24,21 @@ import Data.Time (UTCTime)
 import Data.Time.Clock.POSIX (posixSecondsToUTCTime)
 import Data.Word (Word64)
 import GHC.Generics (Generic)
-import Servant.API (ToHttpApiData)
 
+import Crypto.Algorand.Signature (SignatureType)
 import Data.Algorand.Amount (Microalgos)
-import Data.Algorand.MessagePack (AlgoMessagePack (..), Canonical (..), MessageUnpackObject (..),
-                                  (.:), (.:>), (.:?))
-import Data.Algorand.Transaction (GenesisHash)
-import Data.Algorand.Transaction.Signed (BlockTransaction)
+import Data.Algorand.MessagePack (Canonical (..), MessagePackObject (..), MessageUnpackObject (..),
+                                  (&), (&<>), (.:), (.:>), (.:?), (.=), (.=<))
+import Data.Algorand.Round (Round)
+import Data.Algorand.Transaction (GenesisHash, Transaction (..))
+import Data.Algorand.Transaction.Signed (SignedTransaction (..))
 
 type BlockHash = SizedByteArray 32 Bytes
 type Seed = SizedByteArray 32 Bytes
 type TransactionsRoot = SizedByteArray 32 Bytes
 type Addr = SizedByteArray 32 Bytes
 
-newtype Round = Round { unRound :: Word64 }
-  deriving stock (Eq, Ord, Show)
-  deriving newtype (Enum, ToHttpApiData, ToJSON, FromJSON)
-
-instance AlgoMessagePack Round where
-  toAlgoObject = toAlgoObject . unRound
-  fromAlgoObject = fmap Round . fromAlgoObject
-
+-- | Fields relating to rewards
 data Rewards = Rewards
   { bFeeSink :: Addr
   -- ^ [fees] accepts transaction fees, it can only spend to the incentive pool.
@@ -114,7 +111,32 @@ instance MessageUnpackObject UpgradeVote where
     bUpgradeApprove <- o .:? "upgradeyes"
     pure $ UpgradeVote {..}
 
--- | An Algorand block.
+data BlockTransaction = BlockTransaction
+  { btSig :: SignatureType
+  , btTxn :: Transaction
+  , btHgh :: Bool
+  -- ^ [btHgh] whether the tx has genesis hash included in serialized representation.
+  , btHgi :: Bool
+  -- ^ [btHgi] whether the tx has genesis id included in serialized representation.
+  } deriving (Eq, Generic, Show)
+
+instance MessageUnpackObject BlockTransaction where
+  fromCanonicalObject o = do
+    btSig <- fromCanonicalObject o
+    btTxn <- o .:> "txn"
+    btHgh <- o .:? "hgh"
+    btHgi <- o .:? "hgi"
+    pure BlockTransaction{..}
+
+instance MessagePackObject BlockTransaction where
+  toCanonicalObject BlockTransaction{..} = mempty
+      & "txn" .=< btTxn
+      & "hgi" .= btHgi
+      & "hgh" .= btHgh
+      &<> btSig
+
+-- NOTE: that for now there are one more Block data, which defined for API
+-- This one saved for compatibility and must be reviewed later
 data Block = Block
   { bGenesisHash :: GenesisHash
   -- ^ [gh] hash to which this block belongs.
@@ -174,3 +196,28 @@ newtype BlockWrapped = BlockWrapped
 
 instance MessageUnpackObject BlockWrapped where
   fromCanonicalObject o = BlockWrapped <$> (o .:> "block")
+
+
+-- | Convert block tx to signed tx
+toSignedTransaction
+  :: Bool
+  -- ^ Is genesis hash required (parameter of consensus protocol)
+  -> GenesisHash
+  -> Text
+  -- ^ Genesis id
+  -> BlockTransaction
+  -> SignedTransaction
+toSignedTransaction requireGH gh gid BlockTransaction{..} =
+  SignedTransaction
+    { stSig = btSig
+    , stTxn = btTxn
+        { tGenesisId =
+            if btHgi
+            then Just gid
+            else tGenesisId btTxn
+        , tGenesisHash =
+            if btHgh || requireGH
+            then Just gh
+            else tGenesisHash btTxn
+        }
+    }

@@ -20,10 +20,10 @@ import UnliftIO (MonadIO, liftIO)
 import UnliftIO.Directory (doesPathExist)
 import UnliftIO.IO (IOMode (ReadMode, WriteMode), withFile)
 
-import qualified Crypto.Algorand.Signature as S
+import qualified Crypto.Algorand.Key as K
 import qualified Data.Algorand.Address as A
 
-import Crypto.Algorand.Signature (SecretKey)
+import Crypto.Algorand.Key (SecretKey)
 
 import Halgo.CLA.Argument (argSecretFile)
 import Halgo.CLA.Type (MonadSubCommand, SubCommand)
@@ -52,25 +52,25 @@ cmdAccNew skFile = liftIO $ do
     True -> die $ "Not creating: "+|skFile|+" already exists."
     False -> do
       sk <- withFile skFile WriteMode $ \h -> do
-        sk <- S.keypair
-        TIO.hPutStr h (S.skToText sk)
+        sk <- K.keypair
+        TIO.hPutStr h (K.skToText sk)
         pure sk
-      putTextLn (A.toText . A.fromPublicKey . S.toPublic $ sk)
+      putTextLn (A.toText . A.fromPublicKey . K.toPublic $ sk)
 
 -- | Display an account in base64.
 cmdAccShow :: MonadSubCommand m => FilePath -> m ()
-cmdAccShow = loadAccount >=> putTextLn . A.toText . A.fromPublicKey . S.toPublic
+cmdAccShow = loadAccount >=> putTextLn . A.toText . A.fromPublicKey . K.toPublic
 
 -- | Display an account in base64.
 cmdAccExport :: MonadSubCommand m => FilePath -> m ()
-cmdAccExport = loadAccount >=> putTextLn . S.skToText
+cmdAccExport = loadAccount >=> putTextLn . K.skToText
 
 -- | Helper that loads a secret key from the file (or crashes).
 loadAccount :: MonadIO m => FilePath -> m SecretKey
 loadAccount skFile = liftIO $ handle showError $
   withFile skFile ReadMode $ \h -> do
     skText <- BS.hGetLine h
-    case S.skFromText skText of
+    case K.skFromText skText of
       Nothing -> die "Invalid secret key (file corrupted?)."
       Just sk -> pure sk
   where

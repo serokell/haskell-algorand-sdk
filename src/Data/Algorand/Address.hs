@@ -38,7 +38,7 @@ import Servant.API (ToHttpApiData (toQueryParam))
 import qualified Data.Algorand.MessagePack (zero)
 
 import Crypto.Algorand.Hash (hash32)
-import Crypto.Algorand.Signature (PublicKey, pkFromBytes, pkSize)
+import Crypto.Algorand.Key (PublicKey, pkFromBytes, pkSize)
 import Data.Algorand.MessagePack (AlgoMessagePack (..), CanonicalZero, NonZeroValue (isNonZero))
 
 -- | The length of the checksum appended to a public key.

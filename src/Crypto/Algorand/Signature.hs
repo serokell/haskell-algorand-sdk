@@ -4,114 +4,80 @@
 
 -- | Public key signatures used in Algorand.
 module Crypto.Algorand.Signature
-  ( SecretKey
-  , PublicKey
-  , keypair
-  , toPublic
-
-  , skToText
-  , skFromText
-
-  , pkSize
-  , pkFromBytes
-
-  , skSize
-  , skFromBytes
-
-  , Signature
-  , sign
-  , verify
-
-  , SignatureType (..)
+  ( SignatureType (..)
+  , Signature (..)
+  , LogicSignature (..)
+  , MultiSignature (..)
   ) where
 
 import qualified Crypto.PubKey.Ed25519 as Sig
-import qualified Data.ByteString as BS
 
-import Control.Monad (guard)
-import Control.Monad.IO.Class (MonadIO, liftIO)
 import Crypto.Error (CryptoFailable (CryptoFailed, CryptoPassed))
 import Data.Aeson (FromJSON (..), ToJSON (..))
 import Data.Aeson.Types (parseFail)
 import Data.ByteArray (ByteArrayAccess, Bytes, convert)
 import Data.ByteString (ByteString)
-import Data.ByteString.Base64 (decodeBase64, encodeBase64)
+import Data.String (IsString)
 import Data.Text (Text)
+import GHC.Generics (Generic)
 
-import Data.Algorand.MessagePack (AlgoMessagePack (..), NonZeroValue (isNonZero))
+import Data.Algorand.MessagePack (AlgoMessagePack (..), MessagePackObject (..),
+                                  MessageUnpackObject (..), NonZeroValue (..), (&), (.:>?), (.:?),
+                                  (.:??), (.=), (.=<))
+import Data.Algorand.MessagePack.Json (parseCanonicalJson, toCanonicalJson)
 import Network.Algorand.Api.Json ()
 
--- | Signing secret key.
-data SecretKey where
-  -- We include the public key too, because ed25519 needs it
-  -- for signing and because Algorand’s “base64 private key”
-  -- is essentially a pair of secret and public keys anyway.
-  SecretKey :: Sig.SecretKey -> Sig.PublicKey -> SecretKey
+-- | Types of transaction signatures.
+data SignatureType
+  = SignatureSimple Signature
+  | SignatureMulti MultiSignature
+  | SignatureLogic LogicSignature
+  deriving (Eq, Generic, Show)
 
--- | Signing public key.
-type PublicKey = Sig.PublicKey
+instance NonZeroValue SignatureType where
+  isNonZero _ = True
 
--- | Generate a new signing keypair.
-keypair :: MonadIO m => m SecretKey
-keypair = do
-  sk <- liftIO Sig.generateSecretKey
-  pure $ SecretKey sk (Sig.toPublic sk)
+signatureType :: IsString s => String -> s
+signatureType = \case
+  "SignatureSimple" -> "sig"
+  "SignatureMulti" -> "msig"
+  "SignatureLogic" -> "lsig"
+  x -> error $ "Unmapped transaction signature constructor: " <> x
 
--- | Compute the public key corresponding to the given secret key.
-toPublic :: SecretKey -> PublicKey
-toPublic (SecretKey _ pk) = pk
+instance MessagePackObject SignatureType where
+  toCanonicalObject = \case
+    SignatureSimple sig -> mempty
+      & t "SignatureSimple" .= sig
+    SignatureMulti msig -> mempty
+      & t "SignatureMulti" .=< msig
+    SignatureLogic lsig -> mempty
+      & t "SignatureLogic" .=< lsig
+    where
+      t = signatureType :: String -> Text
 
--- | Export a secret key in base64.
---
--- The output of this function contains raw unprotected key material!
-skToText :: SecretKey -> Text
-skToText (SecretKey sk pk) = encodeBase64 (convert sk <> convert pk)
+instance MessageUnpackObject SignatureType where
+  fromCanonicalObject o = o .:?? t "SignatureSimple" >>= \case
+    Just sig -> pure $ SignatureSimple sig
+    Nothing -> o .:>? t "SignatureMulti" >>= \case
+      Just msig -> pure $ SignatureMulti msig
+      Nothing -> o .:>? t "SignatureLogic" >>= \case
+        Just lsig -> pure $ SignatureLogic lsig
+        Nothing -> fail "Unsupported or missing signature"
+    where
+      t = signatureType :: String -> Text
 
--- | Import a secret key in base64.
---
--- This is the opposite of 'skToText'.
---
--- The encoding used by Algorand is base64 of the concatenation of
--- sk and pk bytes, so this function will fail if the pk and sk
--- do not match.
-skFromText :: ByteString -> Maybe SecretKey
-skFromText t = do
-  bs <- case decodeBase64 t of
-    Left _ -> Nothing
-    Right r -> Just r
-  let (skBytes, pkBytes) = BS.splitAt skSize bs
-  sk <- skFromBytes skBytes
-  pk <- pkFromBytes pkBytes
-  guard $ pk == toPublic sk
-  pure sk
+instance ToJSON SignatureType where
+  toJSON = toCanonicalJson
 
--- | Size of a 'PublicKey' in bytes.
-pkSize :: Int
-pkSize = Sig.publicKeySize
+instance FromJSON SignatureType where
+  parseJSON = parseCanonicalJson
 
--- | Try to interpret bytes as a 'PublicKey'.
-pkFromBytes
-  :: ByteArrayAccess pkBytes
-  => pkBytes
-  -- ^ Bytes containing the key.
-  -> Maybe PublicKey
-pkFromBytes bs = case Sig.publicKey bs of
-  CryptoPassed pk -> Just pk
-  CryptoFailed _ -> Nothing
+data MultiSignature = MultiSignature
+  deriving (Eq, Generic, Show)
 
--- | Size of a 'SecretKey' in bytes.
-skSize :: Int
-skSize = Sig.secretKeySize
+instance NonZeroValue MultiSignature where
+  isNonZero _ = True
 
--- | Try to interpret bytes as a 'SecretKey'.
-skFromBytes
-  :: ByteArrayAccess skBytes
-  => skBytes
-  -- ^ Bytes containing the key.
-  -> Maybe SecretKey
-skFromBytes bs = case Sig.secretKey bs of
-  CryptoPassed sk -> Just $ SecretKey sk (Sig.toPublic sk)
-  CryptoFailed _ -> Nothing
 
 -- | Cryptographic signature.
 newtype Signature = Signature Sig.Signature
@@ -148,45 +114,54 @@ sigFromBytes bs = case Sig.signature bs of
   CryptoPassed sig -> Just $ Signature sig
   CryptoFailed _ -> Nothing
 
--- | Produce a cryptographic signature for the data.
-sign
-  :: ByteArrayAccess dataBytes
-  => SecretKey
-  -- ^ Secret key used for signing.
-  -> dataBytes
-  -- ^ Bytes to sign.
-  -> Signature
-sign (SecretKey sk pk) = Signature . Sig.sign sk pk
 
--- | Verify a signature produced by 'sign'.
-verify
-  :: ByteArrayAccess dataBytes
-  => PublicKey
-  -- ^ Public key corresponding to the secret key used for singing.
-  -> dataBytes
-  -- ^ Originally signed bytes.
-  -> Signature
-  -- ^ Signature to verify.
-  -> Bool
-verify pk bs (Signature sig) = Sig.verify pk bs sig
+instance MessagePackObject MultiSignature where
+  toCanonicalObject MultiSignature = mempty  -- TODO
 
-data SignatureType = Sig | Msig | Lsig
-  deriving (Show, Eq, Enum)
+instance MessageUnpackObject MultiSignature where
+  fromCanonicalObject _ = pure MultiSignature  -- TODO
 
-instance ToJSON SignatureType where
-  toJSON v = toJSON (sigType :: Text)
+instance ToJSON MultiSignature where
+  toJSON = toCanonicalJson
+
+instance FromJSON MultiSignature where
+  parseJSON = parseCanonicalJson
+
+data LogicSignature = ContractAccountSignature
+  -- TODO: Only contract account signature is supported.
+  { lsLogic :: ByteString
+  , lsArgs :: [ByteString]
+  }
+  deriving (Eq, Generic, Show)
+
+
+instance NonZeroValue LogicSignature where
+  isNonZero _ = True
+
+logicSignatureFieldName :: IsString s => String -> s
+logicSignatureFieldName = \case
+  "lsLogic" -> "l"
+  "lsArgs" -> "arg"
+  x -> error $ "Unmapped logic signature field name: " <> x
+
+instance MessagePackObject LogicSignature where
+  toCanonicalObject = \case
+    ContractAccountSignature{..} -> mempty
+      & f "lsLogic" .= lsLogic
+      & f "lsArgs" .= lsArgs
     where
-      sigType = case v of
-        Sig -> "sig"
-        Msig -> "msig"
-        Lsig -> "lsig"
+      f = logicSignatureFieldName
 
+instance MessageUnpackObject LogicSignature where
+  fromCanonicalObject o = do
+    lsLogic <- o .:? f "lsLogic"
+    lsArgs <- o .:? f "lsArgs"
+    pure ContractAccountSignature{..}
+    where
+      f = logicSignatureFieldName
 
-instance FromJSON SignatureType where
-  parseJSON o = do
-    value :: Text <- parseJSON o
-    case value of
-      "sig" -> pure Sig
-      "msig" -> pure Msig
-      "lsig" -> pure Lsig
-      _ -> fail "Unknown signature type"
+instance ToJSON LogicSignature where
+  toJSON = toCanonicalJson
+
+instance FromJSON LogicSignature where
+  parseJSON = parseCanonicalJson

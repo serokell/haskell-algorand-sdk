@@ -16,7 +16,7 @@ import Options.Applicative (Parser, command, help, hsubparser, info, long, metav
 import qualified Network.Algorand.Util as N
 
 import Data.Algorand.Address (Address)
-import Data.Algorand.Block (Round)
+import Data.Algorand.Round (Round)
 import Network.Algorand.Definitions (DefaultHost (ahIndexer), Host, getDefaultHost)
 
 import Halgo.CLA.Argument (argAddress)

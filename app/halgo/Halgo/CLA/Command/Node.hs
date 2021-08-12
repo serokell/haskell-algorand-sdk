@@ -23,6 +23,7 @@ import qualified Network.Algorand.Api as Api
 import qualified Network.Algorand.Util as N
 
 import Network.Algorand.Definitions (DefaultHost (ahNode), Host, getDefaultHost)
+import Data.Algorand.Round (Round (..))
 
 import Halgo.CLA.Argument (argAddress, argTxId)
 import Halgo.CLA.Flag (flagJson)
@@ -97,18 +98,18 @@ cmdNodeStatus url = withNode url $ \(_, api) ->
   Api._status api >>= putJson
 
 -- | Print block info.
-cmdPrintBlock :: MonadSubCommand m => B.Round -> Host -> m ()
+cmdPrintBlock :: MonadSubCommand m => Round -> Host -> m ()
 cmdPrintBlock rnd url = withNode url $ \(_, api) -> do
   mBlock <- N.getBlock api rnd
   case mBlock of
     Just block -> do
-      let txs = TS.getUnverifiedTransaction . TS.toSignedTransaction
+      let txs = TS.getUnverifiedTransaction . B.toSignedTransaction
                 True -- false should be used only for some old protocol versions
                 (B.bGenesisHash block)
                 (B.bGenesisId block)
             <$> B.bTransactions block
       putTextLn $ "Retrieved " +| (if null txs then "empty " else "" :: Text)
-        |+ "block for round " +| B.unRound (B.bRound block)
+        |+ "block for round " +| unRound (B.bRound block)
         |+ " created at " +| B.bTimestamp block
         |+ (if null txs then "" else " with txs:")
       mapM_ putJson txs

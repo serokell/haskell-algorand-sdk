@@ -13,6 +13,7 @@ import qualified Data.ByteString.Lazy as BSL
 import Data.Algorand.Address (Address)
 import Data.Algorand.Amount (Microalgos)
 import Data.Algorand.MessagePack (Canonical (Canonical), pack)
+import Data.Algorand.Round (Round (..))
 import Data.Algorand.Transaction (Transaction (..), TransactionType)
 import Network.Algorand.Api (SuggestedParams (..))
 
@@ -33,7 +34,7 @@ buildTransaction sp@SuggestedParams{..} sender tt = tx1{ tFee = suggestedFee sp 
       { tSender = sender
       , tFee = 0
       , tFirstValid = spLastRound
-      , tLastValid = spLastRound + 1000
+      , tLastValid = spLastRound + Round 1000
       , tNote = Nothing
       , tGenesisId = Just spGenesisId
       , tGenesisHash = Just spGenesisHash

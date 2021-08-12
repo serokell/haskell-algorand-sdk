@@ -27,7 +27,8 @@ import Servant.API.Generic ((:-))
 
 import Data.Algorand.Address (Address)
 import Data.Algorand.Amount (Microalgos)
-import Data.Algorand.Block (BlockWrapped, Round)
+import Data.Algorand.Block (BlockWrapped)
+import Data.Algorand.Round (Round)
 import Data.Algorand.Teal (TealCompilationResult, TealKeyValueStore)
 import Data.Algorand.Transaction (AppIndex, AssetIndex, GenesisHash)
 import Data.Algorand.Transaction.Signed (SignedTransaction)
@@ -126,7 +127,7 @@ data Account = Account
   -- which are participating.
   , aRewards :: Microalgos
   -- ^ total rewards of MicroAlgos the account has received, including pending rewards.
-  , aRound :: Word64
+  , aRound :: Round
   -- ^ the round for which this information is relevant.
   , aStatus :: Text
   -- ^ delegation status of the account's MicroAlgos
@@ -138,7 +139,7 @@ data TransactionInfo = TransactionInfo
   , tiAssetIndex :: Maybe AssetIndex
   , tiCloseRewards :: Maybe Microalgos
   , tiClosingAmount :: Maybe Microalgos
-  , tiConfirmedRound :: Maybe Word64
+  , tiConfirmedRound :: Maybe Round
   , tiPoolError :: Text
   , tiReceiverRewards :: Maybe Microalgos
   , tiSenderRewards :: Maybe Microalgos
@@ -151,7 +152,7 @@ data SuggestedParams = SuggestedParams
   , spFee :: Microalgos
   , spGenesisHash :: GenesisHash
   , spGenesisId :: Text
-  , spLastRound :: Word64
+  , spLastRound :: Round
   , spMinFee :: Microalgos
   }
 $(deriveJSON algorandTrainOptions 'SuggestedParams)
