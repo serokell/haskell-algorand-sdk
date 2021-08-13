@@ -32,6 +32,7 @@ module Data.Algorand.Transaction
 
 import qualified Data.Text as T
 
+import Data.Aeson (FromJSON (..), ToJSON (..))
 import Data.Aeson.TH (deriveJSON)
 import Data.Binary (decodeOrFail, encode)
 import Data.ByteArray (Bytes)
@@ -106,7 +107,29 @@ data TransactionType
   | AssetFreezeTransaction
     {}
   deriving (Eq, Generic, Show)
-$(deriveJSON algorandTrainOptions 'PaymentTransaction) -- HERE!
+
+instance ToJSON TransactionType where
+  toJSON txType = toJSON (value :: Text)
+    where
+      value = case txType of
+        PaymentTransaction{} -> "pay"
+        ApplicationCallTransaction{} -> "appl"
+        AssetTransferTransaction{} -> "axfer"
+        KeyRegistrationTransaction -> "keyreg"
+        AssetConfigTransaction -> "acfg"
+        AssetFreezeTransaction -> "afrz"
+
+instance FromJSON TransactionType where
+  parseJSON o = do
+    value :: Text <- parseJSON o
+    pure $ case value of
+      "pay" -> PaymentTransaction{}
+      "appl" -> ApplicationCallTransaction{}
+      "axfer" -> AssetTransferTransaction{}
+      "keyreg" -> KeyRegistrationTransaction
+      "acfg" -> AssetConfigTransaction
+      "afrz" -> AssetFreezeTransaction
+      x -> error . T.unpack $ "Unmapped transaction type field name: " <> x
 
 -- | An Algorand transaction (only Header fields).
 data Transaction = Transaction
