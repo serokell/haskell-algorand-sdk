@@ -122,14 +122,14 @@ instance ToJSON TransactionType where
 instance FromJSON TransactionType where
   parseJSON o = do
     value :: Text <- parseJSON o
-    pure $ case value of
-      "pay" -> PaymentTransaction{}
-      "appl" -> ApplicationCallTransaction{}
-      "axfer" -> AssetTransferTransaction{}
-      "keyreg" -> KeyRegistrationTransaction
-      "acfg" -> AssetConfigTransaction
-      "afrz" -> AssetFreezeTransaction
-      x -> error . T.unpack $ "Unmapped transaction type field name: " <> x
+    case value of
+      "pay" -> pure PaymentTransaction{}
+      "appl" -> pure ApplicationCallTransaction{}
+      "axfer" -> pure AssetTransferTransaction{}
+      "keyreg" -> pure KeyRegistrationTransaction
+      "acfg" -> pure AssetConfigTransaction
+      "afrz" -> pure AssetFreezeTransaction
+      x -> fail . T.unpack $ "Unmapped transaction type field name: " <> x
 
 -- | An Algorand transaction (only Header fields).
 data Transaction = Transaction
