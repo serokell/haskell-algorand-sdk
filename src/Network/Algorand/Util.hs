@@ -31,6 +31,7 @@ import qualified Data.Algorand.Block as B
 import qualified Network.Algorand.Api as Api
 
 import Data.Algorand.Address (Address)
+import Data.Algorand.Teal (TealKeyValue (..), TealValue (..), tealValueBytesType, tealValueUintType)
 import Data.Algorand.Transaction (AppIndex, AssetIndex)
 import Network.Algorand.Api.Type (TransactionInfo (..))
 
@@ -108,11 +109,11 @@ lookupAppLocalState Api.Account{..} appId = do
   M.fromList . map toEntry <$> lsKeyValue
   where
     toPair a@Api.LocalState{..} = (lsId, a)
-    toEntry Api.TealKeyValue{..}
-      | Api.tvType tkeValue == Api.tealValueBytesType
-      = (tkeKey, Left $ Api.tvBytes tkeValue)
-      | Api.tvType tkeValue == Api.tealValueUintType
-      = (tkeKey, Right $ Api.tvUint tkeValue)
+    toEntry TealKeyValue{..}
+      | tvType tkeValue == tealValueBytesType
+      = (tkeKey, Left $ tvBytes tkeValue)
+      | tvType tkeValue == tealValueUintType
+      = (tkeKey, Right $ tvUint tkeValue)
       | otherwise = error $
         "lookupAppLocalState: unknown teal value type "
-        <> show (Api.tvType tkeValue)
+        <> show (tvType tkeValue)

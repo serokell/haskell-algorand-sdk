@@ -12,23 +12,14 @@ module Network.Algorand.Api.Type
   , SuggestedParams (..)
   , NanoSec (..)
   , NodeStatus (..)
-  , TealCode (..)
-  , TealCompilationResult (..)
   , Asset (..)
-  , TealValue (..)
-  , TealKeyValue (..)
-  , TealKeyValueStore
   , LocalState (..)
 
   , IdxAccountResponse (..)
-
-  , tealValueBytesType
-  , tealValueUintType
   ) where
 
 import Data.Aeson (FromJSON, ToJSON)
 import Data.Aeson.TH (deriveJSON)
-import Data.ByteString (ByteString)
 import Data.Int (Int64)
 import Data.Text (Text)
 import Data.Word (Word64)
@@ -37,6 +28,7 @@ import GHC.Generics (Generic)
 import Data.Algorand.Address (Address)
 import Data.Algorand.Amount (Microalgos)
 import Data.Algorand.Block (Round)
+import Data.Algorand.Teal (TealKeyValueStore)
 import Data.Algorand.Transaction (AppIndex, AssetIndex, GenesisHash)
 import Data.Algorand.Transaction.Signed (SignedTransaction)
 import Network.Algorand.Api.Json (algorandCamelOptions, algorandSnakeOptions, algorandTrainOptions)
@@ -109,30 +101,6 @@ newtype TransactionsRep = TransactionsRep
   { trTxId :: Text
   } deriving (Generic, Show)
 $(deriveJSON algorandCamelOptions 'TransactionsRep)
-
-data TealValue = TealValue
-  { tvBytes :: ByteString
-  -- ^ bytes value.
-  , tvUint :: Word64
-  -- ^ uint type.
-  , tvType :: Word64
-  -- ^ value type.
-  } deriving stock Show
-$(deriveJSON algorandTrainOptions 'TealValue)
-
-tealValueBytesType :: Word64
-tealValueBytesType = 1
-
-tealValueUintType :: Word64
-tealValueUintType = 2
-
-data TealKeyValue = TealKeyValue
-  { tkeKey :: ByteString
-  , tkeValue :: TealValue
-  } deriving stock Show
-$(deriveJSON algorandTrainOptions 'TealKeyValue)
-
-type TealKeyValueStore = [TealKeyValue]
 
 data Asset = Asset
   { asAmount :: Word64
@@ -228,16 +196,6 @@ data SuggestedParams = SuggestedParams
   , spMinFee :: Microalgos
   }
 $(deriveJSON algorandTrainOptions 'SuggestedParams)
-
-newtype TealCode = TealCode
-  { unTealCode :: ByteString
-  } deriving newtype (FromJSON, ToJSON)
-
-data TealCompilationResult = TealCompilationResult
-  { tcrHash :: Address
-  , tcrResult :: TealCode
-  }
-$(deriveJSON algorandTrainOptions 'TealCompilationResult)
 
 data IdxAccountResponse = IdxAccountResponse
   { iarAccount :: Account

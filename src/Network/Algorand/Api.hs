@@ -23,6 +23,7 @@ import Servant.API.Generic (ToServantApi, (:-))
 
 import Data.Algorand.Address (Address)
 import Data.Algorand.Block (BlockWrapped, Round)
+import Data.Algorand.Teal (TealCompilationResult)
 import Data.Algorand.Transaction.Signed (SignedTransaction)
 import Network.Algorand.Api.Content as Content
 import Network.Algorand.Api.Type as Type
