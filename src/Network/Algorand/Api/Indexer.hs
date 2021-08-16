@@ -16,7 +16,7 @@ module Network.Algorand.Api.Indexer
 
 import qualified Data.Text as T
 
-import Data.Aeson (FromJSON (..), KeyValue ((.=)), ToJSON (..), object, withObject, (.:))
+import Data.Aeson (FromJSON (..), KeyValue ((.=)), ToJSON (..), object, withObject, (.:), (.:?))
 import Data.Aeson.TH (deriveJSON)
 import Data.ByteString (ByteString)
 import Data.Text (Text)
@@ -211,37 +211,37 @@ instance ToJSON TransactionResp where
 
 instance FromJSON TransactionResp where
   parseJSON = withObject "TransactionResp" $ \o -> do
-    txType :: Text <- o .: "tx-type"
+    txType :: Text <- o .: "tx-type" -- something wrong here
     TransactionResp
-      <$> o .: "auth-addr"
-      <*> o .: "close-rewards"
-      <*> o .: "closing-amount"
-      <*> o .: "confirmed-round"
-      <*> o .: "created-application-index"
-      <*> o .: "created-asset-index"
-      <*> o .: "fee"
-      <*> o .: "first-valid"
-      <*> o .: "genesis-hash"
-      <*> o .: "genesis-id"
-      <*> o .: "group"
-      <*> o .: "id"
-      <*> o .: "intra-round-offset"
-      <*> o .: "last-valid"
-      <*> o .: "lease"
-      <*> o .: "note"
-      <*> o .: "receiver-rewards"
-      <*> o .: "rekey-to"
-      <*> o .: "sender"
-      <*> o .: "sender-rewards"
-      <*> o .: "signature"
+      <$> o .:? "auth-addr"
+      <*> o .:? "close-rewards"
+      <*> o .:? "closing-amount"
+      <*> o .:? "confirmed-round"
+      <*> o .:? "created-application-index"
+      <*> o .:? "created-asset-index"
+      <*> o .:  "fee"
+      <*> o .:  "first-valid"
+      <*> o .:? "genesis-hash"
+      <*> o .:? "genesis-id"
+      <*> o .:? "group"
+      <*> o .:  "id"
+      <*> o .:? "intra-round-offset"
+      <*> o .:  "last-valid"
+      <*> o .:? "lease"
+      <*> o .:? "note"
+      <*> o .:? "receiver-rewards"
+      <*> o .:? "rekey-to"
+      <*> o .:  "sender"
+      <*> o .:? "sender-rewards"
+      <*> o .:  "signature"
       <*> case txType of
-          "pay" -> o .: "payment-transaction"
-          "appl" -> o .: "application-call-transaction"
-          "axfer" -> o .: "asset-transfer-transaction"
-          "keyreg" -> o .: "key-registration-transaction"
-          "acfg" -> o .: "asset-config-transaction"
-          "afrz" -> o .: "asset-freeze-transaction"
-          x -> fail . T.unpack $ "Unmapped transaction type field name: " <> x
+        "pay" -> o .: "payment-transaction"
+        "appl" -> o .: "application-call-transaction"
+        "axfer" -> o .: "asset-transfer-transaction"
+        "keyreg" -> o .: "key-registration-transaction"
+        "acfg" -> o .: "asset-config-transaction"
+        "afrz" -> o .: "asset-freeze-transaction"
+        x -> fail . T.unpack $ "Unmapped transaction type field name: " <> x
 
     --       "pay" -> PaymentTransaction
     --         <$> o .: "receiver"
