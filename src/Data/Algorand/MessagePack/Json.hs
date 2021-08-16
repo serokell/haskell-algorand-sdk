@@ -28,7 +28,8 @@ import Data.Text.Encoding (encodeUtf8)
 
 import qualified Data.Algorand.Address as A
 
-import Data.Algorand.MessagePack (Canonical (Canonical), EitherError (..), MessagePackObject, MessageUnpackObject, fromAlgoObject, toAlgoObject)
+import Data.Algorand.MessagePack (Canonical (Canonical), EitherError (..), MessagePackObject,
+                                  MessageUnpackObject, fromAlgoObject, toAlgoObject)
 
 -- | Serialise to a canonical JSON.
 toCanonicalJson :: (MessagePackObject a, MessageUnpackObject a) => a -> JS.Value
