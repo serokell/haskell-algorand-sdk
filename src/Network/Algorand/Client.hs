@@ -16,12 +16,23 @@ import qualified Data.Text as T
 import Control.Exception.Safe (MonadThrow, throwM)
 import Control.Monad.IO.Class (MonadIO, liftIO)
 import Network.HTTP.Client.TLS (newTlsManager)
-import Servant.Client (mkClientEnv, parseBaseUrl, runClientM)
+import Servant.API.Generic (AsApi, GenericServant, ToServant)
+import Servant.Client (ClientEnv, ClientM, HasClient (..), mkClientEnv, parseBaseUrl, runClientM)
 import Servant.Client.Generic (AsClientT, genericClientHoist)
 
 import Network.Algorand.Api.Indexer (IndexerApi)
 import Network.Algorand.Api.Node (NodeApi)
 import Network.Algorand.Definitions (Host, Network)
+
+apiClient
+  :: ( HasClient ClientM (ToServant routes AsApi)
+     , GenericServant routes (AsClientT n)
+     , Client n (ToServant routes AsApi) ~ ToServant routes (AsClientT n)
+     , MonadIO n
+     )
+ => ClientEnv -> routes (AsClientT n)
+apiClient env = genericClientHoist $ \x ->
+  liftIO $ runClientM x env >>= either throwM pure
 
 newtype AlgoNode = AlgoNode
   { getAlgoNode  :: forall m . MonadIO m => NodeApi (AsClientT m)
@@ -40,8 +51,7 @@ connectToNode host net = do
   env <- mkClientEnv manager <$> parseBaseUrl (T.unpack host)
   let
     apiNodeClient :: forall m' . MonadIO m' => NodeApi (AsClientT m')
-    apiNodeClient = genericClientHoist $ \x ->
-      liftIO $ runClientM x env >>= either throwM pure
+    apiNodeClient = apiClient env
   pure (net, AlgoNode apiNodeClient)
 
 newtype AlgoIndexer = AlgoIndexer
@@ -61,6 +71,5 @@ connectToIndexer host net = do
   env <- mkClientEnv manager <$> parseBaseUrl (T.unpack host)
   let
     apiIndexerClient :: forall m' . MonadIO m' => IndexerApi (AsClientT m')
-    apiIndexerClient = genericClientHoist $ \x ->
-      liftIO $ runClientM x env >>= either throwM pure
+    apiIndexerClient = apiClient env
   pure (net, AlgoIndexer apiIndexerClient)

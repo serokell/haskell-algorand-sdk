@@ -22,8 +22,8 @@ import qualified Data.Algorand.Transaction.Signed as TS
 import qualified Network.Algorand.Api as Api
 import qualified Network.Algorand.Util as N
 
-import Network.Algorand.Definitions (DefaultHost (ahNode), Host, getDefaultHost)
 import Data.Algorand.Round (Round (..))
+import Network.Algorand.Definitions (DefaultHost (ahNode), Host, getDefaultHost)
 
 import Halgo.CLA.Argument (argAddress, argTxId)
 import Halgo.CLA.Flag (flagJson)
@@ -116,7 +116,6 @@ cmdPrintBlock rnd url = withNode url $ \(_, api) -> do
       mapM_ putJson txs
     _ -> putTextLn "No block found"
 
-{-# DEPRECATED cmdNodeFetchAccount "Use `cmdIndexerFetchAccount` instead" #-}
 -- | Fetch information about an account.
 cmdNodeFetchAccount :: MonadSubCommand m => A.Address -> Host -> m ()
 cmdNodeFetchAccount addr url = withNode url $ \(_, api) ->

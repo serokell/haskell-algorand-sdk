@@ -17,9 +17,8 @@ import UnliftIO (liftIO)
 import qualified Data.Algorand.Address as A
 import qualified Network.Algorand.Api as Api
 
-import Network.Algorand.Definitions (Host)
 import Data.Algorand.Teal (TealCode (..), TealCompilationResult (..))
-
+import Network.Algorand.Definitions (Host)
 
 import Halgo.CLA.Argument (argProgramFile, argProgramSourceFile)
 import Halgo.CLA.Command.Node (cmdNode, optNodeHost)
