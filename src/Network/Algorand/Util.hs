@@ -31,6 +31,7 @@ import qualified Data.Algorand.Block as B
 import qualified Network.Algorand.Api as Api
 
 import Data.Algorand.Address (Address)
+import Data.Algorand.Round (Round)
 import Data.Algorand.Teal (TealKeyValue (..), TealValue (..), tealValueBytesType, tealValueUintType)
 import Data.Algorand.Transaction (AppIndex, AssetIndex)
 import Network.Algorand.Api.Type (TransactionInfo (..))
@@ -65,7 +66,7 @@ noEntityHandler _ e = throwM e
 
 getBlock
   :: MonadCatch m
-  => Api.ApiV2 (AsClientT m) -> B.Round -> m (Maybe B.Block)
+  => Api.ApiV2 (AsClientT m) -> Round -> m (Maybe B.Block)
 getBlock api rnd = handle (noEntityHandler noBlockMsg) $ do
   B.BlockWrapped block <- Api._block api rnd Api.msgPackFormat
   pure (Just block)
@@ -82,7 +83,7 @@ getAccountAtRound
   :: MonadCatch m
   => Api.ApiIdx2 (AsClientT m)
   -> Address
-  -> Maybe B.Round
+  -> Maybe Round
   -> m (Maybe Api.IdxAccountResponse)
 getAccountAtRound api addr rnd = handle (noEntityHandler noAccMsg) $
   Just <$> Api._accountIdx api addr rnd

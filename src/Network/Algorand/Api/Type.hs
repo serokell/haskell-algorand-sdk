@@ -27,7 +27,7 @@ import GHC.Generics (Generic)
 
 import Data.Algorand.Address (Address)
 import Data.Algorand.Amount (Microalgos)
-import Data.Algorand.Block (Round)
+import Data.Algorand.Round (Round)
 import Data.Algorand.Teal (TealKeyValueStore)
 import Data.Algorand.Transaction (AppIndex, AssetIndex, GenesisHash)
 import Data.Algorand.Transaction.Signed (SignedTransaction)
@@ -192,7 +192,7 @@ data SuggestedParams = SuggestedParams
   , spFee :: Microalgos
   , spGenesisHash :: GenesisHash
   , spGenesisId :: Text
-  , spLastRound :: Word64
+  , spLastRound :: Round
   , spMinFee :: Microalgos
   }
 $(deriveJSON algorandTrainOptions 'SuggestedParams)

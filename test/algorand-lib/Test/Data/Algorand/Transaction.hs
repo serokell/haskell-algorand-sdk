@@ -10,7 +10,7 @@ import qualified Hedgehog.Gen as G
 import qualified Hedgehog.Range as R
 
 import Data.Aeson (fromJSON, toJSON)
-import Data.ByteArray (Bytes, ByteArrayAccess, convert)
+import Data.ByteArray (ByteArrayAccess, Bytes, convert)
 import Data.ByteArray.Sized (SizedByteArray, sizedByteArray)
 import Data.ByteString.Base64 (decodeBase64)
 import Data.ByteString.Lazy (toStrict)
@@ -22,6 +22,7 @@ import Test.Tasty.HUnit (Assertion, (@?=))
 
 import Data.Algorand.Address (Address, fromPublicKey)
 import Data.Algorand.MessagePack (Canonical (Canonical, unCanonical), EitherError)
+import Data.Algorand.Round (Round (..))
 import Data.Algorand.Transaction (StateSchema (..), Transaction (..), TransactionType (..))
 
 import Test.Crypto.Algorand.Signature (genPublicKey)
@@ -74,8 +75,8 @@ genTransaction =
   Transaction
   <$> genAddress
   <*> G.integral R.linearBounded
-  <*> G.word64 R.constantBounded
-  <*> G.word64 R.constantBounded
+  <*> genRound
+  <*> genRound
   <*> G.maybe (G.bytes $ R.linear 1 100)  -- cannot be empty
   <*> G.maybe (G.text (R.singleton 44) G.unicode)
   <*> G.maybe (genSizedBytes genBytes)
@@ -83,6 +84,8 @@ genTransaction =
   <*> G.maybe (genSizedBytes genBytes)
   <*> G.maybe (genSizedBytes genBytes)
   <*> G.maybe genAddress
+  where
+    genRound = Round <$> G.word64 R.constantBounded
 
 
 hprop_canonical_encode_decode :: Property

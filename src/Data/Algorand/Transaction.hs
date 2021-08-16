@@ -52,6 +52,7 @@ import Data.Algorand.MessagePack (Canonical (Canonical), MessagePackObject (toCa
                                   MessageUnpackObject (fromCanonicalObject), (&), (&<>), (.:),
                                   (.:>), (.:?), (.=), (.=<))
 import Data.Algorand.MessagePack.Json (parseCanonicalJson, toCanonicalJson)
+import Data.Algorand.Round (Round)
 
 
 type AppIndex = Word64
@@ -67,8 +68,8 @@ type Lease = SizedByteArray 32 Bytes
 data Transaction = Transaction
   { tSender :: Address
   , tFee :: Microalgos
-  , tFirstValid :: Word64
-  , tLastValid :: Word64
+  , tFirstValid :: Round
+  , tLastValid :: Round
   , tNote :: Maybe ByteString
   , tGenesisId :: Maybe Text
   , tGenesisHash :: Maybe GenesisHash

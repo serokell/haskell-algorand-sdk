@@ -10,10 +10,8 @@ module Data.Algorand.Block
   , UpgradeVote (..)
   , BlockWrapped (..)
   , BlockHash
-  , Round (..)
   ) where
 
-import Data.Aeson (FromJSON, ToJSON)
 import Data.ByteArray (Bytes)
 import Data.ByteArray.Sized (SizedByteArray)
 import Data.Text (Text)
@@ -21,11 +19,10 @@ import Data.Time (UTCTime)
 import Data.Time.Clock.POSIX (posixSecondsToUTCTime)
 import Data.Word (Word64)
 import GHC.Generics (Generic)
-import Servant.API (ToHttpApiData)
 
 import Data.Algorand.Amount (Microalgos)
-import Data.Algorand.MessagePack (AlgoMessagePack (..), Canonical (..), MessageUnpackObject (..),
-                                  (.:), (.:>), (.:?))
+import Data.Algorand.MessagePack (Canonical (..), MessageUnpackObject (..), (.:), (.:>), (.:?))
+import Data.Algorand.Round (Round)
 import Data.Algorand.Transaction (GenesisHash)
 import Data.Algorand.Transaction.Signed (BlockTransaction)
 
@@ -33,14 +30,6 @@ type BlockHash = SizedByteArray 32 Bytes
 type Seed = SizedByteArray 32 Bytes
 type TransactionsRoot = SizedByteArray 32 Bytes
 type Addr = SizedByteArray 32 Bytes
-
-newtype Round = Round { unRound :: Word64 }
-  deriving stock (Eq, Ord, Show)
-  deriving newtype (Enum, ToHttpApiData, ToJSON, FromJSON)
-
-instance AlgoMessagePack Round where
-  toAlgoObject = toAlgoObject . unRound
-  fromAlgoObject = fmap Round . fromAlgoObject
 
 data Rewards = Rewards
   { bFeeSink :: Addr

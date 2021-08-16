@@ -22,7 +22,8 @@ import Servant.API (Capture, Get, JSON, PlainText, Post, QueryParam, ReqBody, (:
 import Servant.API.Generic (ToServantApi, (:-))
 
 import Data.Algorand.Address (Address)
-import Data.Algorand.Block (BlockWrapped, Round)
+import Data.Algorand.Block (BlockWrapped)
+import Data.Algorand.Round (Round)
 import Data.Algorand.Teal (TealCompilationResult)
 import Data.Algorand.Transaction.Signed (SignedTransaction)
 import Network.Algorand.Api.Content as Content
