@@ -11,9 +11,14 @@ module Network.Algorand.Api.Indexer
   , AssetHolding (..)
   , BlockResp (..)
   , IdxAccountResponse (..)
+  , TransactionResp (..)
   ) where
 
+import qualified Data.Text as T
+
+import Data.Aeson (FromJSON (..), KeyValue ((.=)), ToJSON (..), object, withObject, (.:))
 import Data.Aeson.TH (deriveJSON)
+import Data.ByteString (ByteString)
 import Data.Text (Text)
 import Data.Time.Clock.POSIX (POSIXTime)
 import Data.Word (Word64)
@@ -28,7 +33,8 @@ import Data.Algorand.Block (BlockHash, Rewards (..), Seed, TransactionsRoot, Upg
                             UpgradeVote (..))
 import Data.Algorand.Round (Round)
 import Data.Algorand.Teal (TealKeyValueStore)
-import Data.Algorand.Transaction (AppIndex, AssetIndex, GenesisHash, Transaction)
+import Data.Algorand.Transaction (AppIndex, AssetIndex, GenesisHash, Lease, TransactionGroupId,
+                                  TransactionType (..))
 import Network.Algorand.Api.Json (algorandTrainOptions)
 
 -- | Stores local state associated with an application.
@@ -105,6 +111,144 @@ data IdxAccountResponse = IdxAccountResponse
   } deriving stock (Generic, Show)
 $(deriveJSON algorandTrainOptions 'IdxAccountResponse)
 
+-- | An Algorand transaction response.
+-- Contains all fields common to all transactions and serves as an envelope
+-- to all transactions type.
+data TransactionResp = TransactionResp
+  { tAuthAddr :: Maybe Address
+  -- ^ [sgnr] this is included with signed transactions when the signing
+  -- address does not equal the sender. The backend can use this to ensure
+  -- that auth addr is equal to the accounts auth addr.
+  , tCloseRewards :: Maybe Microalgos
+  -- ^ [rc] rewards applied to close-remainder-to account.
+  , tClosingAmount :: Maybe Microalgos
+  -- ^ [ca] closing amount for transaction.
+  , tConfirmedRound :: Maybe Round
+  -- ^ Round when the transaction was confirmed.
+  , tCreatedApplicationIndex :: Maybe Integer
+  -- ^ Specifies an application index (ID) if an application was created
+  -- with this transaction.
+  , tCreatedAssetIndex :: Maybe Integer
+  -- ^ Specifies an asset index (ID) if an asset was created with this transaction.
+  , tFee :: Microalgos
+  -- ^ [fee] Transaction fee.
+  , tFirstValid :: Round
+  -- ^ [fv] First valid round for this transaction.
+  , tGenesisHash :: Maybe GenesisHash
+  -- ^ [gh] Hash of genesis block.
+  , tGenesisId :: Maybe Text
+  -- ^ [gen] genesis block ID.
+  , tGroup :: Maybe TransactionGroupId
+  -- ^ [grp] Base64 encoded byte array of a sha512/256 digest. When present
+  -- indicates that this transaction is part of a transaction group and the
+  -- value is the sha512/256 hash of the transactions in that group.
+  , tId :: Text
+  -- ^ Transaction ID
+  , tIntraRoundOffset :: Maybe Round
+  -- ^ Offset into the round where this transaction was confirmed.
+  , tLastValid :: Round
+  -- ^ [lv] Last valid round for this transaction.
+  , tLease :: Maybe Lease
+  -- ^ [lx] Base64 encoded 32-byte array. Lease enforces mutual exclusion of
+  -- transactions.  If this field is nonzero, then once the transaction is
+  -- confirmed, it acquires the lease identified by the (Sender, Lease) pair
+  -- of the transaction until the LastValid round passes.  While this
+  -- transaction possesses the lease, no other transaction specifying this
+  -- lease can be confirmed.
+  , tNote :: Maybe ByteString
+  -- ^ [note] Free form data.
+  , tReceiverRewards :: Maybe Microalgos
+  -- ^ [rr] rewards applied to receiver account.
+  , tRekeyTo :: Maybe Address
+  -- ^ [rekey] when included in a valid transaction, the accounts auth addr
+  -- will be updated with this value and future signatures must be signed with
+  -- the key represented by this address.
+  , tSender :: Address
+  -- ^ [snd] Sender's address.
+  , tSenderRewards:: Maybe Microalgos
+  -- ^ [rs] rewards applied to sender account.
+  , tSignature :: SignatureType
+  -- ^ Validation signature associated with some data. Only one of the
+  -- signatures should be provided.
+  , tTxType :: TransactionType
+  -- ^ [type] Indicates what type of transaction this is.
+  -- Different types have different fields.
+  } deriving (Eq, Generic, Show)
+
+instance ToJSON TransactionResp where
+  toJSON TransactionResp{..} = do
+    let txType :: Text = case tTxType of
+          PaymentTransaction{} -> "pay"
+          ApplicationCallTransaction{} -> "appl"
+          AssetTransferTransaction{} -> "axfer"
+          KeyRegistrationTransaction{} -> "keyreg"
+          AssetConfigTransaction{} -> "acfg"
+          AssetFreezeTransaction{} -> "afrz"
+    object
+      [ "auth-addr" .= tAuthAddr
+      , "close-rewards" .= tCloseRewards
+      , "closing-amount" .= tClosingAmount
+      , "confirmed-round" .= tConfirmedRound
+      , "created-application-index" .= tCreatedApplicationIndex
+      , "created-asset-index" .= tCreatedAssetIndex
+      , "fee" .= tFee
+      , "first-valid" .= tFirstValid
+      , "genesis-hash" .= tGenesisHash
+      , "genesis-id" .= tGenesisId
+      , "group" .= tGroup
+      , "id" .= tId
+      , "intra-round-offset" .= tIntraRoundOffset
+      , "last-valid" .= tLastValid
+      , "lease" .= tLease
+      , "note" .= tNote
+      , "receiver-rewards" .= tReceiverRewards
+      , "rekey-to" .= tRekeyTo
+      , "sender" .= tSender
+      , "sender-rewards" .= tSenderRewards
+      , "signature" .= tSignature
+      , "txType" .= txType
+      ]
+
+instance FromJSON TransactionResp where
+  parseJSON = withObject "TransactionResp" $ \o -> do
+    txType :: Text <- o .: "tx-type"
+    TransactionResp
+      <$> o .: "auth-addr"
+      <*> o .: "close-rewards"
+      <*> o .: "closing-amount"
+      <*> o .: "confirmed-round"
+      <*> o .: "created-application-index"
+      <*> o .: "created-asset-index"
+      <*> o .: "fee"
+      <*> o .: "first-valid"
+      <*> o .: "genesis-hash"
+      <*> o .: "genesis-id"
+      <*> o .: "group"
+      <*> o .: "id"
+      <*> o .: "intra-round-offset"
+      <*> o .: "last-valid"
+      <*> o .: "lease"
+      <*> o .: "note"
+      <*> o .: "receiver-rewards"
+      <*> o .: "rekey-to"
+      <*> o .: "sender"
+      <*> o .: "sender-rewards"
+      <*> o .: "signature"
+      <*> case txType of
+          "pay" -> o .: "payment-transaction"
+          "appl" -> o .: "application-call-transaction"
+          "axfer" -> o .: "asset-transfer-transaction"
+          "keyreg" -> o .: "key-registration-transaction"
+          "acfg" -> o .: "asset-config-transaction"
+          "afrz" -> o .: "asset-freeze-transaction"
+          x -> fail . T.unpack $ "Unmapped transaction type field name: " <> x
+
+    --       "pay" -> PaymentTransaction
+    --         <$> o .: "receiver"
+    --         <*> o .: "amount"
+    --         <*> o .: "close-amount"
+
+
 -- | An Algorand Block information.
 data BlockResp = BlockResp
   { brGenesisHash :: GenesisHash
@@ -120,7 +264,7 @@ data BlockResp = BlockResp
   -- ^ [seed] Sortition seed.
   , brTimestamp :: POSIXTime
   -- ^ [ts] Block creation timestamp in seconds since epoch.
-  , brTransactions :: Maybe [Transaction]
+  , brTransactions :: Maybe [TransactionResp]
   -- ^ [txns] list of transactions corresponding
   -- to a given round.
   -- Note: for some reasons indexer doesn't return this field at all instead
