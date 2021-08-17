@@ -14,8 +14,6 @@ module Network.Algorand.Api.Type
   , NodeStatus (..)
   , Asset (..)
   , LocalState (..)
-
-  , IdxAccountResponse (..)
   ) where
 
 import Data.Aeson (FromJSON, ToJSON)
@@ -196,9 +194,3 @@ data SuggestedParams = SuggestedParams
   , spMinFee :: Microalgos
   }
 $(deriveJSON algorandTrainOptions 'SuggestedParams)
-
-data IdxAccountResponse = IdxAccountResponse
-  { iarAccount :: Account
-  , iarCurrentRound :: Round
-  } deriving stock (Generic, Show)
-$(deriveJSON algorandTrainOptions 'IdxAccountResponse)

@@ -45,6 +45,7 @@ library
       Data.Algorand.Transaction.Signed
       Network.Algorand.Api
       Network.Algorand.Api.Content
+      Network.Algorand.Api.Indexer
       Network.Algorand.Api.Json
       Network.Algorand.Api.Type
       Network.Algorand.Client

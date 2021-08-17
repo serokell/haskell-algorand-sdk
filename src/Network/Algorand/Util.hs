@@ -81,7 +81,7 @@ getAccount api addr = handle (noEntityHandler noAccMsg) $
 
 getAccountAtRound
   :: MonadCatch m
-  => Api.ApiIdx2 (AsClientT m)
+  => Api.IndexerApi (AsClientT m)
   -> Address
   -> Maybe Round
   -> m (Maybe Api.IdxAccountResponse)

@@ -9,10 +9,10 @@ module Network.Algorand.Api
   ( Api (..)
   , ApiAny (..)
   , ApiV2 (..)
-  , ApiIdx2 (..)
 
   , module Content
   , module Type
+  , module Indexer
   ) where
 
 import Data.ByteString (ByteString)
@@ -27,6 +27,7 @@ import Data.Algorand.Round (Round)
 import Data.Algorand.Teal (TealCompilationResult)
 import Data.Algorand.Transaction.Signed (SignedTransaction)
 import Network.Algorand.Api.Content as Content
+import Network.Algorand.Api.Indexer as Indexer
 import Network.Algorand.Api.Type as Type
 
 -- | Algod API.
@@ -38,7 +39,7 @@ data Api route = Api
       :> ToServantApi ApiV2
   , _idx2 :: route
       :- "v2"
-      :> ToServantApi ApiIdx2
+      :> ToServantApi IndexerApi
   } deriving (Generic)
 
 -- | The part of the API that does not depend on the version.
@@ -88,12 +89,4 @@ data ApiV2 route = ApiV2
       :> "compile"
       :> ReqBody '[PlainText] Text
       :> Post '[JSON] TealCompilationResult
-  } deriving (Generic)
-
-newtype ApiIdx2 route = ApiIdx2
-  { _accountIdx :: route
-      :- "accounts"
-      :> Capture "address" Address
-      :> QueryParam "round" Round
-      :> Get '[JSON] IdxAccountResponse
   } deriving (Generic)

@@ -24,7 +24,7 @@ import Servant.Client.Generic (AsClientT, genericClientHoist)
 
 import qualified Network.Algorand.Api as Api
 
-import Network.Algorand.Api (Api (..), ApiAny (..), ApiIdx2, ApiV2, Version (..))
+import Network.Algorand.Api (Api (..), ApiAny (..), ApiV2, IndexerApi, Version (..))
 import Network.Algorand.Definitions (Host, Network, NetworkError (WrongNetwork))
 
 apiClient :: forall m' . MonadIO m' => ClientEnv -> Api (AsClientT m')
@@ -59,7 +59,7 @@ connectToNode host net = do
   else throwM $ WrongNetwork net vGenesisId
 
 newtype AlgoIndexer = AlgoIndexer
-  { getAlgoIndexer :: forall m' . MonadIO m' => ApiIdx2 (AsClientT m')
+  { getAlgoIndexer :: forall m' . MonadIO m' => IndexerApi (AsClientT m')
   }
 
 -- | Connect to an indexer.
@@ -74,7 +74,7 @@ connectToIndexer host net = do
   manager <- newTlsManager
   env <- mkClientEnv manager <$> parseBaseUrl (T.unpack host)
   let
-    apiIdx2Client :: forall m' . MonadIO m' => ApiIdx2 (AsClientT m')
+    apiIdx2Client :: forall m' . MonadIO m' => IndexerApi (AsClientT m')
     apiIdx2Client = fromServant $ _idx2 $ apiClient env
 
   pure (net, AlgoIndexer apiIdx2Client)
