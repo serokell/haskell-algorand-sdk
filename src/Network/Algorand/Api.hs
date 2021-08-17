@@ -6,8 +6,7 @@
 --
 -- See <https://developer.algorand.org/docs/reference/rest-apis/algod/v2/>
 module Network.Algorand.Api
-  ( Api (..)
-  , ApiV2 (..)
+  ( ApiV2 (..)
 
   , module Content
   , module Type
@@ -18,7 +17,7 @@ import Data.ByteString (ByteString)
 import Data.Text (Text)
 import GHC.Generics (Generic)
 import Servant.API (Capture, Get, JSON, PlainText, Post, QueryParam, ReqBody, (:>))
-import Servant.API.Generic (ToServantApi, (:-))
+import Servant.API.Generic ((:-))
 
 import Data.Algorand.Address (Address)
 import Data.Algorand.Block (BlockWrapped)
@@ -28,16 +27,6 @@ import Data.Algorand.Transaction.Signed (SignedTransaction)
 import Network.Algorand.Api.Content as Content
 import Network.Algorand.Api.Indexer as Indexer
 import Network.Algorand.Api.Type as Type
-
--- | Algod API.
-data Api route = Api
-  { _v2 :: route
-      :- "v2"
-      :> ToServantApi ApiV2
-  , _idx2 :: route
-      :- "v2"
-      :> ToServantApi IndexerApi
-  } deriving (Generic)
 
 -- | Algod API (v2 only).
 data ApiV2 route = ApiV2
