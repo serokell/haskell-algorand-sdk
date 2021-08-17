@@ -30,8 +30,6 @@ import Network.Algorand.Api (ApiV2, IndexerApi)
 import Network.Algorand.Client (AlgoIndexer (..), AlgoNode (..), connectToIndexer, connectToNode)
 import Network.Algorand.Definitions (Host, Network)
 
-import qualified Network.Algorand.Api as Api
-
 import Halgo.CLA.Type (MonadSubCommand, goNetwork)
 
 -- | @die@ that takes a builder and is lifted to MonadIO.
@@ -63,7 +61,7 @@ handleApiError = handle showErr
 withNode
   :: MonadSubCommand m
   => Host
-  -> ((Api.Version, ApiV2 (AsClientT m)) -> m a)
+  -> ((Network, ApiV2 (AsClientT m)) -> m a)
   -> m a
 withNode url act = do
   net <- asks goNetwork

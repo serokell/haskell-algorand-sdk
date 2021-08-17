@@ -7,7 +7,6 @@
 -- See <https://developer.algorand.org/docs/reference/rest-apis/algod/v2/>
 module Network.Algorand.Api
   ( Api (..)
-  , ApiAny (..)
   , ApiV2 (..)
 
   , module Content
@@ -32,24 +31,12 @@ import Network.Algorand.Api.Type as Type
 
 -- | Algod API.
 data Api route = Api
-  { _vAny :: route
-      :- ToServantApi ApiAny
-  , _v2 :: route
+  { _v2 :: route
       :- "v2"
       :> ToServantApi ApiV2
   , _idx2 :: route
       :- "v2"
       :> ToServantApi IndexerApi
-  } deriving (Generic)
-
--- | The part of the API that does not depend on the version.
-data ApiAny route = ApiAny
-  { _health :: route
-      :- "health"
-      :> Get '[JSON] ()
-  , _version :: route
-      :- "versions"
-      :> Get '[JSON] Version
   } deriving (Generic)
 
 -- | Algod API (v2 only).

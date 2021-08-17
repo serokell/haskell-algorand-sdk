@@ -24,8 +24,8 @@ import Servant.Client.Generic (AsClientT, genericClientHoist)
 
 import qualified Network.Algorand.Api as Api
 
-import Network.Algorand.Api (Api (..), ApiAny (..), ApiV2, IndexerApi, Version (..))
-import Network.Algorand.Definitions (Host, Network, NetworkError (WrongNetwork))
+import Network.Algorand.Api (Api (..), ApiV2, IndexerApi, Version (..))
+import Network.Algorand.Definitions (Host, Network)
 
 apiClient :: forall m' . MonadIO m' => ClientEnv -> Api (AsClientT m')
 apiClient env = genericClientHoist $
@@ -35,28 +35,25 @@ newtype AlgoNode = AlgoNode
   { getAlgoNode  :: forall m' . MonadIO m' => ApiV2 (AsClientT m')
   }
 
--- | Connect to a node and make sure it is working on the expected network.
+-- TODO: remove Network argument and return value OR restore network/version check
+-- (we are waiting for a response from RandLabs).
+
+-- | Connect to a node.
 connectToNode
   :: forall m. (MonadIO m, MonadThrow m)
   => Host
   -- ^ Host of the node.
   -> Network
   -- ^ Expected network (genesis id).
-  -> m (Api.Version, AlgoNode)
+  -> m (Network, AlgoNode)
 connectToNode host net = do
   manager <- newTlsManager
   env <- mkClientEnv manager <$> parseBaseUrl (T.unpack host)
   let
-    apiAny :: ApiAny (AsClientT m)
-    apiAny = fromServant $ _vAny $ apiClient env
-
     apiV2Client :: forall m' . MonadIO m' => ApiV2 (AsClientT m')
     apiV2Client = fromServant $ _v2 $ apiClient env
 
-  version@Version{vGenesisId} <- _version apiAny
-  if vGenesisId == net
-  then pure (version, AlgoNode apiV2Client)
-  else throwM $ WrongNetwork net vGenesisId
+  pure (net, AlgoNode apiV2Client)
 
 newtype AlgoIndexer = AlgoIndexer
   { getAlgoIndexer :: forall m' . MonadIO m' => IndexerApi (AsClientT m')
