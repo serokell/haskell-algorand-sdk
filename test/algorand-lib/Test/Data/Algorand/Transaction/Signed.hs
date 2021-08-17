@@ -11,15 +11,16 @@ import Data.ByteString (ByteString)
 import Data.ByteString.Base64 (encodeBase64)
 import qualified Data.ByteString.Lazy as BSL
 
-import Hedgehog (MonadGen, Property, (===), forAll, property, tripping)
+import Hedgehog (MonadGen, Property, forAll, property, tripping, (===))
 import qualified Hedgehog.Gen as G
 import Test.Tasty.HUnit (Assertion, (@?=))
 
-import Crypto.Algorand.Signature (SecretKey, skFromBytes, toPublic)
+import Crypto.Algorand.Key (SecretKey, skFromBytes, toPublic)
 import Data.Algorand.Address (fromContractCode, fromPublicKey)
 import qualified Data.Algorand.MessagePack as MP
 import Data.Algorand.Transaction (Transaction (..))
-import Data.Algorand.Transaction.Signed (SignedTransaction, getUnverifiedTransaction, signFromContractAccount, signSimple, verifyTransaction)
+import Data.Algorand.Transaction.Signed (SignedTransaction, getUnverifiedTransaction,
+                                         signFromContractAccount, signSimple, verifyTransaction)
 
 import Test.Crypto.Algorand.Signature (genSecretKeyBytes)
 import Test.Data.Algorand.Program (genProgram)

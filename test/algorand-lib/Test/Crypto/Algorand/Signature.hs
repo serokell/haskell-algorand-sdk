@@ -14,8 +14,9 @@ import qualified Hedgehog.Gen as G
 import qualified Hedgehog.Range as R
 import Test.Tasty.HUnit (Assertion, (@?=))
 
+import Crypto.Algorand.Key (PublicKey, SecretKey, pkFromBytes, pkSize, skFromBytes, skFromText,
+                            skSize, skToText, toPublic)
 import Data.Algorand.Address (fromPublicKey)
-import Crypto.Algorand.Signature (PublicKey, SecretKey, pkFromBytes, pkSize, skFromBytes, skFromText, skSize, skToText, toPublic)
 
 
 -- | Generate raw bytes for a random 'SecretKey'.
