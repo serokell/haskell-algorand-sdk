@@ -105,11 +105,8 @@ data Asset = Asset
   -- ^ Number of units held.
   , asAssetId :: AssetIndex
   -- ^ Asset ID of the holding.
-  -- TODO: uncomment after indexer is fixed and returns proper value for this
-  -- field (at the date, 04 Aug 2021, indexer always returns an
-  -- empty string which triggers a parsing error)
-  -- , asCreator :: Address
-  -- Address that created this asset.
+  , asCreator :: Address
+  -- ^ Address that created this asset.
   -- This is the address where the parameters for this asset can be found, and
   -- also the address where unwanted asset units can be sent in the worst case.
   , asIsFrozen :: Bool
