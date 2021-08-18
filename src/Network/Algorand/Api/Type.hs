@@ -2,7 +2,10 @@
 --
 -- SPDX-License-Identifier: MPL-2.0
 
--- | Types which describe our API
+-- | Types which describe Node API.
+--
+-- Please note that some types may be incomplete. Fields are added lazily when
+-- needed, feel free to add missing field if you want.
 module Network.Algorand.Api.Type
   ( BuildVersion (..)
   , Version (..)
@@ -120,8 +123,6 @@ data LocalState = LocalState
   -- ^ The application which this local state is for.
   , lsKeyValue :: Maybe TealKeyValueStore
   -- ^ Storage associated with the account and the application.
-  -- , schema :: ApplicationStateSchema
-  -- ^ Specifies maximums on the number of each type that may be stored.
   } deriving stock Show
 $(deriveJSON algorandTrainOptions 'LocalState)
 
@@ -134,22 +135,12 @@ data Account = Account
   -- ^ specifies the amount of MicroAlgos in the account, without the pending rewards.
   , aAppsLocalState :: Maybe [LocalState]
   -- ^ applications local data stored in this account.
-  --, aAppsTotalExtraPages :: Maybe
-  -- ^ the sum of all extra application program pages for this account.
-  --, aAppsTotalSchema :: Maybe StateSchema
-  -- ^ specifies maximums on the number of each type that may be stored.
   , aAssets :: Maybe [Asset]
   -- ^ assets held by this account.
   , aAuthAddr :: Maybe Address
   -- ^ the address against which signing should be checked.
   -- If empty, the address of the current account is used. This field can be
   -- updated in any transaction by setting the RekeyTo field.
-  --, aCreatedApps :: Maybe
-  -- ^ parameters of applications created by this account including app global data.
-  --, aCreatedAssets :: Maybe
-  -- ^ parameters of assets created by this account.
-  --, aAccuntParticipation :: Maybe
-  -- ^ describes the parameters used by this account in consensus protocol.
   , aPendingRewards :: Microalgos
   -- ^ amount of MicroAlgos of pending rewards in this account.
   , aRewardBase :: Maybe Microalgos
@@ -159,8 +150,6 @@ data Account = Account
   -- ^ total rewards of MicroAlgos the account has received, including pending rewards.
   , aRound :: Word64
   -- ^ the round for which this information is relevant.
-  --, aSigType :: Maybe
-  -- ^ indicates what type of signature is used by this account
   , aStatus :: Text
   -- ^ delegation status of the account's MicroAlgos
   } deriving (Generic, Show)
@@ -172,9 +161,6 @@ data TransactionInfo = TransactionInfo
   , tiCloseRewards :: Maybe Microalgos
   , tiClosingAmount :: Maybe Microalgos
   , tiConfirmedRound :: Maybe Word64
--- TODO:
---  , tiGlobalStateDelta :: Maybe ...
---  , tiLocalStateDelta :: Maybe ...
   , tiPoolError :: Text
   , tiReceiverRewards :: Maybe Microalgos
   , tiSenderRewards :: Maybe Microalgos
