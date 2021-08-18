@@ -24,7 +24,7 @@ import Servant.Client.Generic (AsClientT, genericClientHoist)
 
 import qualified Network.Algorand.Api as Api
 
-import Network.Algorand.Api (ApiV2, IndexerApi, Version (..))
+import Network.Algorand.Api (IndexerApi, NodeApi, Version (..))
 import Network.Algorand.Definitions (Host, Network)
 
 apiClient
@@ -38,7 +38,7 @@ apiClient env = genericClientHoist $ \x ->
   liftIO $ runClientM x env >>= either throwM pure
 
 newtype AlgoNode = AlgoNode
-  { getAlgoNode  :: forall m . MonadIO m => ApiV2 (AsClientT m)
+  { getAlgoNode  :: forall m . MonadIO m => NodeApi (AsClientT m)
   }
 
 -- TODO: remove Network argument and return value OR restore network/version check
@@ -56,7 +56,7 @@ connectToNode host net = do
   manager <- newTlsManager
   env <- mkClientEnv manager <$> parseBaseUrl (T.unpack host)
   let
-    apiV2Client :: forall m' . MonadIO m' => ApiV2 (AsClientT m')
+    apiV2Client :: forall m' . MonadIO m' => NodeApi (AsClientT m')
     apiV2Client = apiClient env
 
   pure (net, AlgoNode apiV2Client)

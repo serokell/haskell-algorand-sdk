@@ -2,67 +2,15 @@
 --
 -- SPDX-License-Identifier: MPL-2.0
 
--- | The REST API v2 of Algod, the Algorand node.
---
--- See <https://developer.algorand.org/docs/reference/rest-apis/algod/v2/>
+-- | The REST API of the Algorand node and indexer.
 module Network.Algorand.Api
-  ( ApiV2 (..)
-
+  ( module Json
   , module Content
-  , module Type
   , module Indexer
+  , module Node
   ) where
 
-import Data.ByteString (ByteString)
-import Data.Text (Text)
-import GHC.Generics (Generic)
-import Servant.API (Capture, Get, JSON, PlainText, Post, QueryParam, ReqBody, (:>))
-import Servant.API.Generic ((:-))
-
-import Data.Algorand.Address (Address)
-import Data.Algorand.Block (BlockWrapped)
-import Data.Algorand.Round (Round)
-import Data.Algorand.Teal (TealCompilationResult)
-import Data.Algorand.Transaction.Signed (SignedTransaction)
 import Network.Algorand.Api.Content as Content
 import Network.Algorand.Api.Indexer as Indexer
-import Network.Algorand.Api.Type as Type
-
--- | Algod API (v2 only).
-data ApiV2 route = ApiV2
-  { _status :: route
-      :- "status"
-      :> Get '[JSON] NodeStatus
-  , _block :: route
-      :- "blocks"
-      :> Capture "round" Round
-      :> QueryParam "format" Text
-      -- do not try passing format other than msgpack here
-      :> Get '[MsgPack] BlockWrapped
-  , _account :: route
-      :- "accounts"
-      :> Capture "address" Address
-      :> Get '[JSON] Account
-  , _transactions :: route
-      :- "transactions"
-      :> ReqBody '[Binary] [SignedTransaction]
-      :> Post '[JSON] TransactionsRep
-  , _transactionsRaw :: route
-      :- "transactions"
-      :> ReqBody '[Binary] ByteString
-      :> Post '[JSON] TransactionsRep
-  , _transactionsPending :: route
-      :- "transactions"
-      :> "pending"
-      :> Capture "txId" Text
-      :> Get '[JSON] TransactionInfo
-  , _transactionsParams :: route
-      :- "transactions"
-      :> "params"
-      :> Get '[JSON] SuggestedParams
-  , _compileTeal :: route
-      :- "teal"
-      :> "compile"
-      :> ReqBody '[PlainText] Text
-      :> Post '[JSON] TealCompilationResult
-  } deriving (Generic)
+import Network.Algorand.Api.Json as Json
+import Network.Algorand.Api.Node as Node

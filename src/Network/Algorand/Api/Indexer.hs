@@ -18,7 +18,7 @@ import Servant.API.Generic ((:-))
 import Data.Algorand.Address (Address)
 import Data.Algorand.Round (Round)
 import Network.Algorand.Api.Json (algorandTrainOptions)
-import Network.Algorand.Api.Type (Account)
+import Network.Algorand.Api.Node (Account)
 
 ----------------
 -- API

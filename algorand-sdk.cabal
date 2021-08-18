@@ -47,7 +47,7 @@ library
       Network.Algorand.Api.Content
       Network.Algorand.Api.Indexer
       Network.Algorand.Api.Json
-      Network.Algorand.Api.Type
+      Network.Algorand.Api.Node
       Network.Algorand.Client
       Network.Algorand.Definitions
       Network.Algorand.Util

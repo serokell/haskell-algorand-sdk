@@ -34,7 +34,7 @@ import Data.Algorand.Address (Address)
 import Data.Algorand.Round (Round)
 import Data.Algorand.Teal (TealKeyValue (..), TealValue (..), tealValueBytesType, tealValueUintType)
 import Data.Algorand.Transaction (AppIndex, AssetIndex)
-import Network.Algorand.Api.Type (TransactionInfo (..))
+import Network.Algorand.Api.Node (TransactionInfo (..))
 
 -- | Status of a transaction in the pool.
 data TransactionStatus
@@ -66,7 +66,7 @@ noEntityHandler _ e = throwM e
 
 getBlock
   :: MonadCatch m
-  => Api.ApiV2 (AsClientT m) -> Round -> m (Maybe B.Block)
+  => Api.NodeApi (AsClientT m) -> Round -> m (Maybe B.Block)
 getBlock api rnd = handle (noEntityHandler noBlockMsg) $ do
   B.BlockWrapped block <- Api._block api rnd Api.msgPackFormat
   pure (Just block)
@@ -75,7 +75,7 @@ getBlock api rnd = handle (noEntityHandler noBlockMsg) $ do
 
 getAccount
   :: MonadCatch m
-  => Api.ApiV2 (AsClientT m) -> Address -> m (Maybe Api.Account)
+  => Api.NodeApi (AsClientT m) -> Address -> m (Maybe Api.Account)
 getAccount api addr = handle (noEntityHandler noAccMsg) $
   Just <$> Api._account api addr
 

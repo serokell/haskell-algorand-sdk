@@ -2,11 +2,10 @@
 --
 -- SPDX-License-Identifier: MPL-2.0
 
--- | Types which describe Node API.
+-- | The REST API v2 of the Algorand node.
 --
--- Please note that some types may be incomplete. Fields are added lazily when
--- needed, feel free to add missing field if you want.
-module Network.Algorand.Api.Type
+-- See <https://developer.algorand.org/docs/reference/rest-apis/algod/v2/>
+module Network.Algorand.Api.Node
   ( BuildVersion (..)
   , Version (..)
   , Account (..)
@@ -17,23 +16,33 @@ module Network.Algorand.Api.Type
   , NodeStatus (..)
   , Asset (..)
   , LocalState (..)
+  , NodeApi (..)
   ) where
 
 import Data.Aeson (FromJSON, ToJSON)
 import Data.Aeson.TH (deriveJSON)
+import Data.ByteString (ByteString)
 import Data.Int (Int64)
 import Data.Text (Text)
 import Data.Word (Word64)
 import GHC.Generics (Generic)
+import Servant.API (Capture, Get, JSON, PlainText, Post, QueryParam, ReqBody, (:>))
+import Servant.API.Generic ((:-))
 
 import Data.Algorand.Address (Address)
 import Data.Algorand.Amount (Microalgos)
+import Data.Algorand.Block (BlockWrapped)
 import Data.Algorand.Round (Round)
-import Data.Algorand.Teal (TealKeyValueStore)
+import Data.Algorand.Teal (TealCompilationResult, TealKeyValueStore)
 import Data.Algorand.Transaction (AppIndex, AssetIndex, GenesisHash)
 import Data.Algorand.Transaction.Signed (SignedTransaction)
+import Network.Algorand.Api.Content (Binary, MsgPack)
 import Network.Algorand.Api.Json (algorandCamelOptions, algorandSnakeOptions, algorandTrainOptions)
 import Network.Algorand.Definitions (Network)
+
+----------------
+-- Types
+----------------
 
 -- | Node software build version information.
 data BuildVersion = BuildVersion
@@ -177,3 +186,54 @@ data SuggestedParams = SuggestedParams
   , spMinFee :: Microalgos
   }
 $(deriveJSON algorandTrainOptions 'SuggestedParams)
+
+----------------
+-- API
+----------------
+
+-- | Algod Node API
+data NodeApi route = NodeApi
+  { _status :: route
+      :- "v2"
+      :> "status"
+      :> Get '[JSON] NodeStatus
+  , _block :: route
+      :- "v2"
+      :> "blocks"
+      :> Capture "round" Round
+      :> QueryParam "format" Text
+      -- do not try passing format other than msgpack here
+      :> Get '[MsgPack] BlockWrapped
+  , _account :: route
+      :- "v2"
+      :> "accounts"
+      :> Capture "address" Address
+      :> Get '[JSON] Account
+  , _transactions :: route
+      :- "v2"
+      :> "transactions"
+      :> ReqBody '[Binary] [SignedTransaction]
+      :> Post '[JSON] TransactionsRep
+  , _transactionsRaw :: route
+      :- "v2"
+      :> "transactions"
+      :> ReqBody '[Binary] ByteString
+      :> Post '[JSON] TransactionsRep
+  , _transactionsPending :: route
+      :- "v2"
+      :> "transactions"
+      :> "pending"
+      :> Capture "txId" Text
+      :> Get '[JSON] TransactionInfo
+  , _transactionsParams :: route
+      :- "v2"
+      :> "transactions"
+      :> "params"
+      :> Get '[JSON] SuggestedParams
+  , _compileTeal :: route
+      :- "v2"
+      :> "teal"
+      :> "compile"
+      :> ReqBody '[PlainText] Text
+      :> Post '[JSON] TealCompilationResult
+  } deriving (Generic)
