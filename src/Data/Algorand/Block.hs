@@ -10,6 +10,8 @@ module Data.Algorand.Block
   , UpgradeVote (..)
   , BlockWrapped (..)
   , BlockHash
+  , TransactionsRoot
+  , Seed
   ) where
 
 import Data.ByteArray (Bytes)

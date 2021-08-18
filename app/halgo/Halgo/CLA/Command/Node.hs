@@ -2,6 +2,8 @@
 --
 -- SPDX-License-Identifier: MPL-2.0
 
+{-# OPTIONS_GHC -Wno-deprecations #-}
+
 -- | Communicate with node commands.
 module Halgo.CLA.Command.Node
   ( nodeOpts
@@ -57,7 +59,7 @@ nodeOpts = cmdNode <$> optNodeHost <*> hsubparser (mconcat
 
   , command "block"
     $ info (cmdPrintBlock <$> optRound)
-    $ progDesc "Retrieve block"
+    $ progDesc "Retrieve block (DEPRECATED)"
 
   , command "fetch"
     $ info (hsubparser $ mconcat

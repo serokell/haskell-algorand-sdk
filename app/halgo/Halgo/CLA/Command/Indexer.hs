@@ -49,8 +49,12 @@ indexerOpts = cmdIndexer <$> optIndexerHost <*> hsubparser (mconcat
           <*> optional optRound
           )
         $ progDesc "Fetch information about an account"
+
+      , command "block"
+        $ info (cmdFetchBlock <$> optRound)
+        $ progDesc "Retrieve block"
       ])
-    $ progDesc "Fetch something from the indexer"
+    $ progDesc "Fetch data from the indexer"
   ])
 
 cmdIndexer :: MonadSubCommand m => Maybe Host -> (Host -> m ()) -> m ()
@@ -75,3 +79,8 @@ cmdIndexerFetchAccount
   => Address -> Maybe Round -> Host -> m ()
 cmdIndexerFetchAccount addr rnd url = withIndexer url $ \(_, api) ->
   N.getAccountAtRound api addr rnd >>= putJson
+
+-- | Print block info.
+cmdFetchBlock :: MonadSubCommand m => Round -> Host -> m ()
+cmdFetchBlock rnd url = withIndexer url $ \(_, api) ->
+  N.getBlockAtRound api rnd >>= putJson
