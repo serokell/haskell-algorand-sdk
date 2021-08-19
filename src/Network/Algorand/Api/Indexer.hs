@@ -44,7 +44,8 @@ import Network.Algorand.Api.Node (Account)
 -- | Indexer API.
 data IndexerApi route = IndexerApi
   { _accountIdx :: route
-      :- "accounts"
+      :- "v2"
+      :> "accounts"
       :> Capture "address" Address
       :> QueryParam "round" Round
       :> Get '[JSON] IdxAccountResponse
