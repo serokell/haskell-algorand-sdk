@@ -205,6 +205,7 @@ test-suite algorand-lib-test
       Test.Data.Algorand.Transaction.Examples
       Test.Data.Algorand.Transaction.Pay
       Test.Data.Algorand.Transaction.Signed
+      Test.Network.Algorand.Indexer.Golden
       Paths_algorand_sdk
   hs-source-dirs:
       test/algorand-lib
@@ -253,6 +254,8 @@ test-suite algorand-lib-test
     , base32
     , base64
     , bytestring >=0.9 && <0.11
+    , directory
+    , filepath
     , fmt ==0.6.*
     , hedgehog
     , http-types >=0.1.1 && <0.13
