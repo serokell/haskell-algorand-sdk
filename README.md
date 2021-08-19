@@ -55,13 +55,13 @@ to a node all start with `halgo node`.
 Use `algo node url` to see the URL of the chosen node:
 
 ```text
-$ halgo node url
+$ halgo node host
 https://api.testnet.algoexplorer.io/
 
-$ halgo --network mainnet-v1.0 node url
+$ halgo --network mainnet-v1.0 node host
 https://api.algoexplorer.io/
 
-$ halgo --network mainnet-v1.0 node --url https://example.com/ url
+$ halgo --network mainnet-v1.0 node --node-host https://example.com/ host
 https://example.com/
 ```
 
@@ -69,22 +69,7 @@ Use `halgo node version` and `halgo node status` to get basic information about 
 
 ```text
 $ halgo node version
-{
-    "genesis_hash_b64": "SGO1GKSzyE7IEPItTxCByw9x8FmnrCDexi9/cOUJOiI=",
-    "build": {
-        "minor": 4,
-        "channel": "stable",
-        "major": 2,
-        "commit_hash": "573a34c4",
-        "branch": "rel/stable",
-        "build_number": 1
-    },
-    "versions": [
-        "v1",
-        "v2"
-    ],
-    "genesis_id": "testnet-v1.0"
-}
+"testnet-v1.0"
 
 $ halgo node status
 {
@@ -110,10 +95,13 @@ Use `halgo node block --round N` to get information about block:
 
 ```text
 $ halgo node block --round 1
+Retrieved block for round 1 created at 2019-06-10 23:48:00 UTC with txs:
 {
+    "gh": "SGO1GKSzyE7IEPItTxCByw9x8FmnrCDexi9/cOUJOiI=",
     "lv": 1000,
     "amt": 100000000,
     "fee": 10000,
+    "gen": "testnet-v1.0",
     "rcv": "3NVE2MK2QYZQFOZ5XIRQTM7JRHNPUBV7QKLYLT7OO6QXFHXMRIAUXXNCBM",
     "type": "pay",
     "snd": "GD64YIY3TWGDMCNPP553DZPPR6LDUSFQOIJVFDPPXWEG3FVOJCCDBBHU5A"
@@ -349,7 +337,7 @@ is just a bunch of boilerplate code that follows the same pattern for
 all data types (it is absolutely possible to generate it using Generics
 and, hopefully, this will happen in the future). See `Data.Algorand.Transaction`.
 
-The definition of the APIs is in `Network.Algorand.Api` and adding
+The definitions of the APIs are in `Network.Algorand.Api.*` modules and adding
 missing endpoints should be pretty straightforward.
 
 

@@ -29,20 +29,25 @@ source-repository head
 library
   exposed-modules:
       Crypto.Algorand.Hash
+      Crypto.Algorand.Key
       Crypto.Algorand.Signature
+      Crypto.Algorand.Util
       Data.Algorand.Address
       Data.Algorand.Amount
       Data.Algorand.Block
       Data.Algorand.MessagePack
       Data.Algorand.MessagePack.Json
+      Data.Algorand.Round
+      Data.Algorand.Teal
       Data.Algorand.Transaction
       Data.Algorand.Transaction.Build
       Data.Algorand.Transaction.Group
       Data.Algorand.Transaction.Signed
       Network.Algorand.Api
       Network.Algorand.Api.Content
+      Network.Algorand.Api.Indexer
       Network.Algorand.Api.Json
-      Network.Algorand.Api.Type
+      Network.Algorand.Api.Node
       Network.Algorand.Client
       Network.Algorand.Definitions
       Network.Algorand.Util
@@ -200,6 +205,7 @@ test-suite algorand-lib-test
       Test.Data.Algorand.Transaction.Examples
       Test.Data.Algorand.Transaction.Pay
       Test.Data.Algorand.Transaction.Signed
+      Test.Network.Algorand.Indexer.Golden
       Paths_algorand_sdk
   hs-source-dirs:
       test/algorand-lib
@@ -248,6 +254,8 @@ test-suite algorand-lib-test
     , base32
     , base64
     , bytestring >=0.9 && <0.11
+    , directory
+    , filepath
     , fmt ==0.6.*
     , hedgehog
     , http-types >=0.1.1 && <0.13

@@ -9,7 +9,7 @@ module Halgo.CLA.Option
 
 import Options.Applicative (Parser, auto, help, long, metavar, option)
 
-import Data.Algorand.Block (Round (..))
+import Data.Algorand.Round (Round (..))
 
 optRound :: Parser Round
 optRound = Round <$> option auto (mconcat

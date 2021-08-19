@@ -91,6 +91,8 @@ tests:
       - aeson
       - base32
       - base64
+      - directory
+      - filepath
       - msgpack-binary
 
     build-tools:

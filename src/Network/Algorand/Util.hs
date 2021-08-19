@@ -7,6 +7,7 @@ module Network.Algorand.Util
   ( TransactionStatus (..)
   , transactionStatus
   , getBlock
+  , getBlockAtRound
   , getAccount
   , getAccountAtRound
   , lookupAssetBalance
@@ -31,8 +32,10 @@ import qualified Data.Algorand.Block as B
 import qualified Network.Algorand.Api as Api
 
 import Data.Algorand.Address (Address)
+import Data.Algorand.Round (Round)
+import Data.Algorand.Teal (TealKeyValue (..), TealValue (..), tealValueBytesType, tealValueUintType)
 import Data.Algorand.Transaction (AppIndex, AssetIndex)
-import Network.Algorand.Api.Type (TransactionInfo (..))
+import Network.Algorand.Api.Node (TransactionInfo (..))
 
 -- | Status of a transaction in the pool.
 data TransactionStatus
@@ -62,26 +65,40 @@ noEntityHandler
   = pure Nothing
 noEntityHandler _ e = throwM e
 
+{-# DEPRECATED getBlock "Use `getBlockAtRound` instead" #-}
+-- | Helper to get block from node
 getBlock
   :: MonadCatch m
-  => Api.ApiV2 (AsClientT m) -> B.Round -> m (Maybe B.Block)
+  => Api.NodeApi (AsClientT m) -> Round -> m (Maybe B.Block)
 getBlock api rnd = handle (noEntityHandler noBlockMsg) $ do
   B.BlockWrapped block <- Api._block api rnd Api.msgPackFormat
   pure (Just block)
   where
     noBlockMsg = "ledger does not have entry"
 
+-- | Helper to get block from indexer
+getBlockAtRound
+  :: MonadCatch m
+  => Api.IndexerApi (AsClientT m) -> Round -> m (Maybe Api.BlockResp)
+getBlockAtRound api rnd = handle (noEntityHandler noBlockMsg) $ do
+  Just <$> Api._blockIdx api rnd
+  where
+    noBlockMsg = "no blocks found"
+
+-{-# DEPRECATED getAccount "Use `getAccountAtRound` instead" #-}
+--- | Helper to get account from node
 getAccount
   :: MonadCatch m
-  => Api.ApiV2 (AsClientT m) -> Address -> m (Maybe Api.Account)
+  => Api.NodeApi (AsClientT m) -> Address -> m (Maybe Api.Account)
 getAccount api addr = handle (noEntityHandler noAccMsg) $
   Just <$> Api._account api addr
 
+--- | Helper to get account at round from indexer
 getAccountAtRound
   :: MonadCatch m
-  => Api.ApiIdx2 (AsClientT m)
+  => Api.IndexerApi (AsClientT m)
   -> Address
-  -> Maybe B.Round
+  -> Maybe Round
   -> m (Maybe Api.IdxAccountResponse)
 getAccountAtRound api addr rnd = handle (noEntityHandler noAccMsg) $
   Just <$> Api._accountIdx api addr rnd
@@ -108,11 +125,11 @@ lookupAppLocalState Api.Account{..} appId = do
   M.fromList . map toEntry <$> lsKeyValue
   where
     toPair a@Api.LocalState{..} = (lsId, a)
-    toEntry Api.TealKeyValue{..}
-      | Api.tvType tkeValue == Api.tealValueBytesType
-      = (tkeKey, Left $ Api.tvBytes tkeValue)
-      | Api.tvType tkeValue == Api.tealValueUintType
-      = (tkeKey, Right $ Api.tvUint tkeValue)
+    toEntry TealKeyValue{..}
+      | tvType tkeValue == tealValueBytesType
+      = (tkeKey, Left $ tvBytes tkeValue)
+      | tvType tkeValue == tealValueUintType
+      = (tkeKey, Right $ tvUint tkeValue)
       | otherwise = error $
         "lookupAppLocalState: unknown teal value type "
-        <> show (Api.tvType tkeValue)
+        <> show (tvType tkeValue)

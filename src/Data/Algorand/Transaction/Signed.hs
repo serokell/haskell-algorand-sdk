@@ -27,7 +27,10 @@ import Data.String (IsString)
 import Data.Text (Text)
 import GHC.Generics (Generic)
 
-import Crypto.Algorand.Signature (SecretKey, Signature, sign, toPublic, verify)
+import Crypto.Algorand.Key (SecretKey, toPublic)
+import Crypto.Algorand.Signature (LogicSignature (..), MultiSignature, Signature)
+import Crypto.Algorand.Util (sign, verify)
+
 import Data.Algorand.Address (fromContractCode, fromPublicKey, toPublicKey)
 import Data.Algorand.MessagePack (MessagePackObject (toCanonicalObject),
                                   MessageUnpackObject (fromCanonicalObject),
@@ -73,27 +76,6 @@ verifySimple sig txn =
     Nothing -> False
     Just pk -> verify pk (serialiseTx txn) sig
 
-
-{- Multi signature -}
-
-data MultiSignature = MultiSignature
-  deriving (Eq, Generic, Show)
-
-instance NonZeroValue MultiSignature where
-  isNonZero _ = True
-
-
-{- Logic signature -}
-
-data LogicSignature = ContractAccountSignature
-  -- TODO: Only contract account signature is supported.
-  { lsLogic :: ByteString
-  , lsArgs :: [ByteString]
-  }
-  deriving (Eq, Generic, Show)
-
-instance NonZeroValue LogicSignature where
-  isNonZero _ = True
 
 -- | Sign a transaction from a contract account.
 --
@@ -212,50 +194,6 @@ instance ToJSON TransactionSignature where
   toJSON = toCanonicalJson
 
 instance FromJSON TransactionSignature where
-  parseJSON = parseCanonicalJson
-
---multiSignatureFieldName :: IsString s => String -> s
---multiSignatureFieldName = \case
---  x -> error $ "Unmapped multi signature field name: " <> x
-
-instance MessagePackObject MultiSignature where
-  toCanonicalObject MultiSignature = mempty  -- TODO
-
-instance MessageUnpackObject MultiSignature where
-  fromCanonicalObject _ = pure MultiSignature  -- TODO
-
-instance ToJSON MultiSignature where
-  toJSON = toCanonicalJson
-
-instance FromJSON MultiSignature where
-  parseJSON = parseCanonicalJson
-
-logicSignatureFieldName :: IsString s => String -> s
-logicSignatureFieldName = \case
-  "lsLogic" -> "l"
-  "lsArgs" -> "arg"
-  x -> error $ "Unmapped logic signature field name: " <> x
-
-instance MessagePackObject LogicSignature where
-  toCanonicalObject = \case
-      ContractAccountSignature{..} -> mempty
-        & f "lsLogic" .= lsLogic
-        & f "lsArgs" .= lsArgs
-    where
-      f = logicSignatureFieldName
-
-instance MessageUnpackObject LogicSignature where
-  fromCanonicalObject o = do
-      lsLogic <- o .:? f "lsLogic"
-      lsArgs <- o .:? f "lsArgs"
-      pure ContractAccountSignature{..}
-    where
-      f = logicSignatureFieldName
-
-instance ToJSON LogicSignature where
-  toJSON = toCanonicalJson
-
-instance FromJSON LogicSignature where
   parseJSON = parseCanonicalJson
 
 data BlockTransaction = BlockTransaction

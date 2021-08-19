@@ -2,6 +2,8 @@
 --
 -- SPDX-License-Identifier: MPL-2.0
 
+{-# OPTIONS_GHC -Wno-deprecations #-}
+
 -- | Communicate with node commands.
 module Halgo.CLA.Command.Node
   ( nodeOpts
@@ -22,6 +24,7 @@ import qualified Data.Algorand.Transaction.Signed as TS
 import qualified Network.Algorand.Api as Api
 import qualified Network.Algorand.Util as N
 
+import Data.Algorand.Round (Round (..))
 import Network.Algorand.Definitions (DefaultHost (ahNode), Host, getDefaultHost)
 
 import Halgo.CLA.Argument (argAddress, argTxId)
@@ -56,7 +59,7 @@ nodeOpts = cmdNode <$> optNodeHost <*> hsubparser (mconcat
 
   , command "block"
     $ info (cmdPrintBlock <$> optRound)
-    $ progDesc "Retrieve block"
+    $ progDesc "Retrieve block (DEPRECATED)"
 
   , command "fetch"
     $ info (hsubparser $ mconcat
@@ -105,7 +108,7 @@ cmdNodeStatus url = withNode url $ \(_, api) ->
   Api._status api >>= putJson
 
 -- | Print block info.
-cmdPrintBlock :: MonadSubCommand m => B.Round -> Host -> m ()
+cmdPrintBlock :: MonadSubCommand m => Round -> Host -> m ()
 cmdPrintBlock rnd url = withNode url $ \(_, api) -> do
   mBlock <- N.getBlock api rnd
   case mBlock of
@@ -116,7 +119,7 @@ cmdPrintBlock rnd url = withNode url $ \(_, api) -> do
                 (B.bGenesisId block)
             <$> B.bTransactions block
       putTextLn $ "Retrieved " +| (if null txs then "empty " else "" :: Text)
-        |+ "block for round " +| B.unRound (B.bRound block)
+        |+ "block for round " +| unRound (B.bRound block)
         |+ " created at " +| B.bTimestamp block
         |+ (if null txs then "" else " with txs:")
       mapM_ putJson txs

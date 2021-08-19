@@ -17,6 +17,7 @@ import UnliftIO (liftIO)
 import qualified Data.Algorand.Address as A
 import qualified Network.Algorand.Api as Api
 
+import Data.Algorand.Teal (tcrResult, unTealCode)
 import Network.Algorand.Definitions (Host)
 
 import Halgo.CLA.Argument (argProgramFile, argProgramSourceFile)
@@ -39,7 +40,7 @@ contractOpts = hsubparser $ mconcat
 cmdContractCompile :: MonadSubCommand m => FilePath -> Host -> m ()
 cmdContractCompile sourcePath url = withNode url $ \(_, api) -> do
   source <- liftIO $ TIO.readFile sourcePath
-  bin <- Api.unTealCode . Api.tcrResult <$> Api._compileTeal api source
+  bin <- unTealCode . tcrResult <$> Api._compileTeal api source
   let outPath = sourcePath <> ".tok"
   putNoticeLn $ "Writing compiled program to `"+|outPath|+"`"
   liftIO $ BS.writeFile outPath bin

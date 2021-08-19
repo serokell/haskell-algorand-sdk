@@ -15,8 +15,9 @@ import Hedgehog (Property, forAll, property, tripping)
 import Test.HUnit (Assertion)
 import Test.Tasty.HUnit ((@?=))
 
-import Crypto.Algorand.Signature (pkFromBytes)
-import Data.Algorand.Address (Address, fromBytes, fromContractCode, fromPublicKey, fromText, toPublicKey, toText)
+import Crypto.Algorand.Key (pkFromBytes)
+import Data.Algorand.Address (Address, fromBytes, fromContractCode, fromPublicKey, fromText,
+                              toPublicKey, toText)
 
 import Test.Crypto.Algorand.Signature (genPublicKey)
 
