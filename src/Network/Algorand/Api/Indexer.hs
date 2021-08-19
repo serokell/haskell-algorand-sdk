@@ -9,6 +9,7 @@ module Network.Algorand.Api.Indexer
   ( IndexerApi (..)
   , IdxAccountResponse (..)
   , TransactionResp (..)
+  , transactionRespToTransaction
   , BlockResp (..)
   ) where
 
@@ -31,7 +32,8 @@ import Data.Algorand.Address (Address)
 import Data.Algorand.Amount (Microalgos)
 import Data.Algorand.Block (BlockHash, Seed, TransactionsRoot)
 import Data.Algorand.Round (Round)
-import Data.Algorand.Transaction (GenesisHash, Lease, TransactionGroupId, TransactionType (..))
+import Data.Algorand.Transaction (GenesisHash, Lease, Transaction (..), TransactionGroupId,
+                                  TransactionType (..))
 import Network.Algorand.Api.Json (algorandTrainOptions)
 import Network.Algorand.Api.Node (Account)
 
@@ -256,6 +258,21 @@ instance FromJSON TransactionResp where
         attAssetReceiver <- subObj .: "receiver"
         attAssetCloseTo <- subObj .:? "close-to"
         return AssetTransferTransaction {..}
+
+transactionRespToTransaction :: TransactionResp -> Transaction
+transactionRespToTransaction TransactionResp {..} = Transaction
+  { tSender = trSender
+  , tFee = trFee
+  , tFirstValid = trFirstValid
+  , tLastValid = trLastValid
+  , tNote = trNote
+  , tGenesisId = trGenesisId
+  , tGenesisHash = trGenesisHash
+  , tTxType = trTxType
+  , tGroup = trGroup
+  , tLease = trLease
+  , tRekeyTo = trRekeyTo
+  }
 
 -- | An Algorand Block as returned by the indexer.
 data BlockResp = BlockResp
