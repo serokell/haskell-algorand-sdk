@@ -85,12 +85,15 @@ getBlockAtRound api rnd = handle (noEntityHandler noBlockMsg) $ do
   where
     noBlockMsg = "no blocks found"
 
+-{-# DEPRECATED getAccount "Use `getAccountAtRound` instead" #-}
+--- | Helper to get account from node
 getAccount
   :: MonadCatch m
   => Api.NodeApi (AsClientT m) -> Address -> m (Maybe Api.Account)
 getAccount api addr = handle (noEntityHandler noAccMsg) $
   Just <$> Api._account api addr
 
+--- | Helper to get account at round from indexer
 getAccountAtRound
   :: MonadCatch m
   => Api.IndexerApi (AsClientT m)
