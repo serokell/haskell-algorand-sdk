@@ -85,7 +85,7 @@ getBlockAtRound api rnd = handle (noEntityHandler noBlockMsg) $ do
   where
     noBlockMsg = "no blocks found"
 
--{-# DEPRECATED getAccount "Use `getAccountAtRound` instead" #-}
+{-# DEPRECATED getAccount "Use `getAccountAtRound` instead" #-}
 --- | Helper to get account from node
 getAccount
   :: MonadCatch m
