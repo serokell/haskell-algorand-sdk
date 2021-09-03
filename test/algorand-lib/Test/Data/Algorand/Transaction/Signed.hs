@@ -91,4 +91,4 @@ unit_sign_as_contract = do
     let signed = signFromContractAccount program [] example_21
     encodeBase64 (BSL.toStrict . MP.pack . MP.Canonical $ signed) @?= expected
   where
-    expected = "gqRsc2lngaFsxAUBIAEBIqN0eG6KpGFwYWGRxAR0ZXN0pGFwYXSSxCAAKjIBO2ow437iiFQk7n19BVXq4JOftpr8a9+d0v7n/sQgAAcEC49iozKw4AXwAsjApRY0aAEKMVgnxs9SfHhpeeekYXBmYZLNFbPNGgqkYXBpZGSjZmVlzQTSomZ2zSMoomdoxCAx/SHrOOQQgRk+00zfOyuD6IdAVLR9nGGCvvDfkjjrg6Jsds0jMqNzbmTEIPZ2Lax1sZl9bCyWGAaAUHSQ15URL/5/t2Cyc4r5x/GtpHR5cGWkYXBwbA=="
+    expected = "gqRsc2lngaFsxAUBIAEBIqN0eG6LpGFwYWGRxAR0ZXN0pGFwYW6kY2FsbKRhcGF0ksQgACoyATtqMON+4ohUJO59fQVV6uCTn7aa/GvfndL+5/7EIAAHBAuPYqMysOAF8ALIwKUWNGgBCjFYJ8bPUnx4aXnnpGFwZmGSzRWzzRoKpGFwaWRko2ZlZc0E0qJmds0jKKJnaMQgMf0h6zjkEIEZPtNM3zsrg+iHQFS0fZxhgr7w35I464OibHbNIzKjc25kxCD2di2sdbGZfWwslhgGgFB0kNeVES/+f7dgsnOK+cfxraR0eXBlpGFwcGw="

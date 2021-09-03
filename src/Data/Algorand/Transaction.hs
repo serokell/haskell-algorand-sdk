@@ -16,6 +16,7 @@ module Data.Algorand.Transaction
 
   , OnComplete
   , onCompleteNoOp
+  , onCompleteCreate
   , onCompleteOptIn
   , onCompleteCloseOut
   , onCompleteClearState
@@ -118,15 +119,28 @@ data TransactionType
 
 -- | Constants for @OnComplete@.
 --
-type OnComplete = Word64
+type OnComplete = Text
 
-onCompleteNoOp, onCompleteOptIn, onCompleteCloseOut, onCompleteClearState, onCompleteUpdateApplication, onCompleteDeleteApplication :: OnComplete
-onCompleteNoOp = 0
-onCompleteOptIn = 1
-onCompleteCloseOut = 2
-onCompleteClearState = 3
-onCompleteUpdateApplication = 4
-onCompleteDeleteApplication = 5
+onCompleteNoOp :: OnComplete
+onCompleteNoOp = "call"
+
+onCompleteCreate :: OnComplete
+onCompleteCreate = "create"
+
+onCompleteOptIn :: OnComplete
+onCompleteOptIn = "optin"
+
+onCompleteCloseOut :: OnComplete
+onCompleteCloseOut = "closeout"
+
+onCompleteClearState :: OnComplete
+onCompleteClearState = "clear"
+
+onCompleteUpdateApplication :: OnComplete
+onCompleteUpdateApplication = "update"
+
+onCompleteDeleteApplication :: OnComplete
+onCompleteDeleteApplication = "delete"
 
 
 -- | The 'StateSchema' object.
