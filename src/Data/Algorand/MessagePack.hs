@@ -169,6 +169,8 @@ instance CanonicalZero ByteString where
 instance NonZeroValue ByteString where
   isNonZero = not . BS.null
 
+instance CanonicalZero Text where
+  zero = ""
 instance NonZeroValue Text where
   isNonZero = not . T.null
 

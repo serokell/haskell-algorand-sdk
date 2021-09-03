@@ -53,7 +53,7 @@ genTransactionType = G.choice
     <*> G.maybe genAddress
   , ApplicationCallTransaction
     <$> G.word64 R.constantBounded
-    <*> G.word64 R.constantBounded
+    <*> G.text (R.singleton 44) G.unicode
     <*> G.list (R.linear 0 10) genAddress
     <*> G.maybe (G.bytes $ R.linear 1 100)  -- cannot be empty
     <*> G.list (R.linear 0 10) (G.bytes (R.linear 0 32))
