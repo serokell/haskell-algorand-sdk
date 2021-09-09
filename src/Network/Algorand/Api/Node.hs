@@ -193,7 +193,10 @@ $(deriveJSON algorandTrainOptions 'SuggestedParams)
 
 -- | Algod Node API
 data NodeApi route = NodeApi
-  { _status :: route
+  { _version :: route
+      :- "versions"
+      :> Get '[JSON] Version
+  , _status :: route
       :- "v2"
       :> "status"
       :> Get '[JSON] NodeStatus
