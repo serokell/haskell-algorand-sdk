@@ -24,8 +24,8 @@ import Servant.Client.Generic (AsClientT, genericClientHoist)
 
 import qualified Network.Algorand.Api as Api
 
-import Network.Algorand.Api (IndexerApi, NodeApi, Version (..))
-import Network.Algorand.Definitions (Host, Network)
+import Network.Algorand.Api (IndexerApi(..), NodeApi(..), Health (..), Version (..))
+import Network.Algorand.Definitions (Host, Network, NetworkError (WrongNetwork))
 
 apiClient
   :: ( HasClient ClientM (ToServant routes AsApi)
@@ -38,7 +38,7 @@ apiClient env = genericClientHoist $ \x ->
   liftIO $ runClientM x env >>= either throwM pure
 
 newtype AlgoNode = AlgoNode
-  { getAlgoNode  :: forall m . MonadIO m => NodeApi (AsClientT m)
+  { getAlgoNode :: forall m . MonadIO m => NodeApi (AsClientT m)
   }
 
 -- TODO: remove Network argument and return value OR restore network/version check
@@ -59,7 +59,10 @@ connectToNode host net = do
     apiV2Client :: forall m' . MonadIO m' => NodeApi (AsClientT m')
     apiV2Client = apiClient env
 
-  pure (net, AlgoNode apiV2Client)
+  Version{vGenesisId} <- _version apiV2Client
+  case vGenesisId == net of
+    True -> pure (net, AlgoNode apiV2Client)
+    False -> throwM $ WrongNetwork net vGenesisId
 
 newtype AlgoIndexer = AlgoIndexer
   { getAlgoIndexer :: forall m . MonadIO m => IndexerApi (AsClientT m)
@@ -80,4 +83,7 @@ connectToIndexer host net = do
     apiIdx2Client :: forall m' . MonadIO m' => IndexerApi (AsClientT m')
     apiIdx2Client = apiClient env
 
-  pure (net, AlgoIndexer apiIdx2Client)
+  Health{hGenesisId} <- _health apiIdx2Client
+  case hGenesisId == net of
+    True -> pure (net, AlgoIndexer apiIdx2Client)
+    False ->  throwM $ WrongNetwork net hGenesisId
