@@ -6,7 +6,8 @@
 --
 -- See <https://developer.algorand.org/docs/reference/rest-apis/indexer/>
 module Network.Algorand.Api.Indexer
-  ( IndexerApi (..)
+  ( Health (..)
+  , IndexerApi (..)
   , IdxAccountResponse (..)
   , TransactionResp (..)
   , transactionRespToTransaction
@@ -36,25 +37,7 @@ import Data.Algorand.Transaction (GenesisHash, Lease, Transaction (..), Transact
                                   TransactionType (..))
 import Network.Algorand.Api.Json (algorandTrainOptions)
 import Network.Algorand.Api.Node (Account)
-
-----------------
--- API
-----------------
-
--- | Indexer API.
-data IndexerApi route = IndexerApi
-  { _accountIdx :: route
-      :- "v2"
-      :> "accounts"
-      :> Capture "address" Address
-      :> QueryParam "round" Round
-      :> Get '[JSON] IdxAccountResponse
-  , _blockIdx :: route
-      :- "v2"
-      :> "blocks"
-      :> Capture "round" Round
-      :> Get '[JSON] BlockResp
-  } deriving stock (Generic)
+import Network.Algorand.Definitions (Network)
 
 ----------------
 -- Types
@@ -313,3 +296,38 @@ data BlockResp = BlockResp
 
 $(deriveJSON algorandTrainOptions 'IdxAccountResponse)
 $(deriveJSON algorandTrainOptions 'BlockResp)
+
+-- | Indexer health information.
+-- From: https://indexer.testnet.algoexplorerapi.io/health
+data Health = Health
+  { hDbAvailable :: Bool
+  , hGenesisHash :: Text
+  , hGenesisId :: Network
+  , hIsMigrating :: Bool
+  , hMessage :: Text
+  , hRound :: Round
+  , hVersion :: Text
+  } deriving (Generic, Show)
+$(deriveJSON algorandTrainOptions 'Health)
+
+----------------
+-- API
+----------------
+
+-- | Indexer API.
+data IndexerApi route = IndexerApi
+  { _health :: route
+      :- "health"
+      :> Get '[JSON] Health
+  , _accountIdx :: route
+      :- "v2"
+      :> "accounts"
+      :> Capture "address" Address
+      :> QueryParam "round" Round
+      :> Get '[JSON] IdxAccountResponse
+  , _blockIdx :: route
+      :- "v2"
+      :> "blocks"
+      :> Capture "round" Round
+      :> Get '[JSON] BlockResp
+  } deriving stock (Generic)
