@@ -23,7 +23,7 @@ import Test.Tasty.HUnit (Assertion, (@?=))
 import Data.Algorand.Address (Address, fromPublicKey)
 import Data.Algorand.MessagePack (Canonical (Canonical, unCanonical), EitherError)
 import Data.Algorand.Round (Round (..))
-import Data.Algorand.Transaction (StateSchema (..), Transaction (..), TransactionType (..))
+import Data.Algorand.Transaction (OnComplete(..), StateSchema (..), Transaction (..), TransactionType (..))
 
 import Test.Crypto.Algorand.Signature (genPublicKey)
 import Test.Data.Algorand.Transaction.Examples (genesisHash, sender)
@@ -45,6 +45,9 @@ genSizedBytes gen = G.justT (sizedByteArray <$> gen (R.singleton size))
 genStateSchema :: MonadGen m => m StateSchema
 genStateSchema = StateSchema <$> G.word64 (R.linear 0 1000) <*> G.word64 (R.linear 0 1000)
 
+genOnComplete :: MonadGen m => m OnComplete
+genOnComplete = G.enumBounded
+
 genTransactionType :: MonadGen m => m TransactionType
 genTransactionType = G.choice
   [ PaymentTransaction
@@ -53,7 +56,7 @@ genTransactionType = G.choice
     <*> G.maybe genAddress
   , ApplicationCallTransaction
     <$> G.word64 R.constantBounded
-    <*> G.text (R.singleton 44) G.unicode
+    <*> genOnComplete
     <*> G.list (R.linear 0 10) genAddress
     <*> G.maybe (G.bytes $ R.linear 1 100)  -- cannot be empty
     <*> G.list (R.linear 0 10) (G.bytes (R.linear 0 32))

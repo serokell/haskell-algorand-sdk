@@ -65,7 +65,7 @@ import Data.Function ((&))
 import Data.List (sortOn)
 import Data.MessagePack (Assoc (..), MessagePack (..), Object (..), pack)
 import Data.Text (Text)
-import Data.Word (Word64)
+import Data.Word (Word8, Word64)
 import GHC.TypeLits (KnownNat)
 
 unpack :: (Monad m, MonadFail m, MessagePack a) => LBS.ByteString -> m a
@@ -125,6 +125,10 @@ instance AlgoMessagePack Bool where
   fromAlgoObject = fromObject
 
 instance AlgoMessagePack ByteString where
+  toAlgoObject = toObject
+  fromAlgoObject = fromObject
+
+instance AlgoMessagePack Word8 where
   toAlgoObject = toObject
   fromAlgoObject = fromObject
 
