@@ -14,14 +14,7 @@ module Data.Algorand.Transaction
   , Lease
   , StateSchema (..)
 
-  , OnComplete
-  , onCompleteNoOp
-  , onCompleteCreate
-  , onCompleteOptIn
-  , onCompleteCloseOut
-  , onCompleteClearState
-  , onCompleteUpdateApplication
-  , onCompleteDeleteApplication
+  , OnComplete (..)
 
   , transactionId
   , transactionId'
@@ -40,18 +33,20 @@ import Data.ByteArray.Sized (SizedByteArray, unSizedByteArray)
 import Data.ByteString (ByteString)
 import Data.ByteString.Base32 (encodeBase32Unpadded)
 import Data.ByteString.Lazy (fromStrict, toStrict)
+import Data.Default.Class (Default (def))
 import Data.MessagePack (pack)
 import Data.String (IsString)
 import Data.Text (Text)
-import Data.Word (Word64)
+import Data.Word (Word8, Word64)
 import GHC.Generics (Generic)
+import Text.Read (readMaybe)
 
 import Crypto.Algorand.Hash (hash32)
 import Data.Algorand.Address (Address)
 import Data.Algorand.Amount (Microalgos)
-import Data.Algorand.MessagePack (Canonical (Canonical), MessagePackObject (toCanonicalObject),
-                                  MessageUnpackObject (fromCanonicalObject), (&), (&<>), (.:),
-                                  (.:>), (.:?), (.=), (.=<))
+import Data.Algorand.MessagePack (AlgoMessagePack (..), Canonical (Canonical)
+  , MessagePackObject (toCanonicalObject) , MessageUnpackObject (fromCanonicalObject)
+  , NonZeroValue, CanonicalZero, (&), (&<>), (.:), (.:>), (.:?), (.=), (.=<))
 import Data.Algorand.MessagePack.Json (parseCanonicalJson, toCanonicalJson)
 import Data.Algorand.Round (Round)
 
@@ -118,29 +113,49 @@ data TransactionType
   deriving (Eq, Generic, Show)
 
 -- | Constants for @OnComplete@.
---
-type OnComplete = Text
+data OnComplete
+  = OnCompleteNoOp
+  | OnCompleteOptIn
+  | OnCompleteCloseOut
+  | OnCompleteClearState
+  | OnCompleteUpdateApplication
+  | OnCompleteDeleteApplication
+  deriving (Bounded, Eq, Enum)
 
-onCompleteNoOp :: OnComplete
-onCompleteNoOp = "call"
+instance Default OnComplete where
+  def = OnCompleteNoOp
+instance CanonicalZero OnComplete
+instance NonZeroValue OnComplete
 
-onCompleteCreate :: OnComplete
-onCompleteCreate = "create"
+instance Show OnComplete where
+  show OnCompleteNoOp = "noop"
+  show OnCompleteOptIn = "optin"
+  show OnCompleteCloseOut = "closeout"
+  show OnCompleteClearState = "clear"
+  show OnCompleteUpdateApplication = "update"
+  show OnCompleteDeleteApplication = "delete"
 
-onCompleteOptIn :: OnComplete
-onCompleteOptIn = "optin"
+instance Read OnComplete where
+  readsPrec _ = \case
+    "noop" -> [(OnCompleteNoOp, "")]
+    "optin" -> [(OnCompleteOptIn, "")]
+    "closeout" -> [(OnCompleteCloseOut, "")]
+    "clear" -> [(OnCompleteClearState, "")]
+    "update" -> [(OnCompleteUpdateApplication, "")]
+    "delete" -> [(OnCompleteDeleteApplication, "")]
+    _ -> []
 
-onCompleteCloseOut :: OnComplete
-onCompleteCloseOut = "closeout"
+instance AlgoMessagePack OnComplete where
+  toAlgoObject = toAlgoObject @Word8 . fromIntegral . fromEnum
+  fromAlgoObject o = (toEnum . fromIntegral) <$> fromAlgoObject @Word8 o
 
-onCompleteClearState :: OnComplete
-onCompleteClearState = "clear"
 
-onCompleteUpdateApplication :: OnComplete
-onCompleteUpdateApplication = "update"
+instance ToJSON OnComplete where
+  toJSON = toJSON . show
 
-onCompleteDeleteApplication :: OnComplete
-onCompleteDeleteApplication = "delete"
+instance FromJSON OnComplete where
+  parseJSON o = parseJSON @String o
+    >>= maybe (fail "Fail to parse `OnComplete`") pure . readMaybe
 
 
 -- | The 'StateSchema' object.
