@@ -2,7 +2,7 @@
 --
 -- SPDX-License-Identifier: MPL-2.0
 
--- | All available commands
+-- | All available commands.
 module Halgo.CLA
   ( globalOpts
   , commands
@@ -39,7 +39,7 @@ globalOpts = GlobalOptions <$> option (eitherReader parser) (mconcat
 
 commands :: Mod CommandFields SubCommand
 commands = mconcat
-  [ command "acc"
+  [ command "account"
     $ info accountOpts
     $ progDesc "Manage accounts (public and secret keys)"
 

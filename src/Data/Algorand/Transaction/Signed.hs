@@ -32,10 +32,9 @@ import Crypto.Algorand.Signature (LogicSignature (..), MultiSignature, Signature
 import Crypto.Algorand.Util (sign, verify)
 
 import Data.Algorand.Address (fromContractCode, fromPublicKey, toPublicKey)
-import Data.Algorand.MessagePack (MessagePackObject (toCanonicalObject),
-                                  MessageUnpackObject (fromCanonicalObject),
-                                  NonZeroValue (isNonZero), (&), (&<>), (.:>), (.:>?), (.:?),
-                                  (.:??), (.=), (.=<))
+import Data.Algorand.MessagePack (MessagePackObject (..), MessageUnpackObject (..),
+                                  NonZeroValue (..), (&), (&<>), (.:>), (.:>?), (.:?), (.:??), (.=),
+                                  (.=<))
 import Data.Algorand.MessagePack.Json (parseCanonicalJson, toCanonicalJson)
 import Data.Algorand.Transaction (GenesisHash, Transaction (..), serialiseTx)
 
@@ -76,14 +75,16 @@ verifySimple sig txn =
     Nothing -> False
     Just pk -> verify pk (serialiseTx txn) sig
 
-
 -- | Sign a transaction from a contract account.
 --
 -- Note: this function will overwrite the sender of the transaction!
 signFromContractAccount
-  :: ByteString  -- ^ Compiled contract code.
-  -> [ByteString]  -- ^ Program arguments.
-  -> Transaction  -- ^ Transaction to sign.
+  :: ByteString
+  -- ^ Compiled contract code.
+  -> [ByteString]
+  -- ^ Program arguments.
+  -> Transaction
+  -- ^ Transaction to sign.
   -> SignedTransaction
 signFromContractAccount lsLogic lsArgs txn = SignedTransaction{..}
   where
@@ -111,7 +112,6 @@ getSignature = stSig
 -- | Dangerous: returns a transaction without verifying the signature.
 getUnverifiedTransaction :: SignedTransaction -> Transaction
 getUnverifiedTransaction = stTxn
-
 
 
 {-

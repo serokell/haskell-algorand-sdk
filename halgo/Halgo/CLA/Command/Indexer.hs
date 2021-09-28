@@ -13,6 +13,7 @@ import Fmt ((+|), (|+))
 import Options.Applicative (Parser, command, help, hsubparser, info, long, metavar, optional,
                             progDesc, short, strOption)
 
+import qualified Network.Algorand.Api as Api
 import qualified Network.Algorand.Util as N
 
 import Data.Algorand.Address (Address)
@@ -40,6 +41,14 @@ indexerOpts = cmdIndexer <$> optIndexerHost <*> hsubparser (mconcat
     $ info (pure cmdIndexerHost)
     $ progDesc "Show the HOST of the indexer that will be used"
 
+  , command "version"
+    $ info (pure cmdIndexerVersion)
+    $ progDesc "Query the version information of the indexer"
+
+  , command "status"
+    $ info (pure cmdIndexerStatus)
+    $ progDesc "Show the status of the indexer that will be used"
+
   , command "fetch"
     $ info (hsubparser $ mconcat
       [ command "account"
@@ -52,7 +61,7 @@ indexerOpts = cmdIndexer <$> optIndexerHost <*> hsubparser (mconcat
 
       , command "block"
         $ info (cmdFetchBlock <$> optRound)
-        $ progDesc "Retrieve block"
+        $ progDesc "Retrieve block at given round"
       ])
     $ progDesc "Fetch data from the indexer"
   ])
@@ -72,6 +81,15 @@ cmdIndexer url sub = getIndexerHost url >>= sub
 -- | Display the URL that we will be using.
 cmdIndexerHost :: MonadSubCommand m => Host -> m ()
 cmdIndexerHost = putTextLn
+
+-- | Get indexer version.
+cmdIndexerVersion :: MonadSubCommand m => Host -> m ()
+cmdIndexerVersion url = withIndexer url $ \(v, _) -> putJson v
+
+-- | Get indexer status.
+cmdIndexerStatus :: MonadSubCommand m => Host -> m ()
+cmdIndexerStatus url = withIndexer url $ \(_, api) ->
+  Api._health api >>= putJson
 
 -- | Fetch information about an account.
 cmdIndexerFetchAccount

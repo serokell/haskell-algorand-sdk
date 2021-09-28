@@ -2,7 +2,7 @@
 --
 -- SPDX-License-Identifier: MPL-2.0
 
--- | Type definitions for CLA
+-- | Type definitions for CLA.
 module Halgo.CLA.Type
   ( GlobalOptions(..)
   , SubCommand

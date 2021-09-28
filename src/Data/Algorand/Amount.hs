@@ -15,7 +15,6 @@ import GHC.Generics (Generic)
 
 import Data.Algorand.MessagePack (AlgoMessagePack (..), CanonicalZero, NonZeroValue)
 
-
 -- | Amount of microAlgos.
 newtype Microalgos = Microalgos Word64
   deriving (Bounded, CanonicalZero, Default, Enum, Eq, Generic, Integral, NonZeroValue, Num, Ord, Real)
@@ -31,7 +30,6 @@ instance ToJSON Microalgos where
 
 instance FromJSON Microalgos where
   parseJSON o = Microalgos <$> parseJSON o
-
 
 -- | Create an amount of 'Microalgos'.
 microAlgos :: Word64 -> Microalgos

@@ -27,7 +27,7 @@ import Data.Algorand.MessagePack (AlgoMessagePack (..), MessagePackObject (..),
 import Data.Algorand.MessagePack.Json (parseCanonicalJson, toCanonicalJson)
 import Network.Algorand.Api.Json ()
 
--- | Types of transaction signatures.
+-- | Types of signatures.
 data SignatureType
   = SignatureSimple Signature
   | SignatureMulti MultiSignature
@@ -42,7 +42,7 @@ signatureType = \case
   "SignatureSimple" -> "sig"
   "SignatureMulti" -> "msig"
   "SignatureLogic" -> "lsig"
-  x -> error $ "Unmapped transaction signature constructor: " <> x
+  x -> error $ "Unmapped signature constructor: " <> x
 
 instance MessagePackObject SignatureType where
   toCanonicalObject = \case
@@ -105,6 +105,7 @@ instance FromJSON Signature where
       Nothing -> parseFail "Malformed signature"
       Just sig -> pure sig
 
+-- | Create signature from bytes.
 sigFromBytes
   :: ByteArrayAccess sigBytes
   => sigBytes

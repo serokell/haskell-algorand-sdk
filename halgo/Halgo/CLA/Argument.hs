@@ -2,7 +2,7 @@
 --
 -- SPDX-License-Identifier: MPL-2.0
 
--- | Arguments for commands
+-- | Common arguments for commands.
 module Halgo.CLA.Argument
   ( argSecretFile
   , argProgramSourceFile

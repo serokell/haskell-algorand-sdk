@@ -24,7 +24,7 @@ import Servant.Client.Generic (AsClientT, genericClientHoist)
 
 import qualified Network.Algorand.Api as Api
 
-import Network.Algorand.Api (IndexerApi(..), NodeApi(..), Health (..), Version (..))
+import Network.Algorand.Api (Health (..), IndexerApi (..), NodeApi (..), Version (..))
 import Network.Algorand.Definitions (Host, Network, NetworkError (WrongNetwork))
 
 apiClient
@@ -40,9 +40,6 @@ apiClient env = genericClientHoist $ \x ->
 newtype AlgoNode = AlgoNode
   { getAlgoNode :: forall m . MonadIO m => NodeApi (AsClientT m)
   }
-
--- TODO: remove Network argument and return value OR restore network/version check
--- (we are waiting for a response from RandLabs).
 
 -- | Connect to a node.
 connectToNode

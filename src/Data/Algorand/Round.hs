@@ -13,6 +13,7 @@ import Servant.API (ToHttpApiData)
 
 import Data.Algorand.MessagePack (AlgoMessagePack (..), CanonicalZero, NonZeroValue)
 
+-- | Algorand round.
 newtype Round = Round { unRound :: Word64 }
   deriving stock (Eq, Ord, Show)
   deriving newtype (Enum, Num, ToHttpApiData, ToJSON, FromJSON, CanonicalZero, NonZeroValue)

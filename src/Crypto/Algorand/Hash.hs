@@ -2,7 +2,7 @@
 --
 -- SPDX-License-Identifier: MPL-2.0
 
--- | Hashing used in Algorand
+-- | Hashing used in Algorand.
 module Crypto.Algorand.Hash
   ( hash32
   ) where

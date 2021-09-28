@@ -2,7 +2,7 @@
 --
 -- SPDX-License-Identifier: MPL-2.0
 
--- | Flags for commands
+-- | Common flags for commands.
 module Halgo.CLA.Flag
   ( flagB64
   , flagJson
