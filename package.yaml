@@ -54,7 +54,7 @@ library:
 
 executables:
   halgo:
-    source-dirs: app/halgo
+    source-dirs: halgo
     main: Main.hs
 
     dependencies:
@@ -76,7 +76,7 @@ executables:
 
 tests:
   algorand-lib-test:
-    source-dirs: test/algorand-lib
+    source-dirs: test
     main: Main.hs
 
     dependencies:

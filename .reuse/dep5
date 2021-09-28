@@ -4,6 +4,6 @@ Files: .github/*
 Copyright: 2021 Serokell <https://serokell.io>
 License: CC0-1.0
 
-Files: test/algorand-lib/resources/*
+Files: test/resources/*
 Copyright: 2021 Serokell <https://serokell.io>
 License: CC0-1.0

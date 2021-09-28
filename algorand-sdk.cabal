@@ -135,7 +135,7 @@ executable halgo
       Halgo.Util
       Paths_algorand_sdk
   hs-source-dirs:
-      app/halgo
+      halgo
   default-extensions:
       AllowAmbiguousTypes
       BangPatterns
@@ -205,7 +205,7 @@ test-suite algorand-lib-test
       Test.Network.Algorand.Indexer.Golden
       Paths_algorand_sdk
   hs-source-dirs:
-      test/algorand-lib
+      test
   default-extensions:
       AllowAmbiguousTypes
       BangPatterns
