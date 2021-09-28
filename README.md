@@ -4,57 +4,61 @@
 
 A Haskell SDK for the Algorand blockchain.
 
-Tools for working with transactions on the Algorand blockchain
-and interacting with algod through its REST API.
+Tools for working with transactions on the Algorand blockchain and interacting
+with algo's node and indexer through its REST API.
 
 
 ## Use
 
 ### As a library
 
-* Add `algorand-sdk` as a dependency to your packge.
+* Add `algorand-sdk` as a dependency to your package.
 * Follow the documentation and have a look at the example CLI app.
 
 ### As a CLI tool
 
-* Install `algorand-sdk` using your favourite Haskell package manager.
-* The binary will be called `halgo`.
+* Install `algorand-sdk` using your favorite Haskell package manager.
+* The binary will be called `halgo`; type `halgo --help` to see available commands.
 
 #### Creating an account
 
-Use `halgo acc new <file>` to create a new account and save its key to the file:
+Use `halgo account new <file>` to create a new account and save its key to the file:
 
 ```text
-$ halgo acc new ./example.acc
+$ halgo account new ./example.acc
 HNVCPPGOW2SC2YVDVDICU3YNONSTEFLXDXREHJR2YBEKDC2Z3IUZSC6YGI
 ```
 
 It prints the address of your account. You can view the address anytime
-using `halgo acc show <file>`:
+using `halgo account show <file>`:
 
 ```text
-$ halgo acc show ./example.acc
+$ halgo account show ./example.acc
 HNVCPPGOW2SC2YVDVDICU3YNONSTEFLXDXREHJR2YBEKDC2Z3IUZSC6YGI
 ```
 
-You can use the address to top-up your account
-(for example, using the [faucet] on Testnet).
+You can use the address to top-up your account (for example, using the [faucet]
+on Testnet).
 
 [faucet]: https://bank.testnet.algorand.network/
 
-#### Talking to a node
+#### Talking to a node and indexer
 
-`halgo` can talk to `algod` using its REST API. The commands for talking
-to a node all start with `halgo node`.
+`halgo` can talk to algo node and indexer using its REST API:
+* The commands for talking to a node all start with `halgo node`.
+* The commands for talking to an indexer all start with `halgo indexer`.
 
+* Use `--help` to see all available commands.
 * Use `--network` to choose what network (genesis ID) to connect to.
-* Use `--url` to give the URL of the API of the node.
 * If network is one of the well-known public ones (`mainnet-v1.0`,
   `testnet-v1.0`, `betanet-v1.0`), giving URL is optional as AlgoExplorer
   nodes will be used by default.
-*  `--network` is `testnet-v1.0` by default.
+* `--network` is `testnet-v1.0` by default.
 
-Use `algo node url` to see the URL of the chosen node:
+* Use `-n` or `--node-host` to give the URL of the API of the node.
+* Use `-i` or `--indexer-host` to give the URL of the API of the indexer.
+
+Use `halgo node host` to see the URL of the chosen node:
 
 ```text
 $ halgo node host
@@ -67,7 +71,11 @@ $ halgo --network mainnet-v1.0 node --node-host https://example.com/ host
 https://example.com/
 ```
 
-Use `halgo node version` and `halgo node status` to get basic information about the node:
+Same for indexer (`halgo indexer host`)!
+
+
+Use `halgo node version` and `halgo node status` to get basic information about
+the node:
 
 ```text
 $ halgo node version
@@ -93,30 +101,83 @@ $ halgo node status
 }
 ```
 
-Use `halgo node block --round N` to get information about block:
+Use `halgo indexer version` and `halgo indexer status` to get basic information
+about the indexer:
 
 ```text
-$ halgo node block --round 1
-Retrieved block for round 1 created at 2019-06-10 23:48:00 UTC with txs:
+$ halgo indexer version
+"testnet-v1.0"
+
+$ halgo indexer status
 {
-    "gh": "SGO1GKSzyE7IEPItTxCByw9x8FmnrCDexi9/cOUJOiI=",
-    "lv": 1000,
-    "amt": 100000000,
-    "fee": 10000,
-    "gen": "testnet-v1.0",
-    "rcv": "3NVE2MK2QYZQFOZ5XIRQTM7JRHNPUBV7QKLYLT7OO6QXFHXMRIAUXXNCBM",
-    "type": "pay",
-    "snd": "GD64YIY3TWGDMCNPP553DZPPR6LDUSFQOIJVFDPPXWEG3FVOJCCDBBHU5A"
+    "round": 16937938,
+    "db-available": true,
+    "genesis-id": "testnet-v1.0",
+    "is-migrating": false,
+    "genesis-hash": "SGO1GKSzyE7IEPItTxCByw9x8FmnrCDexi9/cOUJOiI=",
+    "version": "1.1.2",
+    "message": "16937938"
+}
+```
+
+#### Fetch block information
+
+Use `halgo indexer fetch block --round N` to get information about block:
+
+```text
+$ halgo indexer fetch block --round 1
+{
+    "transactions-root": "LN9CHN+zm1OHdoF2SPpftJW9YI2J/F0Zv/FJsNdAheA=",
+    "transactions": [
+        {
+            "signature": {
+                "sig": "tlAccbsxpTazfxt3Yu69Li98QvH6nDAPNHdU8LUkpBLxu1umNePq0NwfHbrtv3hW4dxKQw32SbszeMrv5X64Cg=="
+            },
+            "confirmed-round": 1,
+            "created-application-index": null,
+            "intra-round-offset": 0,
+            "group": null,
+            "sender-rewards": 0,
+            "genesis-id": null,
+            "note": null,
+            "receiver-rewards": 0,
+            "sender": "GD64YIY3TWGDMCNPP553DZPPR6LDUSFQOIJVFDPPXWEG3FVOJCCDBBHU5A",
+            "payment-transaction": {
+                "amount": 100000000,
+                "close-remainder-to": null,
+                "receiver": "3NVE2MK2QYZQFOZ5XIRQTM7JRHNPUBV7QKLYLT7OO6QXFHXMRIAUXXNCBM"
+            },
+            "fee": 10000,
+            "lease": null,
+            "last-valid": 1000,
+            "genesis-hash": null,
+            "close-rewards": 0,
+            "closing-amount": 0,
+            "id": "QOOBRVQMX4HW5QZ2EGLQDQCQTKRF3UP3JKDGKYPCXMI6AVV35KQA",
+            "created-asset-index": null,
+            "rekey-to": null,
+            "auth-addr": null,
+            "tx-type": "pay",
+            "first-valid": 0
+        }
+    ],
+    "seed": "sBoIA83cUpa8jNOdqmGClw85y0bYcFhfmKzrnxmhgdc=",
+    "round": 1,
+    "genesis-id": "testnet-v1.0",
+    "genesis-hash": "SGO1GKSzyE7IEPItTxCByw9x8FmnrCDexi9/cOUJOiI=",
+    "previous-block-hash": "G8RmwKHb8iQahvMCvwJVZuI97pdN/dvSIkr7ZCI0AlM=",
+    "txn-counter": 0,
+    "timestamp": 1560210480
 }
 ```
 
 #### Check your balance
 
-`halgo node fetch` queries node for information about an account. The output
-is formatted as JSON. Here is an easy way to check your balance:
+`halgo indexer fetch account` queries indexer for information about an account.
+The output is formatted as JSON. Here is an easy way to check your balance:
 
 ```text
-$ halgo node fetch acc $(halgo acc show ./example.acc) | jq '.amount'
+$ halgo indexer fetch account $(halgo account show ./example.acc) | jq '.account.amount'
 100000000
 ```
 
@@ -128,14 +189,14 @@ you have an account in `./example.acc` with some algos on it.
 Let‘s create a second account:
 
 ```text
-$ halgo acc new ./another.acc
+$ halgo account new ./another.acc
 OFQHFQX6FMW4ELREN57QSH5U5LN63EGLZIFF7TEKIF5YWMNTPMXZ6BUSNE
 ```
 
 Now let’s create a payment transaction sending 100k microalgos to this new account:
 
 ```text
-$ halgo txn new pay $(halgo acc show ./another.acc) 100000 > /tmp/transaction
+$ halgo txn new pay $(halgo account show ./another.acc) 100000 > /tmp/transaction
 ```
 
 We saved the transaction to a file so we can look into it and see that it is
@@ -151,14 +212,13 @@ $ cat /tmp/transaction | halgo txn show-unsigned
     "fee": 1000,
     "gen": "testnet-v1.0",
     "rcv": "OFQHFQX6FMW4ELREN57QSH5U5LN63EGLZIFF7TEKIF5YWMNTPMXZ6BUSNE",
-    "type": "pay",
-    "snd": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAY5HFKQ"
+    "type": "pay"
 }
 ```
 
-You might wonder what’s up with the sender address. Well, when creating the
-transaction we only specified the receiver’s address. The sender will get
-filled in once we sign it. Let’s do just that:
+You might wonder where is a sender address. Well, when creating the transaction
+we only specified the receiver’s address. The sender will get filled in once we
+sign it. Let’s do just that:
 
 ```text
 $ cat /tmp/transaction | halgo txn sign ./example.acc
@@ -204,7 +264,7 @@ Confirmed in round 12717084
 and even fetch the transaction from the node (as long as it remains in its pool):
 
 ```text
-$ halgo node fetch txn $TXN_ID
+$ halgo node fetch $TXN_ID
 {
     "txn": {
         "gh": "SGO1GKSzyE7IEPItTxCByw9x8FmnrCDexi9/cOUJOiI=",
@@ -226,8 +286,8 @@ $ halgo node fetch txn $TXN_ID
 Let’s create two payment transactions:
 
 ```text
-$ halgo txn new pay $(halgo acc show ./another.acc) 100000 > /tmp/txs
-$ halgo txn new pay $(halgo acc show ./another.acc) 200000 >> /tmp/txs
+$ halgo txn new pay $(halgo account show ./another.acc) 100000 > /tmp/txs
+$ halgo txn new pay $(halgo account show ./another.acc) 200000 >> /tmp/txs
 ```
 
 We simply wrote two transactions into the same file.
@@ -241,11 +301,11 @@ and set the sender field ourselves.
 Luckily, it can be done relatively easily, since many `halgo` commands support JSON:
 
 ```text
-$ cat /tmp/txs | halgo txn show-unsigned | jq '.[].snd = "'$(halgo acc show ./example.acc)'"' > /tmp/txs.fixed
+$ cat /tmp/txs | halgo txn show-unsigned | jq '.[].snd = "'$(halgo account show ./example.acc)'"' > /tmp/txs.fixed
 ```
 
-(Alternatively, you can just save the transactions as JSON into a file
-and edit using your text editor.)
+(Alternatively, you can just save the transactions as JSON into a file and edit
+using your text editor.)
 
 Now we call `halgo txn group` to calculate and set the group ID on each of
 our transactions in the file (note the `--json` flag as by default it
@@ -255,8 +315,8 @@ expects input transactions encoded as base64):
 $ cat /tmp/txs.fixed | halgo txn group --json > /tmp/group
 ```
 
-We can use `halgo txn show-unsigned` to make sure that the transactions
-now have their `grp` field set to the same value:
+We can use `halgo txn show-unsigned` to make sure that the transactions now have
+their `grp` field set to the same value:
 
 ```text
 $ cat /tmp/group | halgo txn show-unsigned | jq '.[].grp'
@@ -264,9 +324,9 @@ $ cat /tmp/group | halgo txn show-unsigned | jq '.[].grp'
 "nTYG+OjVGy6xXHea1l59aSWE0PwkrziW8kgB88tcdQU="
 ```
 
-`halgo txn group` also has the `--check` flag that makes it verify that
-the transactions form a valid group (it will output the same group again,
-so we silence it by redirecting output to `/dev/null`):
+`halgo txn group` also has the `--check` flag that makes it verify that the
+transactions form a valid group (it will output the same group again, so we
+silence it by redirecting output to `/dev/null`):
 
 ```text
 $ cat /tmp/group | halgo txn group --check >/dev/null && echo OK
@@ -300,9 +360,9 @@ Writing compiled program to `/tmp/true.teal.tok`
 6Z3C3LDVWGMX23BMSYMANACQOSINPFIRF77H7N3AWJZYV6OH6GWTJKVMXY
 ```
 
-It prepends the `.tok` suffix to the source code file name and puts
-raw binary data into that new file. It also prints the address
-of the account corresponding to the contract with this code.
+It prepends the `.tok` suffix to the source code file name and puts raw binary
+data into that new file. It also prints the address of the account corresponding
+to the contract with this code.
 
 Once you have the compiled code, you can get its address again any time:
 
@@ -317,7 +377,7 @@ Let’s make it send some of its algos to you.
 You can use `halgo txn lsign` to sign a transaction with a Logic Signature:
 
 ```text
-$ halgo txn new pay $(halgo acc show ./example.acc) 100 | halgo txn lsign /tmp/true.teal.tok | halgo node send
+$ halgo txn new pay $(halgo account show ./example.acc) 100 | halgo txn lsign /tmp/true.teal.tok | halgo node send
 BVFGYILJKW2J5SWSVMZFZDEXWOLUUENDRW67WOQDDXUR7CUGQBBA
 ```
 
@@ -333,8 +393,8 @@ pull request, if you feel like doing so.
 ### Development
 
 This SDK currently only supports a limited set of transaction types.
-Adding new transaction types should be easy as defining all the datatypes
-according to the specification and implementing serialisation. Serialisation
+Adding new transaction types should be easy as defining all the data types
+according to the specification and implementing serialization. Serialization
 is just a bunch of boilerplate code that follows the same pattern for
 all data types (it is absolutely possible to generate it using Generics
 and, hopefully, this will happen in the future). See `Data.Algorand.Transaction`.

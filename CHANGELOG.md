@@ -14,6 +14,8 @@ SPDX-License-Identifier: MPL-2.0
     * Microalgo amounts
     * Signing keys
     * Addresses
+    * Block
+    * Round
 * Transaction types:
     * Payment transactions
     * Application call transactions
@@ -21,26 +23,41 @@ SPDX-License-Identifier: MPL-2.0
 * Canonical MessagePack serialisation
 * Signing and signature verification (only for simple single signatures)
 * Transaction groups
-* REST API client:
-    * `/health`
+* Node API client:
     * `/versions`
-    * `/v2/accounts/:address`
-    * `/v2/transactions/params`
+    * `/status`
+    * `/v2/blocks/:round` (DEPRECATED: for compatibility purposes only)
+    * `/v2/accounts/:address` (DEPRECATED: for compatibility purposes only)
     * `/v2/transactions` (POST)
     * `/v2/transactions` (POST) (raw)
+    * `/v2/transactions/params`
     * `/v2/transactions/pending/:txid`
+    * `/v2/teal/compile` (POST)
+* Indexer API client:
+    * `/health`
+    * `/v2/accounts/:address?:round`
+    * `/v2/blocks/:round`
 * CLI:
-    * `halgo acc`
+    * `halgo account`
         * `new`
         * `show`
         * `export`
+    * `halgo contract`
+        * `compile`
+        * `address`
     * `halgo node`
-        * `url`
+        * `host`
         * `version`
-        * `fetch acc`
-        * `fetch txn
+        * `status`
+        * `fetch`
         * `send`
         * `txn-status`
+    * `halgo indexer`
+        * `host`
+        * `version`
+        * `status`
+        * `fetch account`
+        * `fetch block`
     * `halgo txn`
         * `show`
         * `show-unsigned`
@@ -50,6 +67,3 @@ SPDX-License-Identifier: MPL-2.0
         * `new pay`
         * `new axfr`
         * `group`
-    * `halgo contract`
-        * `compile`
-        * `address`
