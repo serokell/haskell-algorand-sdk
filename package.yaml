@@ -9,12 +9,11 @@ description: |
   Tools for working with transactions on the Algorand blockchain
   and interacting with algod through its REST API.
 category: Algorand, Finance, Blockchain
-
 author: Kirill Elagin <kirelagin@serokell.io>
 copyright: 2021 Serokell
 license-file: LICENSES/MPL-2.0.txt
 
-github: serokell/haskell-algorand
+github: serokell/haskell-algorand-sdk
 
 extra-source-files:
   - CHANGELOG.md
@@ -120,8 +119,8 @@ default-extensions:
   - MultiParamTypeClasses
   - MultiWayIf
   - NamedFieldPuns
-  - OverloadedStrings
   - OverloadedLabels
+  - OverloadedStrings
   - PatternSynonyms
   - RankNTypes
   - RecordWildCards
@@ -129,11 +128,11 @@ default-extensions:
   - StandaloneDeriving
   - TemplateHaskell
   - TupleSections
+  - TypeApplications
   - TypeFamilies
   - TypeOperators
   - UndecidableInstances
   - ViewPatterns
-  - TypeApplications
 
 ghc-options:
   - -Wall
