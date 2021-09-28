@@ -4,7 +4,15 @@
 
 {-# OPTIONS_GHC -Wno-incomplete-uni-patterns #-}
 
-module Test.Data.Algorand.Transaction.Signed where
+module Test.Data.Algorand.Transaction.Signed
+  ( unit_sign_as_contract
+
+  , hprop_sign_verify_simple
+  , hprop_signSimple_sets_sender
+  , hprop_sign_verify_contract
+  , hprop_signFromContractAccount_sets_sender
+  , hprop_json_encode_decode
+  ) where
 
 import Data.Aeson (fromJSON, toJSON)
 import Data.ByteString (ByteString)
@@ -26,6 +34,15 @@ import Test.Crypto.Algorand.Signature (genSecretKeyBytes)
 import Test.Data.Algorand.Program (genProgram)
 import Test.Data.Algorand.Transaction (genTransaction)
 import Test.Data.Algorand.Transaction.Examples (example_21)
+
+unit_sign_as_contract :: Assertion
+unit_sign_as_contract = do
+    -- Generated using Python SDK.
+    let program = "\x01\x20\x01\x01\x22"
+    let signed = signFromContractAccount program [] example_21
+    encodeBase64 (BSL.toStrict . MP.pack . MP.Canonical $ signed) @?= expected
+  where
+    expected = "gqRsc2lngaFsxAUBIAEBIqN0eG6KpGFwYWGRxAR0ZXN0pGFwYXSSxCAAKjIBO2ow437iiFQk7n19BVXq4JOftpr8a9+d0v7n/sQgAAcEC49iozKw4AXwAsjApRY0aAEKMVgnxs9SfHhpeeekYXBmYZLNFbPNGgqkYXBpZGSjZmVlzQTSomZ2zSMoomdoxCAx/SHrOOQQgRk+00zfOyuD6IdAVLR9nGGCvvDfkjjrg6Jsds0jMqNzbmTEIPZ2Lax1sZl9bCyWGAaAUHSQ15URL/5/t2Cyc4r5x/GtpHR5cGWkYXBwbA=="
 
 
 hprop_sign_verify_simple :: Property
@@ -57,8 +74,6 @@ hprop_signFromContractAccount_sets_sender = property $ do
   let tx' = getUnverifiedTransaction $ signFromContractAccount program [] tx
   tSender tx' === fromContractCode program
 
-
-
 data Signer
   = SignerSimple SecretKey
   | SignerContract ByteString
@@ -81,14 +96,3 @@ hprop_json_encode_decode = property $ do
   signer <- forAll genSigner
   tx <- forAll genTransaction
   tripping (signerSign signer tx) toJSON fromJSON
-
-
-
-unit_sign_as_contract :: Assertion
-unit_sign_as_contract = do
-    -- Generated using Python SDK.
-    let program = "\x01\x20\x01\x01\x22"
-    let signed = signFromContractAccount program [] example_21
-    encodeBase64 (BSL.toStrict . MP.pack . MP.Canonical $ signed) @?= expected
-  where
-    expected = "gqRsc2lngaFsxAUBIAEBIqN0eG6KpGFwYWGRxAR0ZXN0pGFwYXSSxCAAKjIBO2ow437iiFQk7n19BVXq4JOftpr8a9+d0v7n/sQgAAcEC49iozKw4AXwAsjApRY0aAEKMVgnxs9SfHhpeeekYXBmYZLNFbPNGgqkYXBpZGSjZmVlzQTSomZ2zSMoomdoxCAx/SHrOOQQgRk+00zfOyuD6IdAVLR9nGGCvvDfkjjrg6Jsds0jMqNzbmTEIPZ2Lax1sZl9bCyWGAaAUHSQ15URL/5/t2Cyc4r5x/GtpHR5cGWkYXBwbA=="

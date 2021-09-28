@@ -145,7 +145,8 @@ cmdNodeSend json url = do
 -- | Get txn status
 cmdNodeTxnStatus :: MonadSubCommand m => Text -> Host -> m ()
 cmdNodeTxnStatus txId url = withNode url $ \(_, api) ->
-  N.transactionStatus <$> Api._transactionsPending api txId >>= \case
+  Api._transactionsPending api txId >>= (\case
     N.Waiting -> putTextLn "Waiting"
     N.KickedOut reason -> die $ "Kicked out: "+|reason|+""
     N.Confirmed r -> putTextLn . pretty $ "Confirmed in round " <> show r
+  ) . N.transactionStatus

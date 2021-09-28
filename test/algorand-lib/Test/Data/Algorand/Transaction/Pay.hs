@@ -4,7 +4,9 @@
 
 {-# OPTIONS_GHC -Wno-incomplete-uni-patterns #-}
 
-module Test.Data.Algorand.Transaction.Pay where
+module Test.Data.Algorand.Transaction.Pay
+  ( unit_encoding
+  ) where
 
 import Data.ByteString (ByteString)
 import Data.ByteString.Lazy (fromStrict)
@@ -15,7 +17,6 @@ import Data.Algorand.MessagePack (Canonical (Canonical))
 import Data.Algorand.Transaction (Transaction (..), TransactionType (..))
 
 import Test.Data.Algorand.Transaction.Examples (genesisHashFromBytes, result)
-
 
 -- These were generated using the Python SDK.
 

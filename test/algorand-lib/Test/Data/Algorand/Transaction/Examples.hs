@@ -5,7 +5,19 @@
 
 {-# OPTIONS_GHC -Wno-incomplete-uni-patterns -Wno-incomplete-record-updates #-}
 
-module Test.Data.Algorand.Transaction.Examples where
+module Test.Data.Algorand.Transaction.Examples
+  ( genesisHash
+  , sender
+  , example_21
+
+  , unit_example_21
+  , unit_example_21_encoding
+  , unit_example_21_id
+  , unit_example_22
+  , unit_example_23
+  , genesisHashFromBytes
+  , result
+  ) where
 
 import Data.ByteArray (convert)
 import Data.ByteArray.Sized (sizedByteArray)
@@ -21,13 +33,11 @@ import Data.Algorand.Transaction (GenesisHash, StateSchema (..), Transaction (..
                                   TransactionType (..), OnComplete (..), transactionId)
 import Data.Algorand.Transaction.Signed (getUnverifiedTransaction, verifyTransaction)
 
-
 sender :: Address
 sender = "BH55E5RMBD4GYWXGX5W5PJ5JAHPGM5OXKDQH5DC4O2MGI7NW4H6VOE4CP4"
 
 genesisHash :: GenesisHash
 genesisHash = genesisHashFromBytes "Mf0h6zjkEIEZPtNM3zsrg+iHQFS0fZxhgr7w35I464M="
-
 
 {-
  - Examples are numbered using the line numbers in the original file.
@@ -84,7 +94,6 @@ example_21_expected = result
 unit_example_21 :: Assertion
 unit_example_21 = try_example example_21 example_21_expected
 
-
 example_22 :: Transaction
 example_22 = example_21
   { tTxType = (tTxType example_21)
@@ -100,7 +109,6 @@ example_22_expected = result
 unit_example_22 :: Assertion
 unit_example_22 = try_example example_22 example_22_expected
 
-
 example_23 :: Transaction
 example_23 = example_21
   { tTxType = (tTxType example_21)
@@ -115,8 +123,6 @@ example_23_expected = result
 unit_example_23 :: Assertion
 unit_example_23 = try_example example_23 example_23_expected
 
-
-
 {-
  - Testing utils
  -}
@@ -128,7 +134,6 @@ try_example tx encoded = do
   case verifyTransaction signed of
     Nothing -> assertFailure "Signature verification failed"
     Just tx' -> tx' @?= tx
-
 
 {-
  - Decoding utils

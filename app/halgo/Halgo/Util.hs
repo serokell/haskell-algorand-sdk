@@ -5,7 +5,6 @@
 -- | Utils.
 module Halgo.Util
   ( die
-  , handleApiError
   , withNode
   , withIndexer
   ) where

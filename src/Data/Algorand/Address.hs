@@ -85,9 +85,7 @@ instance ToJSON Address where
   toJSON = toJSON . toText
 
 instance FromJSON Address where
-  parseJSON o = parseJSON o >>= \t -> case fromText t of
-    Just a -> pure a
-    Nothing -> empty
+  parseJSON o = parseJSON o >>= \t -> maybe empty pure (fromText t)
 
 -- | Dummy zero address. Can be used as a placeholder value.
 zero :: Address

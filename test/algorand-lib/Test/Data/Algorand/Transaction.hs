@@ -4,7 +4,14 @@
 
 {-# OPTIONS_GHC -Wno-incomplete-uni-patterns #-}
 
-module Test.Data.Algorand.Transaction where
+module Test.Data.Algorand.Transaction
+  ( genTransaction
+
+  , unit_simple
+
+  , hprop_canonical_encode_decode
+  , hprop_json_encode_decode
+  ) where
 
 import qualified Hedgehog.Gen as G
 import qualified Hedgehog.Range as R
@@ -21,12 +28,39 @@ import Hedgehog (MonadGen, Property, forAll, property, tripping)
 import Test.Tasty.HUnit (Assertion, (@?=))
 
 import Data.Algorand.Address (Address, fromPublicKey)
-import Data.Algorand.MessagePack (Canonical (Canonical, unCanonical), EitherError)
+import Data.Algorand.MessagePack (Canonical (..), EitherError)
 import Data.Algorand.Round (Round (..))
 import Data.Algorand.Transaction (OnComplete(..), StateSchema (..), Transaction (..), TransactionType (..))
 
 import Test.Crypto.Algorand.Signature (genPublicKey)
 import Test.Data.Algorand.Transaction.Examples (genesisHash, sender)
+
+unit_simple :: Assertion
+unit_simple = do
+    toStrict (pack $ Canonical txn) @?= encoded_bytes
+  where
+    txn :: Transaction
+    txn = Transaction
+      { tSender = sender
+      , tFee = 1000
+      , tFirstValid = 5000
+      , tLastValid = 5100
+      , tNote = Nothing
+      , tGenesisId = Nothing
+      , tGenesisHash = Just genesisHash
+
+      , tTxType = PaymentTransaction
+        { ptReceiver = sender
+        , ptAmount = 500
+        , ptCloseRemainderTo = Nothing
+        }
+      , tGroup = Nothing
+      , tLease = Nothing
+      , tRekeyTo = Nothing
+      }
+
+    encoded = "iKNhbXTNAfSjZmVlzQPoomZ2zROIomdoxCAx/SHrOOQQgRk+00zfOyuD6IdAVLR9nGGCvvDfkjjrg6Jsds0T7KNyY3bEIAn70nYsCPhsWua/bdenqQHeZnXXUOB+jFx2mGR9tuH9o3NuZMQgCfvSdiwI+Gxa5r9t16epAd5mdddQ4H6MXHaYZH224f2kdHlwZaNwYXk="
+    Right encoded_bytes = decodeBase64 encoded
 
 
 genAddress :: MonadGen m => m Address
@@ -100,31 +134,3 @@ hprop_json_encode_decode :: Property
 hprop_json_encode_decode = property $ do
   tx <- forAll genTransaction
   tripping tx toJSON fromJSON
-
-
-unit_simple :: Assertion
-unit_simple = do
-    toStrict (pack $ Canonical txn) @?= encoded_bytes
-  where
-    txn :: Transaction
-    txn = Transaction
-      { tSender = sender
-      , tFee = 1000
-      , tFirstValid = 5000
-      , tLastValid = 5100
-      , tNote = Nothing
-      , tGenesisId = Nothing
-      , tGenesisHash = Just genesisHash
-
-      , tTxType = PaymentTransaction
-        { ptReceiver = sender
-        , ptAmount = 500
-        , ptCloseRemainderTo = Nothing
-        }
-      , tGroup = Nothing
-      , tLease = Nothing
-      , tRekeyTo = Nothing
-      }
-
-    encoded = "iKNhbXTNAfSjZmVlzQPoomZ2zROIomdoxCAx/SHrOOQQgRk+00zfOyuD6IdAVLR9nGGCvvDfkjjrg6Jsds0T7KNyY3bEIAn70nYsCPhsWua/bdenqQHeZnXXUOB+jFx2mGR9tuH9o3NuZMQgCfvSdiwI+Gxa5r9t16epAd5mdddQ4H6MXHaYZH224f2kdHlwZaNwYXk="
-    Right encoded_bytes = decodeBase64 encoded
