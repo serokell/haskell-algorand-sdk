@@ -38,6 +38,12 @@
 
       hs-package-name = "algorand-sdk";
 
+      jailbreakUnbreak = pkg:
+        pkgs.haskell.lib.doJailbreak (pkg.overrideAttrs (_: { meta = { }; }));
+
+
+      stack2cabal = jailbreakUnbreak pkgs.haskellPackages.stack2cabal;
+
       # invoke haskell.nix
       hs-pkgs = pkgs.haskell-nix.stackProject {
         src = pkgs.haskell-nix.haskellLib.cleanGit {
@@ -114,6 +120,10 @@
         reuse-lint = pkgs.build.reuseLint ./.;
         # runs the test
         test = hs-pkg.checks.algorand-lib-test;
+      };
+
+      devShell.x86_64-linux = pkgs.mkShell {
+        buildInputs = [ stack2cabal ];
       };
 
       # script for running weeder
