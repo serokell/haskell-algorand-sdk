@@ -1,5 +1,7 @@
 # Algorand (`haskell-algorand-sdk`)
 
+[![Build status](https://badge.buildkite.com/fee949a1cd2d80a51deb17fe28c2d8b367255344e870dcf87a.svg)](https://buildkite.com/serokell/haskell-algorand-sdk)
+
 A Haskell SDK for the Algorand blockchain.
 
 Tools for working with transactions on the Algorand blockchain

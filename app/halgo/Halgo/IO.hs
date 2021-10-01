@@ -8,7 +8,6 @@ module Halgo.IO
   , putJson
   , putNoticeLn
 
-  , readBytesB64
   , readItemsJson
   , readItemsB64
 

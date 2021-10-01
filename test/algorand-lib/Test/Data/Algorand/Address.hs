@@ -4,13 +4,20 @@
 
 {-# OPTIONS_GHC -Wno-incomplete-uni-patterns #-}
 
-module Test.Data.Algorand.Address where
+module Test.Data.Algorand.Address
+  ( unit_decode_example_address
+  , unit_encode_example_address_bytes
+  , unit_example_pk_address
+  , unit_example_address_pk
+  , unit_example_program_address
+
+  , hprop_to_from_address
+  ) where
 
 import Control.Monad ((>=>))
 import Data.ByteString (ByteString)
 import Data.ByteString.Base32 (decodeBase32, encodeBase32Unpadded)
 import Data.Maybe (fromJust)
-
 import Hedgehog (Property, forAll, property, tripping)
 import Test.HUnit (Assertion)
 import Test.Tasty.HUnit ((@?=))

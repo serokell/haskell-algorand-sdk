@@ -4,7 +4,9 @@
 
 {-# OPTIONS_GHC -Wno-incomplete-uni-patterns #-}
 
-module Test.Data.Algorand.Transaction.AssetTransfer where
+module Test.Data.Algorand.Transaction.AssetTransfer
+  ( unit_encoding
+  ) where
 
 import Data.ByteString (ByteString)
 import Data.ByteString.Lazy (fromStrict)
