@@ -7,7 +7,6 @@ module Halgo.CLA.Command.Indexer
   ( indexerOpts
   ) where
 
-
 import Control.Monad.Reader (asks)
 import Fmt ((+|), (|+))
 import Options.Applicative (Parser, command, help, hsubparser, info, long, metavar, optional,
@@ -17,7 +16,7 @@ import qualified Network.Algorand.Api as Api
 import qualified Network.Algorand.Util as N
 
 import Data.Algorand.Address (Address)
-import Data.Algorand.Round (Round)
+import Data.Algorand.Round (Round (..))
 import Network.Algorand.Definitions (DefaultHost (ahIndexer), Host, getDefaultHost)
 
 import Halgo.CLA.Argument (argAddress)
@@ -96,9 +95,13 @@ cmdIndexerFetchAccount
   :: MonadSubCommand m
   => Address -> Maybe Round -> Host -> m ()
 cmdIndexerFetchAccount addr rnd url = withIndexer url $ \(_, api) ->
-  N.getAccountAtRound api addr rnd >>= putJson
+  N.getAccountAtRound api addr rnd >>= \case
+    Just d -> putJson d
+    Nothing -> putJson $ "Account " <> show addr <> "is not found"
 
--- | Print block info.
+-- | Fetch information about a block.
 cmdFetchBlock :: MonadSubCommand m => Round -> Host -> m ()
 cmdFetchBlock rnd url = withIndexer url $ \(_, api) ->
-  N.getBlockAtRound api rnd >>= putJson
+  N.getBlockAtRound api rnd >>= \case
+    Just d -> putJson d
+    Nothing -> putJson $ "No block found for round " <> show (unRound rnd)
