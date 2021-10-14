@@ -29,6 +29,7 @@ import Test.Tasty.HUnit (Assertion, (@?=))
 
 import Data.Algorand.Address (Address, fromPublicKey)
 import Data.Algorand.MessagePack (Canonical (..), EitherError)
+import Data.Algorand.Amount (microAlgos)
 import Data.Algorand.Round (Round (..))
 import Data.Algorand.Transaction (OnComplete(..), StateSchema (..), Transaction (..), TransactionType (..))
 
@@ -101,11 +102,13 @@ genTransactionType = G.choice
     <*> (Just <$> genStateSchema)
   , AssetTransferTransaction
     <$> G.word64 R.constantBounded
-    <*> G.word64 R.constantBounded
+    <*> genAmount
     <*> G.maybe genAddress
     <*> genAddress
     <*> G.maybe genAddress
   ]
+  where
+    genAmount = microAlgos <$> G.word64 R.constantBounded
 
 genTransaction :: MonadGen m => m Transaction
 genTransaction =

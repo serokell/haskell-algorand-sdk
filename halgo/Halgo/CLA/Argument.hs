@@ -11,12 +11,10 @@ module Halgo.CLA.Argument
   , argTxId
   , argAmount
   , argAssetIndex
-  , argAssetAmount
   ) where
 
 import qualified Data.Text as T
 
-import Data.Word (Word64)
 import Options.Applicative (Parser, action, argument, auto, eitherReader, help, metavar,
                             strArgument)
 
@@ -65,13 +63,10 @@ argTxId = strArgument $ mconcat
   ]
 
 argAmount :: Parser Microalgos
-argAmount = argument auto (mconcat
+argAmount = argument auto $ mconcat
   [ metavar "<amount>"
   , help "Amount in microalgos"
-  ])
+  ]
 
 argAssetIndex :: Parser AssetIndex
 argAssetIndex = argument auto (metavar "<asset>" <> help "Index of the asset")
-
-argAssetAmount :: Parser Word64
-argAssetAmount = argument auto (metavar "<amount>" <> help "Amount of asset")

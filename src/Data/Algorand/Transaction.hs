@@ -99,7 +99,7 @@ data TransactionType
     }
   | AssetTransferTransaction
     { attXferAsset :: AssetIndex
-    , attAssetAmount :: Word64
+    , attAssetAmount :: Microalgos
     , attAssetSender :: Maybe Address  -- required in a spec, but not really
     , attAssetReceiver :: Address
     , attAssetCloseTo :: Maybe Address

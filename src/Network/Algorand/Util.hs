@@ -30,6 +30,7 @@ import qualified Data.Algorand.Block as B
 import qualified Network.Algorand.Api as Api
 
 import Data.Algorand.Address (Address)
+import Data.Algorand.Amount (Microalgos)
 import Data.Algorand.Round (Round)
 import Data.Algorand.Teal (TealKeyValue (..), TealValue (..), tealValueBytesType, tealValueUintType)
 import Data.Algorand.Transaction (AppIndex, AssetIndex)
@@ -39,7 +40,7 @@ import Network.Algorand.Api.Node (TransactionInfo (..))
 data TransactionStatus
   = Waiting
   -- ^ Still in the pool waiting to be confirmed.
-  | Confirmed Word64
+  | Confirmed Round
   -- ^ Transaction was confirmed at this round.
   | KickedOut Text
   -- ^ It was kicked out of this node’s pool for this reason.
@@ -95,7 +96,7 @@ getAccountAtRound api addr rnd = handle noEntityHandler $
   Just <$> Api._accountIdx api addr rnd
 
 -- | Helper to get asset balance at account
-lookupAssetBalance :: Api.Account -> AssetIndex -> Word64
+lookupAssetBalance :: Api.Account -> AssetIndex -> Microalgos
 lookupAssetBalance Api.Account{..} assetId
   | Just Api.Asset{..} <- aAssets >>= lookup assetId . map toPair
   , not asIsFrozen = asAmount
