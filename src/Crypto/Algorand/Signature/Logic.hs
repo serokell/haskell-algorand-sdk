@@ -7,22 +7,21 @@ module Crypto.Algorand.Signature.Logic
   ( LogicSignature (..)
   ) where
 
-import Data.Aeson (FromJSON (..), ToJSON (..))
+import Data.Aeson.TH (deriveJSON)
 import Data.ByteString (ByteString)
 import Data.String (IsString)
 import GHC.Generics (Generic)
 
 import Data.Algorand.MessagePack (MessagePackObject (..), MessageUnpackObject (..),
                                   NonZeroValue (..), (&), (.:?), (.=))
-import Data.Algorand.MessagePack.Json (parseCanonicalJson, toCanonicalJson)
-import Network.Algorand.Api.Json ()
+import Network.Algorand.Api.Json (algorandTrainOptions)
 
-data LogicSignature = ContractAccountSignature
+data LogicSignature = LogicSignature
   -- TODO: Only contract account signature is supported.
-  { lsLogic :: ByteString
-  , lsArgs :: [ByteString]
-  }
-  deriving (Eq, Generic, Show)
+  { lsArgs :: [ByteString]
+  , lsLogic :: ByteString
+  } deriving (Eq, Generic, Show)
+$(deriveJSON algorandTrainOptions 'LogicSignature)
 
 instance NonZeroValue LogicSignature where
   isNonZero _ = True
@@ -35,7 +34,7 @@ logicSignatureFieldName = \case
 
 instance MessagePackObject LogicSignature where
   toCanonicalObject = \case
-    ContractAccountSignature{..} -> mempty
+    LogicSignature{..} -> mempty
       & f "lsLogic" .= lsLogic
       & f "lsArgs" .= lsArgs
     where
@@ -45,12 +44,6 @@ instance MessageUnpackObject LogicSignature where
   fromCanonicalObject o = do
     lsLogic <- o .:? f "lsLogic"
     lsArgs <- o .:? f "lsArgs"
-    pure ContractAccountSignature{..}
+    pure LogicSignature{..}
     where
       f = logicSignatureFieldName
-
-instance ToJSON LogicSignature where
-  toJSON = toCanonicalJson
-
-instance FromJSON LogicSignature where
-  parseJSON = parseCanonicalJson

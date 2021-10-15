@@ -91,7 +91,7 @@ signFromContractAccount
 signFromContractAccount lsLogic lsArgs txn = SignedTransaction{..}
   where
     stTxn = txn { tSender = fromContractCode lsLogic }
-    stSig = SignatureLogic $ ContractAccountSignature{lsLogic, lsArgs}
+    stSig = SignatureLogic $ LogicSignature{lsLogic, lsArgs}
 
 -- | Verify a signed transaction.
 verifyTransaction :: SignedTransaction -> Maybe Transaction
@@ -101,7 +101,7 @@ verifyTransaction SignedTransaction{..} =
       SignatureSimple sig -> verifySimple sig stTxn
       SignatureMulti _msig -> False  -- FIXME
       SignatureLogic lsig -> case lsig of
-        ContractAccountSignature{lsLogic} ->
+        LogicSignature{lsLogic} ->
           tSender stTxn == fromContractCode lsLogic
   in case ok of
     False -> Nothing

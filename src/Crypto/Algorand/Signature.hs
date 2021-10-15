@@ -10,6 +10,9 @@ module Crypto.Algorand.Signature
   , MultiSignature (..)
   ) where
 
+import qualified Data.Aeson as J
+
+import Control.Applicative ((<|>))
 import Data.Aeson (FromJSON (..), ToJSON (..))
 import Data.String (IsString)
 import Data.Text (Text)
@@ -20,7 +23,6 @@ import Crypto.Algorand.Signature.Multi (MultiSignature (..))
 import Crypto.Algorand.Signature.Simple (SimpleSignature (..))
 import Data.Algorand.MessagePack (MessagePackObject (..), MessageUnpackObject (..),
                                   NonZeroValue (..), (&), (.:>?), (.:??), (.=), (.=<))
-import Data.Algorand.MessagePack.Json (parseCanonicalJson, toCanonicalJson)
 import Network.Algorand.Api.Json ()
 
 -- | Types of signatures.
@@ -63,7 +65,12 @@ instance MessageUnpackObject SignatureType where
       t = signatureType :: String -> Text
 
 instance ToJSON SignatureType where
-  toJSON = toCanonicalJson
+  toJSON (SignatureSimple sig) = J.object ["sig" J..= toJSON sig]
+  toJSON (SignatureLogic sig) = J.object ["logicsig" J..= toJSON sig]
+  toJSON (SignatureMulti sig) = J.object ["multisig" J..= toJSON sig]
 
 instance FromJSON SignatureType where
-  parseJSON = parseCanonicalJson
+  parseJSON = J.withObject "SignatureType" $ \v ->
+        (SignatureSimple <$> v J..: "sig")
+    <|> (SignatureLogic  <$> v J..: "logicsig")
+    <|> (SignatureMulti  <$> v J..: "multisig")
