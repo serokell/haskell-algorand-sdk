@@ -28,7 +28,9 @@ import Data.Text (Text)
 import GHC.Generics (Generic)
 
 import Crypto.Algorand.Key (SecretKey, toPublic)
-import Crypto.Algorand.Signature (LogicSignature (..), MultiSignature, Signature)
+import Crypto.Algorand.Signature.Logic (LogicSignature (..))
+import Crypto.Algorand.Signature.Multi (MultiSignature)
+import Crypto.Algorand.Signature.Simple (SimpleSignature)
 import Crypto.Algorand.Util (sign, verify)
 
 import Data.Algorand.Address (fromContractCode, fromPublicKey, toPublicKey)
@@ -40,7 +42,7 @@ import Data.Algorand.Transaction (GenesisHash, Transaction (..), serialiseTx)
 
 -- | Types of transaction signatures.
 data TransactionSignature
-  = SignatureSimple Signature
+  = SignatureSimple SimpleSignature
   | SignatureMulti MultiSignature
   | SignatureLogic LogicSignature
   deriving (Eq, Generic, Show)
@@ -69,7 +71,7 @@ signSimple sk txn =
     }
 
 -- | Verify a simple signature transaction.
-verifySimple :: Signature -> Transaction -> Bool
+verifySimple :: SimpleSignature -> Transaction -> Bool
 verifySimple sig txn =
   case toPublicKey (tSender txn) of
     Nothing -> False

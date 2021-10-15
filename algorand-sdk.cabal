@@ -31,6 +31,9 @@ library
       Crypto.Algorand.Hash
       Crypto.Algorand.Key
       Crypto.Algorand.Signature
+      Crypto.Algorand.Signature.Logic
+      Crypto.Algorand.Signature.Multi
+      Crypto.Algorand.Signature.Simple
       Crypto.Algorand.Util
       Data.Algorand.Address
       Data.Algorand.Amount
