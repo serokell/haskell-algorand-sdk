@@ -72,10 +72,6 @@ data TransactionResp = TransactionResp
   -- ^ [fee] Transaction fee.
   , trFirstValid :: Round
   -- ^ [fv] First valid round for this transaction.
-  , trGenesisHash :: Maybe GenesisHash
-  -- ^ [gh] Hash of genesis block.
-  , trGenesisId :: Maybe Text
-  -- ^ [gen] genesis block ID.
   , trGroup :: Maybe TransactionGroupId
   -- ^ [grp] Base64 encoded byte array of a sha512/256 digest. When present
   -- indicates that this transaction is part of a transaction group and the
@@ -125,8 +121,6 @@ instance ToJSON TransactionResp where
       , "created-asset-index" .= trCreatedAssetIndex
       , "fee" .= trFee
       , "first-valid" .= trFirstValid
-      , "genesis-hash" .= trGenesisHash
-      , "genesis-id" .= trGenesisId
       , "group" .= trGroup
       , "id" .= trId
       , "intra-round-offset" .= trIntraRoundOffset
@@ -187,8 +181,6 @@ instance FromJSON TransactionResp where
     trCreatedAssetIndex <- o .:? "created-asset-index"
     trFee <- o .: "fee"
     trFirstValid <- o .: "first-valid"
-    trGenesisHash <- o .:? "genesis-hash"
-    trGenesisId <- o .:? "genesis-id"
     trGroup <- o .:? "group"
     trId <- o .: "id"
     trIntraRoundOffset <- o .:? "intra-round-offset"
@@ -243,15 +235,15 @@ instance FromJSON TransactionResp where
         attAssetCloseTo <- subObj .:? "close-to"
         return AssetTransferTransaction {..}
 
-transactionRespToTransaction :: TransactionResp -> Transaction
-transactionRespToTransaction TransactionResp {..} = Transaction
+transactionRespToTransaction :: Text -> GenesisHash -> TransactionResp -> Transaction
+transactionRespToTransaction gId gHash TransactionResp {..} = Transaction
   { tSender = trSender
   , tFee = trFee
   , tFirstValid = trFirstValid
   , tLastValid = trLastValid
   , tNote = trNote
-  , tGenesisId = trGenesisId
-  , tGenesisHash = trGenesisHash
+  , tGenesisId = Just gId
+  , tGenesisHash = Just gHash
   , tTxType = trTxType
   , tGroup = trGroup
   , tLease = trLease
