@@ -272,11 +272,8 @@ data BlockResp = BlockResp
   -- ^ [seed] Sortition seed.
   , brTimestamp :: POSIXTime
   -- ^ [ts] Block creation timestamp in seconds since epoch.
-  , brTransactions :: Maybe [TransactionResp]
-  -- ^ [txns] list of transactions corresponding
-  -- to a given round.
-  -- Note: for some reasons indexer doesn't return this field at all instead
-  -- of empty list in case when there aro no transactions
+  , brTransactions :: [TransactionResp]
+  -- ^ [txns] list of transactions corresponding to a given round.
   , brTransactionsRoot :: Maybe TransactionsRoot
   -- ^ [txn] TransactionsRoot authenticates the set of transactions appearing
   -- in the block. More specifically, it's the root of a merkle tree whose
