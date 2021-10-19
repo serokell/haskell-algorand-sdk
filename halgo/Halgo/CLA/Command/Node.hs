@@ -18,18 +18,13 @@ import Fmt (pretty, (+|), (|+))
 import Options.Applicative (Parser, command, help, hsubparser, info, long, metavar, optional,
                             progDesc, short, strOption)
 
-import qualified Data.Algorand.Address as A
-import qualified Data.Algorand.Block as B
-import qualified Data.Algorand.Transaction.Signed as TS
 import qualified Network.Algorand.Api as Api
 import qualified Network.Algorand.Util as N
 
-import Data.Algorand.Round (Round (..))
 import Network.Algorand.Definitions (DefaultHost (ahNode), Host, getDefaultHost)
 
-import Halgo.CLA.Argument (argAddress, argTxId)
+import Halgo.CLA.Argument (argTxId)
 import Halgo.CLA.Flag (flagJson)
-import Halgo.CLA.Option (optRound)
 import Halgo.CLA.Type (MonadSubCommand, SubCommand, goNetwork)
 import Halgo.IO (putJson, putTextLn, readItemsB64, readItemsJson)
 import Halgo.Util (die, withNode)
@@ -57,21 +52,9 @@ nodeOpts = cmdNode <$> optNodeHost <*> hsubparser (mconcat
     $ info (pure cmdNodeStatus)
     $ progDesc "Show the status of the node that will be used"
 
-  , command "block"
-    $ info (cmdPrintBlock <$> optRound)
-    $ progDesc "Retrieve block (DEPRECATED)"
-
   , command "fetch"
-    $ info (hsubparser $ mconcat
-      [ command "acc"
-        $ info (cmdNodeFetchAccount <$> argAddress "Account to fetch")
-        $ progDesc "Fetch information about an account"
-
-      , command "txn"
-        $ info (cmdNodeFetchTxn <$> argTxId)
-        $ progDesc "Fetch a transaction in the pool"
-      ])
-    $ progDesc "Fetch something from the node"
+    $ info (cmdNodeFetchTxn <$> argTxId)
+    $ progDesc "Fetch a transaction in the pool"
 
   , command "send"
     $ info (cmdNodeSend <$> flagJson)
@@ -106,29 +89,6 @@ cmdNodeVersion url = withNode url $ \(v, _) -> putJson v
 cmdNodeStatus :: MonadSubCommand m => Host -> m ()
 cmdNodeStatus url = withNode url $ \(_, api) ->
   Api._status api >>= putJson
-
--- | Print block info.
-cmdPrintBlock :: MonadSubCommand m => Round -> Host -> m ()
-cmdPrintBlock rnd url = withNode url $ \(_, api) -> do
-  mBlock <- N.getBlock api rnd
-  case mBlock of
-    Just block -> do
-      let txs = TS.getUnverifiedTransaction . TS.toSignedTransaction
-                True -- false should be used only for some old protocol versions
-                (B.bGenesisHash block)
-                (B.bGenesisId block)
-            <$> B.bTransactions block
-      putTextLn $ "Retrieved " +| (if null txs then "empty " else "" :: Text)
-        |+ "block for round " +| unRound (B.bRound block)
-        |+ " created at " +| B.bTimestamp block
-        |+ (if null txs then "" else " with txs:")
-      mapM_ putJson txs
-    _ -> putTextLn "No block found"
-
--- | Fetch information about an account.
-cmdNodeFetchAccount :: MonadSubCommand m => A.Address -> Host -> m ()
-cmdNodeFetchAccount addr url = withNode url $ \(_, api) ->
-  Api._account api addr >>= putJson
 
 -- | Fetch a transaction (from the pool).
 cmdNodeFetchTxn :: MonadSubCommand m => Text -> Host -> m ()

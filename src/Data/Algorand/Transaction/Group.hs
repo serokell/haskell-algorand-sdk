@@ -11,12 +11,12 @@ module Data.Algorand.Transaction.Group
 
 import qualified Data.ByteString.Lazy as BSL
 
-import Crypto.Algorand.Hash (hash32)
-import Data.Algorand.MessagePack ((.=), pack, toAlgoObject)
-import Data.Algorand.Transaction (Transaction (..), TransactionGroupId, transactionId')
 import Data.ByteString (ByteString)
 import Data.Function ((&))
 
+import Crypto.Algorand.Hash (hash32)
+import Data.Algorand.MessagePack (pack, toAlgoObject, (.=))
+import Data.Algorand.Transaction (Transaction (..), TransactionGroupId, transactionId')
 
 -- | Compute the group ID for a list of transactions.
 --
@@ -38,7 +38,6 @@ getGroupIdFor =
 makeGroup :: [Transaction] -> [Transaction]
 makeGroup txs = map (setGroupId $ Just (getGroupIdFor txs)) txs
 
-
 -- | Check whether the transactions in the list for a valid group.
 --
 -- Namely: all transactions have to be part of the same group
@@ -48,7 +47,6 @@ makeGroup txs = map (setGroupId $ Just (getGroupIdFor txs)) txs
 isValidGroup :: [Transaction] -> Bool
 isValidGroup txs =
   all (\Transaction{tGroup} -> tGroup == Just (getGroupIdFor txs)) txs
-
 
 -- | Helper (because we do not have lenses (yet)).
 setGroupId :: Maybe TransactionGroupId -> Transaction -> Transaction

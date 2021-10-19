@@ -16,18 +16,20 @@ module Data.Algorand.MessagePack.Json
 
 import qualified Data.Aeson as JS
 import qualified Data.Aeson.Types as JS
-import Data.ByteString (ByteString)
-import Data.ByteString.Base64 (decodeBase64, encodeBase64)
-import Data.Foldable (toList)
 import qualified Data.HashMap.Strict as HM
 import qualified Data.MessagePack as MP
 import qualified Data.Scientific as S
+
+import Data.ByteString (ByteString)
+import Data.ByteString.Base64 (decodeBase64, encodeBase64)
+import Data.Foldable (toList)
 import Data.Text (Text)
 import Data.Text.Encoding (encodeUtf8)
 
 import qualified Data.Algorand.Address as A
-import Data.Algorand.MessagePack (Canonical (Canonical), EitherError (..), MessagePackObject, MessageUnpackObject, fromAlgoObject, toAlgoObject)
 
+import Data.Algorand.MessagePack (Canonical (Canonical), EitherError (..), MessagePackObject,
+                                  MessageUnpackObject, fromAlgoObject, toAlgoObject)
 
 -- | Serialise to a canonical JSON.
 toCanonicalJson :: (MessagePackObject a, MessageUnpackObject a) => a -> JS.Value
@@ -39,7 +41,6 @@ parseCanonicalJson v = do
   json <- JS.parseJSON v
   Canonical a <- MP.fromObject (msgpackFromJson json)
   pure a
-
 
 -- | Turn an 'MP.Object' into a 'JS.Value'.
 jsonFromMsgpack :: MP.Object -> JS.Value

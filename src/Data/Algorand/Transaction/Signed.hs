@@ -28,20 +28,21 @@ import Data.Text (Text)
 import GHC.Generics (Generic)
 
 import Crypto.Algorand.Key (SecretKey, toPublic)
-import Crypto.Algorand.Signature (LogicSignature (..), MultiSignature, Signature)
+import Crypto.Algorand.Signature.Logic (LogicSignature (..))
+import Crypto.Algorand.Signature.Multi (MultiSignature)
+import Crypto.Algorand.Signature.Simple (SimpleSignature)
 import Crypto.Algorand.Util (sign, verify)
 
 import Data.Algorand.Address (fromContractCode, fromPublicKey, toPublicKey)
-import Data.Algorand.MessagePack (MessagePackObject (toCanonicalObject),
-                                  MessageUnpackObject (fromCanonicalObject),
-                                  NonZeroValue (isNonZero), (&), (&<>), (.:>), (.:>?), (.:?),
-                                  (.:??), (.=), (.=<))
+import Data.Algorand.MessagePack (MessagePackObject (..), MessageUnpackObject (..),
+                                  NonZeroValue (..), (&), (&<>), (.:>), (.:>?), (.:?), (.:??), (.=),
+                                  (.=<))
 import Data.Algorand.MessagePack.Json (parseCanonicalJson, toCanonicalJson)
 import Data.Algorand.Transaction (GenesisHash, Transaction (..), serialiseTx)
 
 -- | Types of transaction signatures.
 data TransactionSignature
-  = SignatureSimple Signature
+  = SignatureSimple SimpleSignature
   | SignatureMulti MultiSignature
   | SignatureLogic LogicSignature
   deriving (Eq, Generic, Show)
@@ -70,25 +71,27 @@ signSimple sk txn =
     }
 
 -- | Verify a simple signature transaction.
-verifySimple :: Signature -> Transaction -> Bool
+verifySimple :: SimpleSignature -> Transaction -> Bool
 verifySimple sig txn =
   case toPublicKey (tSender txn) of
     Nothing -> False
     Just pk -> verify pk (serialiseTx txn) sig
 
-
 -- | Sign a transaction from a contract account.
 --
 -- Note: this function will overwrite the sender of the transaction!
 signFromContractAccount
-  :: ByteString  -- ^ Compiled contract code.
-  -> [ByteString]  -- ^ Program arguments.
-  -> Transaction  -- ^ Transaction to sign.
+  :: ByteString
+  -- ^ Compiled contract code.
+  -> [ByteString]
+  -- ^ Program arguments.
+  -> Transaction
+  -- ^ Transaction to sign.
   -> SignedTransaction
 signFromContractAccount lsLogic lsArgs txn = SignedTransaction{..}
   where
     stTxn = txn { tSender = fromContractCode lsLogic }
-    stSig = SignatureLogic $ ContractAccountSignature{lsLogic, lsArgs}
+    stSig = SignatureLogic $ LogicSignature{lsLogic, lsArgs}
 
 -- | Verify a signed transaction.
 verifyTransaction :: SignedTransaction -> Maybe Transaction
@@ -98,7 +101,7 @@ verifyTransaction SignedTransaction{..} =
       SignatureSimple sig -> verifySimple sig stTxn
       SignatureMulti _msig -> False  -- FIXME
       SignatureLogic lsig -> case lsig of
-        ContractAccountSignature{lsLogic} ->
+        LogicSignature{lsLogic} ->
           tSender stTxn == fromContractCode lsLogic
   in case ok of
     False -> Nothing
@@ -111,7 +114,6 @@ getSignature = stSig
 -- | Dangerous: returns a transaction without verifying the signature.
 getUnverifiedTransaction :: SignedTransaction -> Transaction
 getUnverifiedTransaction = stTxn
-
 
 
 {-

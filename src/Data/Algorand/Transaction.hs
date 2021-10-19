@@ -37,16 +37,17 @@ import Data.Default.Class (Default (def))
 import Data.MessagePack (pack)
 import Data.String (IsString)
 import Data.Text (Text)
-import Data.Word (Word8, Word64)
+import Data.Word (Word64, Word8)
 import GHC.Generics (Generic)
 import Text.Read (readMaybe)
 
 import Crypto.Algorand.Hash (hash32)
 import Data.Algorand.Address (Address)
 import Data.Algorand.Amount (Microalgos)
-import Data.Algorand.MessagePack (AlgoMessagePack (..), Canonical (Canonical)
-  , MessagePackObject (toCanonicalObject) , MessageUnpackObject (fromCanonicalObject)
-  , NonZeroValue, CanonicalZero, (&), (&<>), (.:), (.:>), (.:?), (.=), (.=<))
+import Data.Algorand.MessagePack (AlgoMessagePack (..), Canonical (Canonical), CanonicalZero,
+                                  MessagePackObject (toCanonicalObject),
+                                  MessageUnpackObject (fromCanonicalObject), NonZeroValue, (&),
+                                  (&<>), (.:), (.:>), (.:?), (.=), (.=<))
 import Data.Algorand.MessagePack.Json (parseCanonicalJson, toCanonicalJson)
 import Data.Algorand.Round (Round)
 
@@ -98,7 +99,7 @@ data TransactionType
     }
   | AssetTransferTransaction
     { attXferAsset :: AssetIndex
-    , attAssetAmount :: Word64
+    , attAssetAmount :: Microalgos
     , attAssetSender :: Maybe Address  -- required in a spec, but not really
     , attAssetReceiver :: Address
     , attAssetCloseTo :: Maybe Address
@@ -149,7 +150,6 @@ instance AlgoMessagePack OnComplete where
   toAlgoObject = toAlgoObject @Word8 . fromIntegral . fromEnum
   fromAlgoObject o = (toEnum . fromIntegral) <$> fromAlgoObject @Word8 o
 
-
 instance ToJSON OnComplete where
   toJSON = toJSON . show
 
@@ -172,7 +172,6 @@ transactionId = encodeBase32Unpadded . transactionId'
 -- | Get transaction ID as raw bytes.
 transactionId' :: Transaction -> ByteString
 transactionId' = unSizedByteArray . hash32 . serialiseTx
-
 
 -- | Internal: pack a transaction into byte with prefix.
 serialiseTx :: Transaction -> ByteString
@@ -240,7 +239,6 @@ instance ToJSON Transaction where
 
 instance FromJSON Transaction where
   parseJSON = parseCanonicalJson
-
 
 transactionTypeFieldName :: IsString s => String -> s
 transactionTypeFieldName = \case
@@ -354,7 +352,6 @@ instance ToJSON TransactionType where
 
 instance FromJSON TransactionType where
   parseJSON = parseCanonicalJson
-
 
 stateSchemaFieldName :: IsString s => String -> s
 stateSchemaFieldName = \case

@@ -13,7 +13,7 @@ import qualified Crypto.PubKey.Ed25519 as Sig
 import Data.ByteArray (ByteArrayAccess)
 
 import Crypto.Algorand.Key (PublicKey, SecretKey, getKeys)
-import Crypto.Algorand.Signature (Signature (..))
+import Crypto.Algorand.Signature.Simple (SimpleSignature (..))
 
 -- | Produce a cryptographic signature for the data.
 sign
@@ -22,8 +22,8 @@ sign
   -- ^ Secret key used for signing.
   -> dataBytes
   -- ^ Bytes to sign.
-  -> Signature
-sign secret = Signature . Sig.sign sk pk
+  -> SimpleSignature
+sign secret = SimpleSignature . Sig.sign sk pk
   where
     (sk, pk) = getKeys secret
 
@@ -34,7 +34,7 @@ verify
   -- ^ Public key corresponding to the secret key used for singing.
   -> dataBytes
   -- ^ Originally signed bytes.
-  -> Signature
+  -> SimpleSignature
   -- ^ Signature to verify.
   -> Bool
-verify pk bs (Signature sig) = Sig.verify pk bs sig
+verify pk bs (SimpleSignature sig) = Sig.verify pk bs sig

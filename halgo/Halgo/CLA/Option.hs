@@ -2,7 +2,7 @@
 --
 -- SPDX-License-Identifier: MPL-2.0
 
--- | Common options for commands
+-- | Common options for commands.
 module Halgo.CLA.Option
   ( optRound
   ) where

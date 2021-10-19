@@ -10,7 +10,6 @@ module Halgo.CLA.Command.Transaction
 import qualified Data.ByteString as BS
 
 import Control.Monad (forM_, when)
-import Data.Word (Word64)
 import Options.Applicative (Parser, command, hsubparser, info, progDesc)
 import UnliftIO (liftIO)
 
@@ -22,10 +21,10 @@ import qualified Data.Algorand.Transaction.Group as T
 import qualified Data.Algorand.Transaction.Signed as TS
 import qualified Network.Algorand.Api as Api
 
+import Data.Algorand.Amount (Microalgos)
 import Network.Algorand.Definitions (Host)
 
-import Halgo.CLA.Argument (argAddress, argAmount, argAssetAmount, argAssetIndex, argProgramFile,
-                           argSecretFile)
+import Halgo.CLA.Argument (argAddress, argAmount, argAssetIndex, argProgramFile, argSecretFile)
 import Halgo.CLA.Command.Account (loadAccount)
 import Halgo.CLA.Command.Node (cmdNode, optNodeHost)
 import Halgo.CLA.Flag (flagB64, flagGroupCheck, flagJson, flagVerify)
@@ -62,7 +61,7 @@ transactionOpts = hsubparser $ mconcat
         $ progDesc "Create a new Payment transaction"
 
       , command "axfr"
-        $ info (cmdTxnNewAxfr <$> argAssetIndex <*> argAddress "Receiver" <*> argAssetAmount)
+        $ info (cmdTxnNewAxfr <$> argAssetIndex <*> argAddress "Receiver" <*> argAmount)
         $ progDesc "Create a new AssetTransfer transaction"
       ]))
     $ progDesc "Create a new transaction"
@@ -127,7 +126,7 @@ cmdTxnNewPay to amnt url = withNode url $ \(_, api) -> do
   let txn = T.buildTransaction params A.zero payment
   putItemsB64 [txn]
 
-cmdTxnNewAxfr :: MonadSubCommand m => T.AssetIndex -> A.Address -> Word64 -> Host -> m ()
+cmdTxnNewAxfr :: MonadSubCommand m => T.AssetIndex -> A.Address -> Microalgos -> Host -> m ()
 cmdTxnNewAxfr index to amnt url = withNode url $ \(_, api) -> do
   params <- Api._transactionsParams api
   let payment = T.AssetTransferTransaction index amnt Nothing to Nothing

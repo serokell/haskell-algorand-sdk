@@ -89,13 +89,13 @@ data NodeStatus = NodeStatus
   , nsCatchupTime :: NanoSec
   , nsLastCatchpoint :: Maybe Text
   -- ^ The last catchpoint seen by the node
-  , nsLastRound :: Word64
+  , nsLastRound :: Round
   -- ^ The last round seen
   , nsLastVersion :: Text
   -- ^ indicates the last consensus version supported
   , nsNextVersion :: Text
   -- ^ the next version of consensus protocol to use
-  , nsNextVersionRound :: Word64
+  , nsNextVersionRound :: Round
   -- ^ round at which the next consensus version will apply
   , nsNextVersionSupported :: Bool
   -- ^ indicates whether the next consensus version
@@ -113,7 +113,7 @@ newtype TransactionsRep = TransactionsRep
 $(deriveJSON algorandCamelOptions 'TransactionsRep)
 
 data Asset = Asset
-  { asAmount :: Word64
+  { asAmount :: Microalgos
   -- ^ Number of units held.
   , asAssetId :: AssetIndex
   -- ^ Asset ID of the holding.
@@ -157,7 +157,7 @@ data Account = Account
   -- which are participating.
   , aRewards :: Microalgos
   -- ^ total rewards of MicroAlgos the account has received, including pending rewards.
-  , aRound :: Word64
+  , aRound :: Round
   -- ^ the round for which this information is relevant.
   , aStatus :: Text
   -- ^ delegation status of the account's MicroAlgos
@@ -169,7 +169,7 @@ data TransactionInfo = TransactionInfo
   , tiAssetIndex :: Maybe AssetIndex
   , tiCloseRewards :: Maybe Microalgos
   , tiClosingAmount :: Maybe Microalgos
-  , tiConfirmedRound :: Maybe Word64
+  , tiConfirmedRound :: Maybe Round
   , tiPoolError :: Text
   , tiReceiverRewards :: Maybe Microalgos
   , tiSenderRewards :: Maybe Microalgos

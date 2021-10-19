@@ -15,30 +15,29 @@ module Halgo.IO
   , putItemsB64
   ) where
 
-import Control.Monad (forM)
-import Control.Monad.IO.Class (MonadIO, liftIO)
-import Data.Aeson (FromJSON, ToJSON)
 import qualified Data.Aeson as JS
 import qualified Data.Aeson.Types as JS
-import Data.Aeson.Encode.Pretty (encodePretty)
-import Data.ByteString (ByteString)
 import qualified Data.ByteString as BS
-import Data.ByteString.Base64 (decodeBase64, encodeBase64)
 import qualified Data.ByteString.Lazy as BSL
-import Data.Text (Text)
 import qualified Data.Text.Encoding as T
 import qualified Data.Text.IO as T
 import qualified Data.Text.Lazy as LT
 import qualified Data.Text.Lazy.Encoding as LT
 import qualified Data.Text.Lazy.IO as LT
+
+import Control.Monad (forM)
+import Control.Monad.IO.Class (MonadIO, liftIO)
+import Data.Aeson (FromJSON, ToJSON)
+import Data.Aeson.Encode.Pretty (encodePretty)
+import Data.ByteString (ByteString)
+import Data.ByteString.Base64 (decodeBase64, encodeBase64)
+import Data.Text (Text)
 import Fmt (pretty)
 import System.IO (stderr)
 
 import qualified Data.Algorand.MessagePack as MP
 
 import Halgo.Util (die)
-
-
 
 -- | @putStrLn@ for 'Text'.
 putTextLn :: MonadIO m => Text -> m ()
@@ -51,7 +50,6 @@ putJson = liftIO . LT.putStrLn . LT.decodeUtf8 . encodePretty
 -- | @putStrLn@ for 'Text' that prints to 'stderr'.
 putNoticeLn :: MonadIO m => Text -> m ()
 putNoticeLn = liftIO . T.hPutStrLn stderr
-
 
 -- | Read a list of base64-encoded bytestrings, one per line.
 readBytesB64 :: MonadIO m => m [BS.ByteString]
@@ -90,7 +88,6 @@ readItemsB64 = readBytesB64 >>= mapM itemFromBytes
       MP.EitherError (Left err) -> die $ pretty err
       MP.EitherError (Right (MP.Canonical r)) -> pure r
 
-
 -- | Print a list of items encoded as JSON.
 --
 -- If the list contains exactly one item, the resulting encoding will
@@ -101,7 +98,13 @@ putItemsJson [] = pure ()
 putItemsJson [item] = putJson item
 putItemsJson items = putJson items
 
-
 -- | Print a list of items base64-encoded, one per line.
 putItemsB64 :: (MP.MessagePack (MP.Canonical d), MonadIO m) => [d] -> m ()
-putItemsB64 = mapM_ (liftIO . T.putStrLn . encodeBase64 . BSL.toStrict . MP.pack . MP.Canonical)
+putItemsB64 = mapM_
+  ( liftIO
+  . T.putStrLn
+  . encodeBase64
+  . BSL.toStrict
+  . MP.pack
+  . MP.Canonical
+  )

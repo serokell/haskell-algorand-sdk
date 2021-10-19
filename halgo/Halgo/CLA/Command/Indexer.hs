@@ -7,16 +7,16 @@ module Halgo.CLA.Command.Indexer
   ( indexerOpts
   ) where
 
-
 import Control.Monad.Reader (asks)
 import Fmt ((+|), (|+))
 import Options.Applicative (Parser, command, help, hsubparser, info, long, metavar, optional,
                             progDesc, short, strOption)
 
+import qualified Network.Algorand.Api as Api
 import qualified Network.Algorand.Util as N
 
 import Data.Algorand.Address (Address)
-import Data.Algorand.Round (Round)
+import Data.Algorand.Round (Round (..))
 import Network.Algorand.Definitions (DefaultHost (ahIndexer), Host, getDefaultHost)
 
 import Halgo.CLA.Argument (argAddress)
@@ -40,6 +40,14 @@ indexerOpts = cmdIndexer <$> optIndexerHost <*> hsubparser (mconcat
     $ info (pure cmdIndexerHost)
     $ progDesc "Show the HOST of the indexer that will be used"
 
+  , command "version"
+    $ info (pure cmdIndexerVersion)
+    $ progDesc "Query the version information of the indexer"
+
+  , command "status"
+    $ info (pure cmdIndexerStatus)
+    $ progDesc "Show the status of the indexer that will be used"
+
   , command "fetch"
     $ info (hsubparser $ mconcat
       [ command "account"
@@ -52,7 +60,7 @@ indexerOpts = cmdIndexer <$> optIndexerHost <*> hsubparser (mconcat
 
       , command "block"
         $ info (cmdFetchBlock <$> optRound)
-        $ progDesc "Retrieve block"
+        $ progDesc "Retrieve block at given round"
       ])
     $ progDesc "Fetch data from the indexer"
   ])
@@ -73,14 +81,27 @@ cmdIndexer url sub = getIndexerHost url >>= sub
 cmdIndexerHost :: MonadSubCommand m => Host -> m ()
 cmdIndexerHost = putTextLn
 
+-- | Get indexer version.
+cmdIndexerVersion :: MonadSubCommand m => Host -> m ()
+cmdIndexerVersion url = withIndexer url $ \(v, _) -> putJson v
+
+-- | Get indexer status.
+cmdIndexerStatus :: MonadSubCommand m => Host -> m ()
+cmdIndexerStatus url = withIndexer url $ \(_, api) ->
+  Api._health api >>= putJson
+
 -- | Fetch information about an account.
 cmdIndexerFetchAccount
   :: MonadSubCommand m
   => Address -> Maybe Round -> Host -> m ()
 cmdIndexerFetchAccount addr rnd url = withIndexer url $ \(_, api) ->
-  N.getAccountAtRound api addr rnd >>= putJson
+  N.getAccountAtRound api addr rnd >>= \case
+    Just d -> putJson d
+    Nothing -> putJson $ "Account " <> show addr <> "is not found"
 
--- | Print block info.
+-- | Fetch information about a block.
 cmdFetchBlock :: MonadSubCommand m => Round -> Host -> m ()
 cmdFetchBlock rnd url = withIndexer url $ \(_, api) ->
-  N.getBlockAtRound api rnd >>= putJson
+  N.getBlockAtRound api rnd >>= \case
+    Just d -> putJson d
+    Nothing -> putJson $ "No block found for round " <> show (unRound rnd)

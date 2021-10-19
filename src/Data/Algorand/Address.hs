@@ -102,7 +102,6 @@ fromBytes bytes = do
   guard (checksum sized `eq` view bytes pkSize 4)
   pure $ Address sized
 
-
 -- | Display an 'Address' using the Algorand human-readable representation.
 toText :: Address -> Text
 toText (Address bs) = encodeBase32Unpadded (convert bs <> convert (checksum bs))

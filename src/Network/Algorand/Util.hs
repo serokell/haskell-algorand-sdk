@@ -14,8 +14,6 @@ module Network.Algorand.Util
   , lookupAppLocalState
   ) where
 
-import qualified Data.Aeson as J
-import qualified Data.HashMap.Strict as HM
 import qualified Data.Map as M
 import qualified Data.Text as T
 
@@ -32,6 +30,7 @@ import qualified Data.Algorand.Block as B
 import qualified Network.Algorand.Api as Api
 
 import Data.Algorand.Address (Address)
+import Data.Algorand.Amount (Microalgos)
 import Data.Algorand.Round (Round)
 import Data.Algorand.Teal (TealKeyValue (..), TealValue (..), tealValueBytesType, tealValueUintType)
 import Data.Algorand.Transaction (AppIndex, AssetIndex)
@@ -39,9 +38,12 @@ import Network.Algorand.Api.Node (TransactionInfo (..))
 
 -- | Status of a transaction in the pool.
 data TransactionStatus
-  = Waiting  -- ^ Still in the pool waiting to be confirmed.
-  | Confirmed Word64  -- ^ Transaction was confirmed at this round.
-  | KickedOut Text  -- ^ It was kicked out of this node’s pool for this reason.
+  = Waiting
+  -- ^ Still in the pool waiting to be confirmed.
+  | Confirmed Round
+  -- ^ Transaction was confirmed at this round.
+  | KickedOut Text
+  -- ^ It was kicked out of this node’s pool for this reason.
 
 -- | Summarize 'TransactionInfo' as 'TransactionStatus'.
 transactionStatus :: TransactionInfo -> TransactionStatus
@@ -54,43 +56,33 @@ transactionStatus TransactionInfo{tiConfirmedRound, tiPoolError} =
 
 -- | Catches error that has entity absence and return Nothing in this case.
 -- Other errors would be rethrown.
-noEntityHandler :: MonadThrow m => Text -> ClientError -> m (Maybe a)
-noEntityHandler
-  noEntityMsg
-  (FailureResponse _req Response { responseStatusCode = s, responseBody = b })
-    | statusCode s == 404 || statusCode s == 500
-    , Just (J.Object errObj) <- J.decode' b
-    , Just (J.String msg) <- HM.lookup "message" errObj
-    , T.take (T.length noEntityMsg) msg == noEntityMsg
-  = pure Nothing
-noEntityHandler _ e = throwM e
+noEntityHandler :: MonadThrow m => ClientError -> m (Maybe a)
+noEntityHandler (FailureResponse _ Response {..})
+  | statusCode responseStatusCode == 404 = pure Nothing
+noEntityHandler resp = throwM resp
 
 {-# DEPRECATED getBlock "Use `getBlockAtRound` instead" #-}
 -- | Helper to get block from node
 getBlock
   :: MonadCatch m
   => Api.NodeApi (AsClientT m) -> Round -> m (Maybe B.Block)
-getBlock api rnd = handle (noEntityHandler noBlockMsg) $ do
+getBlock api rnd = handle noEntityHandler $ do
   B.BlockWrapped block <- Api._block api rnd Api.msgPackFormat
   pure (Just block)
-  where
-    noBlockMsg = "ledger does not have entry"
 
 -- | Helper to get block from indexer
 getBlockAtRound
   :: MonadCatch m
   => Api.IndexerApi (AsClientT m) -> Round -> m (Maybe Api.BlockResp)
-getBlockAtRound api rnd = handle (noEntityHandler noBlockMsg) $ do
+getBlockAtRound api rnd = handle noEntityHandler $
   Just <$> Api._blockIdx api rnd
-  where
-    noBlockMsg = "no blocks found"
 
 {-# DEPRECATED getAccount "Use `getAccountAtRound` instead" #-}
 --- | Helper to get account from node
 getAccount
   :: MonadCatch m
   => Api.NodeApi (AsClientT m) -> Address -> m (Maybe Api.Account)
-getAccount api addr = handle (noEntityHandler noAccMsg) $
+getAccount api addr = handle noEntityHandler $
   Just <$> Api._account api addr
 
 --- | Helper to get account at round from indexer
@@ -100,14 +92,11 @@ getAccountAtRound
   -> Address
   -> Maybe Round
   -> m (Maybe Api.IdxAccountResponse)
-getAccountAtRound api addr rnd = handle (noEntityHandler noAccMsg) $
+getAccountAtRound api addr rnd = handle noEntityHandler $
   Just <$> Api._accountIdx api addr rnd
 
-noAccMsg :: Text
-noAccMsg = "no accounts found for address"
-
 -- | Helper to get asset balance at account
-lookupAssetBalance :: Api.Account -> AssetIndex -> Word64
+lookupAssetBalance :: Api.Account -> AssetIndex -> Microalgos
 lookupAssetBalance Api.Account{..} assetId
   | Just Api.Asset{..} <- aAssets >>= lookup assetId . map toPair
   , not asIsFrozen = asAmount

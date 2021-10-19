@@ -26,7 +26,7 @@ unit_Health :: Assertion
 unit_Health = goldenTest @Health (resourcesIndexer </> "health")
 
 resourcesIndexer :: FilePath
-resourcesIndexer = "test/algorand-lib/resources/indexer"
+resourcesIndexer = "test/resources/indexer"
 
 goldenTest :: forall a. FromJSON a => FilePath -> Assertion
 goldenTest location = mapM_ singleTest =<< listDirectory location

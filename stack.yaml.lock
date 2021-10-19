@@ -5,20 +5,6 @@
 
 packages:
 - completed:
-    hackage: base32-0.2.0.0@sha256:a50b8f9da31af2fa3e4eda3d6e33c16b85ea6e0ffe391621e910c64cb0034c6f,2732
-    pantry-tree:
-      size: 1935
-      sha256: 2c6d5bf7ff235ef622cf515b0c162e34010b55e8e6f2e0af8fd2c596e72f9f1a
-  original:
-    hackage: base32-0.2.0.0
-- completed:
-    hackage: filepath-bytestring-1.4.2.1.2@sha256:beae216350dfd881d79e0cf5b8fc51b0cd055b9c01ea7969c41be751248e5eed,2442
-    pantry-tree:
-      size: 822
-      sha256: 3d629557ba59fb3ece10b46b5f02eb1dff0b0188ba15f04d744dd7b8f416f464
-  original:
-    hackage: filepath-bytestring-1.4.2.1.2
-- completed:
     hackage: msgpack-binary-0.0.14@sha256:46c3cf9090ad07d45c79cb74a94c05548ce9f2b5e9d78a497de80ceb5bf55014,2383
     pantry-tree:
       size: 812
@@ -34,7 +20,7 @@ packages:
     hackage: msgpack-types-0.0.4
 snapshots:
 - completed:
-    size: 531707
-    url: https://raw.githubusercontent.com/commercialhaskell/stackage-snapshots/master/lts/16/5.yaml
-    sha256: 9751e25e0af5713a53ddcfcc79564b082c71b1b357fadef0d85672a5b5ba3703
-  original: lts-16.5
+    size: 586041
+    url: https://raw.githubusercontent.com/commercialhaskell/stackage-snapshots/master/lts/18/12.yaml
+    sha256: 80fc6391195ff00c36f2a605ecbb07de909bfaa2eaa9722a27e486a6ecf8ecb0
+  original: lts-18.12
