@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: MPL-2.0
 
 name: algorand-sdk
-version: 0.0.0.1
+version: 0.1.0.0
 synopsis: A Haskell SDK for the Algorand blockchain
 description: |
   Tools for working with transactions on the Algorand blockchain

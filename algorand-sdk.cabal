@@ -5,7 +5,7 @@ cabal-version: 1.12
 -- see: https://github.com/sol/hpack
 
 name:           algorand-sdk
-version:        0.0.0.1
+version:        0.1.0.0
 synopsis:       A Haskell SDK for the Algorand blockchain
 description:    Tools for working with transactions on the Algorand blockchain
                 and interacting with algod through its REST API.
