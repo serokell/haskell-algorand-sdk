@@ -110,6 +110,9 @@
       # nixpkgs revision pinned by this flake
       legacyPackages.x86_64-linux = pkgs;
 
+      # test package
+      packages.x86_64-linux.test = hs-pkg.components.tests.algorand-lib-test;
+
       # derivations that we can run from CI
       checks.x86_64-linux = {
         # builds all haskell components
@@ -118,8 +121,6 @@
         trailing-whitespace = pkgs.build.checkTrailingWhitespace ./.;
         # check licenses
         reuse-lint = pkgs.build.reuseLint ./.;
-        # runs the test
-        test = hs-pkg.checks.algorand-lib-test;
       };
 
       devShell.x86_64-linux = pkgs.mkShell {

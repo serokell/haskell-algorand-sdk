@@ -205,7 +205,8 @@ test-suite algorand-lib-test
       Test.Data.Algorand.Transaction.Examples
       Test.Data.Algorand.Transaction.Pay
       Test.Data.Algorand.Transaction.Signed
-      Test.Network.Algorand.Indexer.Golden
+      Test.Network.Algorand.Api.Indexer
+      Test.Util
       Paths_algorand_sdk
   hs-source-dirs:
       test
@@ -259,6 +260,7 @@ test-suite algorand-lib-test
     , hedgehog
     , memory >=0.1 && <0.16
     , msgpack-binary
+    , servant-client-core
     , tasty
     , tasty-hedgehog
     , tasty-hunit

@@ -47,7 +47,7 @@ import Network.Algorand.Definitions (Network)
 data IdxAccountResponse = IdxAccountResponse
   { iarAccount :: Account
   , iarCurrentRound :: Round
-  } deriving stock (Generic, Show)
+  } deriving stock (Generic, Show, Eq)
 
 -- | An Algorand transaction response.
 -- Contains all fields common to all transactions and serves as an envelope
@@ -281,7 +281,7 @@ data BlockResp = BlockResp
   -- be committed after this block.
   -- It is 0 when no transactions have ever been committed (since counter
   -- started being supported).
-  } deriving stock (Generic, Show)
+  } deriving stock (Generic, Show, Eq)
 
 $(deriveJSON algorandTrainOptions 'IdxAccountResponse)
 $(deriveJSON algorandTrainOptions 'BlockResp)
@@ -296,7 +296,7 @@ data Health = Health
   , hMessage :: Text
   , hRound :: Round
   , hVersion :: Text
-  } deriving (Generic, Show)
+  } deriving (Generic, Show, Eq)
 $(deriveJSON algorandTrainOptions 'Health)
 
 ----------------

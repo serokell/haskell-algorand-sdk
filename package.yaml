@@ -95,6 +95,7 @@ tests:
       - filepath
       - msgpack-binary
       - memory >= 0.1 && < 0.16
+      - servant-client-core
 
     build-tools:
       - tasty-discover:tasty-discover
