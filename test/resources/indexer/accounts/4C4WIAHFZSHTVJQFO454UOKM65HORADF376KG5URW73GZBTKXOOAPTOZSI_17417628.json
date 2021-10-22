@@ -1,0 +1,125 @@
+{
+  "account": {
+    "address": "4C4WIAHFZSHTVJQFO454UOKM65HORADF376KG5URW73GZBTKXOOAPTOZSI",
+    "amount": 7262015918,
+    "amount-without-pending-rewards": 7262015918,
+    "apps-local-state": [
+      {
+        "deleted": false,
+        "id": 21580889,
+        "key-value": [
+          {
+            "key": "KyhhX1m1V7mtjXUDmv6FXTrGLZZDAPZHrJA2uko3rXxlAAAAAAAAAAA=",
+            "value": {
+              "bytes": "",
+              "type": 2,
+              "uint": 7650817
+            }
+          },
+          {
+            "key": "KyhhX1m1V7mtjXUDmv6FXTrGLZZDAPZHrJA2uko3rXxlAAAAAACflz0=",
+            "value": {
+              "bytes": "",
+              "type": 2,
+              "uint": 582515
+            }
+          },
+          {
+            "key": "KyhhX1m1V7mtjXUDmv6FXTrGLZZDAPZHrJA2uko3rXxlAAAAAAFQTEg=",
+            "value": {
+              "bytes": "",
+              "type": 2,
+              "uint": 1659110
+            }
+          }
+        ],
+        "opted-in-at-round": 17170171,
+        "schema": {
+          "num-byte-slice": 0,
+          "num-uint": 16
+        }
+      }
+    ],
+    "apps-total-schema": {
+      "num-byte-slice": 0,
+      "num-uint": 16
+    },
+    "assets": [
+      {
+        "score": 0,
+        "verified": false,
+        "amount": 726166209,
+        "asset-id": 10458941,
+        "creator": "VETIGP3I6RCUVLVYNDW5UA2OJMXB5WP6L6HJ3RWO2R37GP4AVETICXC55I",
+        "deleted": false,
+        "is-frozen": false,
+        "opted-in-at-round": 17171176,
+        "decimals": 6,
+        "unit-name": "USDC",
+        "name": "USDC"
+      },
+      {
+        "score": 0,
+        "verified": false,
+        "amount": 919982,
+        "asset-id": 15322902,
+        "creator": "PBSSJ2W6FDXVRPT4L4FGHTX2IHY3VREI44SB7VJTVT75UT6ER3CTVD6B74",
+        "deleted": false,
+        "is-frozen": false,
+        "opted-in-at-round": 17338013,
+        "decimals": 6,
+        "unit-name": "LAMP",
+        "name": "Lamps"
+      },
+      {
+        "score": 0,
+        "verified": false,
+        "amount": 0,
+        "asset-id": 22039624,
+        "creator": "FMUGCX2ZWVL3TLMNOUBZV7UFLU5MMLMWIMAPMR5MSA3LUSRXVV6FLXMQ6E",
+        "deleted": false,
+        "is-frozen": false,
+        "opted-in-at-round": 17171225,
+        "decimals": 6,
+        "unit-name": "TM1POOL",
+        "name": "Tinyman Pool USDC-ALGO"
+      },
+      {
+        "score": 0,
+        "verified": false,
+        "amount": 0,
+        "asset-id": 23156562,
+        "creator": "WYWRYK42XADLY3O62N52BOLT27DMPRA3WNBT2OBRT65N6OEZQWD4OSH6PI",
+        "deleted": false,
+        "is-frozen": false,
+        "opted-in-at-round": 17338109,
+        "decimals": 3,
+        "unit-name": "CHAIR",
+        "name": "Chair coin"
+      },
+      {
+        "score": 0,
+        "verified": false,
+        "amount": 0,
+        "asset-id": 37074699,
+        "creator": "TESTNTTTJDHIF5PJZUBTTDYYSKLCLM6KXCTWIOOTZJX5HO7263DPPMM2SU",
+        "deleted": false,
+        "is-frozen": false,
+        "opted-in-at-round": 17338053,
+        "decimals": 6,
+        "unit-name": "USDC",
+        "name": "USDC"
+      }
+    ],
+    "created-at-round": 17170160,
+    "deleted": false,
+    "min-balance": 1156000,
+    "pending-rewards": 0,
+    "reward-base": 27521,
+    "rewards": 0,
+    "round": 17417628,
+    "sig-type": "sig",
+    "status": "Offline"
+  },
+  "current-round": 17417628
+}
