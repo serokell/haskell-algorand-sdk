@@ -15,6 +15,7 @@ module Halgo.CLA.Argument
 
 import qualified Data.Text as T
 
+import Data.Text (Text)
 import Options.Applicative (Parser, action, argument, auto, eitherReader, help, metavar,
                             strArgument)
 
@@ -22,8 +23,7 @@ import qualified Data.Algorand.Address as A
 
 import Data.Algorand.Address (Address)
 import Data.Algorand.Amount (Microalgos)
-import Data.Algorand.Transaction (AssetIndex)
-import Data.Text (Text)
+import Data.Algorand.Asset (AssetIndex)
 
 argSecretFile :: Parser FilePath
 argSecretFile = strArgument $ mconcat

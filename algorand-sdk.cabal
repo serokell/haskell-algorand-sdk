@@ -37,6 +37,7 @@ library
       Crypto.Algorand.Util
       Data.Algorand.Address
       Data.Algorand.Amount
+      Data.Algorand.Asset
       Data.Algorand.Block
       Data.Algorand.MessagePack
       Data.Algorand.MessagePack.Json

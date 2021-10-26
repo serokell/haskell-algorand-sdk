@@ -168,8 +168,19 @@ instance ToJSON TransactionResp where
             ]
           )])
         KeyRegistrationTransaction {} -> ("keyreg", mempty)
-        AssetConfigTransaction {} -> ("acfg", mempty)
-        AssetFreezeTransaction {} -> ("afrz", mempty)
+        AssetConfigTransaction {..} ->
+          ("acfg", [("asset-config-transaction", object
+            [ "asset-id" .= actAssetId
+            , "params" .= actParams
+            ]
+          )])
+        AssetFreezeTransaction {..} ->
+          ("afrz", [("asset-freeze-transaction", object
+            [ "address" .= aftAddress
+            , "asset-id" .= aftAssetId
+            , "new-freeze-status" .= aftNewFreezeStatus
+            ]
+          )])
 
 instance FromJSON TransactionResp where
   parseJSON = withObject "TransactionResp" $ \o -> do
@@ -204,8 +215,10 @@ instance FromJSON TransactionResp where
         "axfer" ->
           parseAssetTransferTransaction =<< o .: "asset-transfer-transaction"
         "keyreg" -> pure KeyRegistrationTransaction
-        "acfg" -> pure AssetConfigTransaction
-        "afrz" -> pure AssetFreezeTransaction
+        "acfg" ->
+          parseAssetConfigTransaction =<< o .: "asset-config-transaction"
+        "afrz" ->
+          parseAssetFreezeTransaction =<< o .: "asset-freeze-transaction"
         x -> fail . T.unpack $ "Unmapped transaction type field name: " <> x
 
       parsePaymentTransaction subObj = do
@@ -234,6 +247,17 @@ instance FromJSON TransactionResp where
         attAssetReceiver <- subObj .: "receiver"
         attAssetCloseTo <- subObj .:? "close-to"
         return AssetTransferTransaction {..}
+
+      parseAssetConfigTransaction subObj = do
+        actAssetId <- subObj .: "asset-id"
+        actParams <- subObj .: "params"
+        return AssetConfigTransaction {..}
+
+      parseAssetFreezeTransaction subObj = do
+        aftAddress <- subObj .: "address"
+        aftAssetId <- subObj .: "asset-id"
+        aftNewFreezeStatus <- subObj .: "new-freeze-status"
+        return AssetFreezeTransaction {..}
 
 transactionRespToTransaction :: Text -> GenesisHash -> TransactionResp -> Transaction
 transactionRespToTransaction gId gHash TransactionResp {..} = Transaction

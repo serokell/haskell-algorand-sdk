@@ -14,12 +14,15 @@ SPDX-License-Identifier: MPL-2.0
     * Microalgo amounts
     * Signing keys
     * Addresses
+    * Asset
     * Block
     * Round
 * Transaction types:
     * Payment transactions
     * Application call transactions
     * Asset transfer transactions
+    * Asset config transactions
+    * Asset freeze transactions
 * Canonical MessagePack serialisation
 * Signing and signature verification (only for simple single signatures)
 * Transaction groups

@@ -8,7 +8,6 @@ module Data.Algorand.Transaction
   , TransactionType (..)
 
   , AppIndex
-  , AssetIndex
   , GenesisHash
   , TransactionGroupId
   , Lease
@@ -44,16 +43,15 @@ import Text.Read (readMaybe)
 import Crypto.Algorand.Hash (hash32)
 import Data.Algorand.Address (Address)
 import Data.Algorand.Amount (Microalgos)
-import Data.Algorand.MessagePack (AlgoMessagePack (..), Canonical (Canonical), CanonicalZero,
-                                  MessagePackObject (toCanonicalObject),
-                                  MessageUnpackObject (fromCanonicalObject), NonZeroValue, (&),
-                                  (&<>), (.:), (.:>), (.:?), (.=), (.=<))
+import Data.Algorand.Asset (AssetIndex, AssetParams)
+import Data.Algorand.MessagePack (AlgoMessagePack (..), Canonical (..), CanonicalZero,
+                                  MessagePackObject (..), MessageUnpackObject (..), NonZeroValue,
+                                  (&), (&<>), (.:), (.:>), (.:?), (.=), (.=<))
 import Data.Algorand.MessagePack.Json (parseCanonicalJson, toCanonicalJson)
 import Data.Algorand.Round (Round)
 
 
 type AppIndex = Word64
-type AssetIndex = Word64
 
 type GenesisHash = SizedByteArray 32 Bytes
 
@@ -104,13 +102,21 @@ data TransactionType
     , attAssetReceiver :: Address
     , attAssetCloseTo :: Maybe Address
     }
-  -- TODO:
-  | KeyRegistrationTransaction
-    {}
+  | KeyRegistrationTransaction {}
   | AssetConfigTransaction
-    {}
+    { actAssetId :: Maybe AssetIndex
+    -- ^ [xaid] ID of the asset being configured or empty if creating.
+    , actParams :: AssetParams
+    -- ^ [apar] when part of an AssetConfig transaction.
+    }
   | AssetFreezeTransaction
-    {}
+    { aftAddress :: Address
+    -- ^ [fadd] Address of the account whose asset is being frozen or thawed.
+    , aftAssetId :: AssetIndex
+    -- ^ [faid] ID of the asset being frozen or thawed.
+    , aftNewFreezeStatus :: Bool
+    -- ^ [afrz] The new freeze status.
+    }
   deriving (Eq, Generic, Show)
 
 -- | Constants for @OnComplete@.
@@ -157,13 +163,11 @@ instance FromJSON OnComplete where
   parseJSON o = parseJSON @String o
     >>= maybe (fail "Fail to parse `OnComplete`") pure . readMaybe
 
-
 -- | The 'StateSchema' object.
 data StateSchema = StateSchema
   { ssNumUint :: Word64
   , ssNumByteSlice :: Word64
   } deriving (Eq, Generic, Show)
-
 
 -- | Get transaction ID.
 transactionId :: Transaction -> Text
@@ -263,6 +267,13 @@ transactionTypeFieldName = \case
   "attAssetReceiver" -> "arcv"
   "attAssetCloseTo" -> "aclose"
 
+  "actAssetId" -> "xaid"
+  "actParams" -> "apar"
+
+  "aftAddress" -> "fadd"
+  "aftAssetId" -> "faid"
+  "aftNewFreezeStatus" -> "afrz"
+
   x -> error $ "Unmapped transaction type field name: " <> x
 
 transactionType :: IsString s => String -> s
@@ -296,8 +307,10 @@ instance MessagePackObject TransactionType where
         & f "actLocalStateSchema" .=< actLocalStateSchema
       KeyRegistrationTransaction -> mempty
         & "type" .= t "KeyRegistrationTransaction"
-      AssetConfigTransaction -> mempty
+      AssetConfigTransaction{..} -> mempty
         & "type" .= t "AssetConfigTransaction"
+        & f "actAssetId" .= actAssetId
+        & f "actParams" .=< actParams
       AssetTransferTransaction{..} -> mempty
         & "type" .= t "AssetTransferTransaction"
         & f "attXferAsset" .= attXferAsset
@@ -305,8 +318,11 @@ instance MessagePackObject TransactionType where
         & f "attAssetSender" .= attAssetSender
         & f "attAssetReceiver" .= attAssetReceiver
         & f "attAssetCloseTo" .= attAssetCloseTo
-      AssetFreezeTransaction -> mempty
+      AssetFreezeTransaction{..} -> mempty
         & "type" .= t "AssetFreezeTransaction"
+        & f "aftAddress" .= aftAddress
+        & f "aftAssetId" .= aftAssetId
+        & f "aftNewFreezeStatus" .= aftNewFreezeStatus
     where
       f = transactionTypeFieldName
       t = transactionType :: String -> Text
@@ -333,7 +349,9 @@ instance MessageUnpackObject TransactionType where
       "keyreg" -> do
         pure KeyRegistrationTransaction
       "acfg" -> do
-        pure AssetConfigTransaction
+        actAssetId <- o .:? f "actAssetId"
+        actParams <- o .:> f "actParams"
+        pure AssetConfigTransaction{..}
       "axfer" -> do
         attXferAsset <- o .:? f "attXferAsset"
         attAssetAmount <- o .:? f "attAssetAmount"
@@ -342,7 +360,10 @@ instance MessageUnpackObject TransactionType where
         attAssetCloseTo <- o .:? f "attAssetCloseTo"
         pure AssetTransferTransaction{..}
       "afrz" -> do
-        pure AssetFreezeTransaction
+        aftAddress <- o .: f "aftAddress"
+        aftAssetId <- o .: f "aftAssetId"
+        aftNewFreezeStatus <- o .: f "aftNewFreezeStatus"
+        pure AssetFreezeTransaction{..}
       x -> fail $ "Unsupported transaction type: " <> T.unpack x
     where
       f = transactionTypeFieldName

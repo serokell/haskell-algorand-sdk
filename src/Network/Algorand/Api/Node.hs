@@ -14,7 +14,6 @@ module Network.Algorand.Api.Node
   , SuggestedParams (..)
   , NanoSec (..)
   , NodeStatus (..)
-  , Asset (..)
   , LocalState (..)
   , NodeApi (..)
   ) where
@@ -31,10 +30,11 @@ import Servant.API.Generic ((:-))
 
 import Data.Algorand.Address (Address)
 import Data.Algorand.Amount (Microalgos)
+import Data.Algorand.Asset (Asset, AssetIndex)
 import Data.Algorand.Block (BlockWrapped)
 import Data.Algorand.Round (Round)
 import Data.Algorand.Teal (TealCompilationResult, TealKeyValueStore)
-import Data.Algorand.Transaction (AppIndex, AssetIndex, GenesisHash)
+import Data.Algorand.Transaction (AppIndex, GenesisHash)
 import Data.Algorand.Transaction.Signed (SignedTransaction)
 import Network.Algorand.Api.Content (Binary, MsgPack)
 import Network.Algorand.Api.Json (algorandCamelOptions, algorandSnakeOptions, algorandTrainOptions)
@@ -111,21 +111,6 @@ newtype TransactionsRep = TransactionsRep
   { trTxId :: Text
   } deriving (Generic, Show)
 $(deriveJSON algorandCamelOptions 'TransactionsRep)
-
-data Asset = Asset
-  { asAmount :: Microalgos
-  -- ^ Number of units held.
-  , asAssetId :: AssetIndex
-  -- ^ Asset ID of the holding.
-  , asCreator :: Address
-  -- ^ Address that created this asset.
-  -- This is the address where the parameters for this asset can be found, and
-  -- also the address where unwanted asset units can be sent in the worst case.
-  , asIsFrozen :: Bool
-  -- ^ Whether or not the holding is frozen.
-  }
-  deriving stock Show
-$(deriveJSON algorandTrainOptions 'Asset)
 
 data LocalState = LocalState
   { lsId :: AppIndex

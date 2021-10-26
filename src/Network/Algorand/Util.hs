@@ -31,9 +31,10 @@ import qualified Network.Algorand.Api as Api
 
 import Data.Algorand.Address (Address)
 import Data.Algorand.Amount (Microalgos)
+import Data.Algorand.Asset (Asset (..), AssetIndex)
 import Data.Algorand.Round (Round)
 import Data.Algorand.Teal (TealKeyValue (..), TealValue (..), tealValueBytesType, tealValueUintType)
-import Data.Algorand.Transaction (AppIndex, AssetIndex)
+import Data.Algorand.Transaction (AppIndex)
 import Network.Algorand.Api.Node (TransactionInfo (..))
 
 -- | Status of a transaction in the pool.
@@ -98,11 +99,11 @@ getAccountAtRound api addr rnd = handle noEntityHandler $
 -- | Helper to get asset balance at account
 lookupAssetBalance :: Api.Account -> AssetIndex -> Microalgos
 lookupAssetBalance Api.Account{..} assetId
-  | Just Api.Asset{..} <- aAssets >>= lookup assetId . map toPair
+  | Just Asset{..} <- aAssets >>= lookup assetId . map toPair
   , not asIsFrozen = asAmount
   | otherwise = 0
   where
-    toPair a@Api.Asset{..} = (asAssetId, a)
+    toPair a@Asset{..} = (asAssetId, a)
 
 -- | Helper to get account local state
 lookupAppLocalState
