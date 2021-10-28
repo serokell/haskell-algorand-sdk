@@ -3,20 +3,29 @@
 -- SPDX-License-Identifier: MPL-2.0
 
 module Test.Util
-  ( goldenTest
+  ( decodeExpected
+  , goldenTest
+  , genesisHashFromBytes
   , idxClient
 
   , split
   ) where
 
+import qualified Data.Text as T
+
 import Control.Arrow (second)
 import Data.Aeson (FromJSON, eitherDecodeFileStrict')
+import Data.ByteArray (convert)
+import Data.ByteArray.Sized (sizedByteArray)
+import Data.ByteString (ByteString)
+import Data.ByteString.Base64 (decodeBase64)
 import Data.Maybe (fromJust)
 import Servant.Client.Generic (AsClientT)
 import Test.Tasty.HUnit (Assertion, assertFailure, (@?=))
 
 import qualified Network.Algorand.Api as Api
 
+import Data.Algorand.Transaction (GenesisHash)
 import Network.Algorand.Client (AlgoIndexer (..), connectToIndexer)
 import Network.Algorand.Definitions (DefaultHost (..), Network (TestnetV1), getDefaultHost)
 
@@ -41,3 +50,17 @@ idxClient = getAlgoIndexer . snd <$> connectToIndexer host TestnetV1
 split :: Char -> String -> (String, String)
 split _ [] = ("", "")
 split c xs = second (drop 1) . break (== c) $ xs
+
+-- | Get 'GenesisHash' from 'ByteString'
+genesisHashFromBytes :: ByteString -> Maybe GenesisHash
+genesisHashFromBytes t = case decodeBase64 t of
+  Right bs -> sizedByteArray $ convert bs
+  Left _ -> Nothing
+
+-- | Decode base64 'ByteString'
+-- This function is helper for expected values in tests.
+-- NOTE: it's unsafe
+decodeExpected :: ByteString -> ByteString
+decodeExpected t = case decodeBase64 t of
+  Right bs -> bs
+  Left e -> error $ T.unpack e
