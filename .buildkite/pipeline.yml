@@ -32,4 +32,5 @@ steps:
 
   - label: tests
     commands:
-      - nix-build -A checks.x86_64-linux.test
+      - nix-build -A packages.x86_64-linux.test
+      - ./result/bin/algorand-lib-test

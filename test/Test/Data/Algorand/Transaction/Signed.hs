@@ -14,26 +14,24 @@ module Test.Data.Algorand.Transaction.Signed
   , hprop_json_encode_decode
   ) where
 
-import Data.Aeson (fromJSON, toJSON)
-import Data.ByteString (ByteString)
-import Data.ByteString.Base64 (encodeBase64)
 import qualified Data.ByteString.Lazy as BSL
 
-import Hedgehog (MonadGen, Property, forAll, property, tripping, (===))
-import qualified Hedgehog.Gen as G
+import Data.Aeson (fromJSON, toJSON)
+import Data.ByteString.Base64 (encodeBase64)
+import Hedgehog (Property, forAll, property, tripping, (===))
 import Test.Tasty.HUnit (Assertion, (@?=))
 
-import Crypto.Algorand.Key (SecretKey, skFromBytes, toPublic)
-import Data.Algorand.Address (fromContractCode, fromPublicKey)
 import qualified Data.Algorand.MessagePack as MP
-import Data.Algorand.Transaction (Transaction (..))
-import Data.Algorand.Transaction.Signed (SignedTransaction, getUnverifiedTransaction,
-                                         signFromContractAccount, signSimple, verifyTransaction)
 
-import Test.Crypto.Algorand.Signature (genSecretKeyBytes)
-import Test.Data.Algorand.Program (genProgram)
-import Test.Data.Algorand.Transaction (genTransaction)
+import Crypto.Algorand.Key (skFromBytes, toPublic)
+import Data.Algorand.Address (fromContractCode, fromPublicKey)
+import Data.Algorand.Transaction (Transaction (..))
+import Data.Algorand.Transaction.Signed (getUnverifiedTransaction, signFromContractAccount,
+                                         signSimple, verifyTransaction)
+
 import Test.Data.Algorand.Transaction.Examples (example_21)
+import Test.Domain (signerSign)
+import Test.Gen (genSecretKeyBytes, genSigner, genTransaction, genProgram)
 
 unit_sign_as_contract :: Assertion
 unit_sign_as_contract = do
@@ -43,7 +41,6 @@ unit_sign_as_contract = do
     encodeBase64 (BSL.toStrict . MP.pack . MP.Canonical $ signed) @?= expected
   where
     expected = "gqRsc2lngaFsxAUBIAEBIqN0eG6KpGFwYWGRxAR0ZXN0pGFwYXSSxCAAKjIBO2ow437iiFQk7n19BVXq4JOftpr8a9+d0v7n/sQgAAcEC49iozKw4AXwAsjApRY0aAEKMVgnxs9SfHhpeeekYXBmYZLNFbPNGgqkYXBpZGSjZmVlzQTSomZ2zSMoomdoxCAx/SHrOOQQgRk+00zfOyuD6IdAVLR9nGGCvvDfkjjrg6Jsds0jMqNzbmTEIPZ2Lax1sZl9bCyWGAaAUHSQ15URL/5/t2Cyc4r5x/GtpHR5cGWkYXBwbA=="
-
 
 hprop_sign_verify_simple :: Property
 hprop_sign_verify_simple = property $ do
@@ -59,7 +56,6 @@ hprop_signSimple_sets_sender = property $ do
   let tx' = getUnverifiedTransaction $ signSimple sk tx
   tSender tx' === fromPublicKey (toPublic sk)
 
-
 hprop_sign_verify_contract :: Property
 hprop_sign_verify_contract = property $ do
   program <- forAll genProgram
@@ -73,23 +69,6 @@ hprop_signFromContractAccount_sets_sender = property $ do
   tx <- forAll genTransaction
   let tx' = getUnverifiedTransaction $ signFromContractAccount program [] tx
   tSender tx' === fromContractCode program
-
-data Signer
-  = SignerSimple SecretKey
-  | SignerContract ByteString
-  deriving (Show)
-
-signerSign :: Signer -> Transaction -> SignedTransaction
-signerSign (SignerSimple sk) = signSimple sk
-signerSign (SignerContract program) = signFromContractAccount program []
-
-genSigner :: MonadGen m => m Signer
-genSigner = G.choice
-    [ SignerSimple <$> genSecretKey
-    , SignerContract <$> genProgram
-    ]
-  where
-    genSecretKey = G.justT (skFromBytes <$> genSecretKeyBytes)
 
 hprop_json_encode_decode :: Property
 hprop_json_encode_decode = property $ do

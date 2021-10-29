@@ -8,7 +8,6 @@ module Test.Data.Algorand.Transaction.Pay
   ( unit_encoding
   ) where
 
-import Data.ByteString (ByteString)
 import Data.ByteString.Lazy (fromStrict)
 import Data.MessagePack (pack)
 import Test.Tasty.HUnit (Assertion, (@?=))
@@ -16,10 +15,10 @@ import Test.Tasty.HUnit (Assertion, (@?=))
 import Data.Algorand.MessagePack (Canonical (Canonical))
 import Data.Algorand.Transaction (Transaction (..), TransactionType (..))
 
-import Test.Data.Algorand.Transaction.Examples (genesisHashFromBytes, result)
+import Test.Domain (genesisHash)
+import Test.Util (decodeExpected)
 
 -- These were generated using the Python SDK.
-
 example :: Transaction
 example = Transaction
   { tSender = "6TYVTN4MHDI7PGOXEZZRUIPPCERHSZLEAJUO5RHLGTFBLDHEGK35CYS3HE"
@@ -28,7 +27,7 @@ example = Transaction
   , tLastValid = 9010
   , tNote = Nothing
   , tGenesisId = Just "unit-test"
-  , tGenesisHash = Just $ genesisHashFromBytes "Mf0h6zjkEIEZPtNM3zsrg+iHQFS0fZxhgr7w35I464M="
+  , tGenesisHash = genesisHash
 
   , tTxType = PaymentTransaction
     { ptReceiver = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAY5HFKQ"
@@ -41,10 +40,8 @@ example = Transaction
   , tRekeyTo = Nothing
   }
 
-example_encoded :: ByteString
-example_encoded = result
-   "iKNhbXTOABLWh6NmZWXNBNKiZnbNIyijZ2VuqXVuaXQtdGVzdKJnaMQgMf0h6zjkEIEZPtNM3zsrg+iHQFS0fZxhgr7w35I464OibHbNIzKjc25kxCD08Vm3jDjR95nXJnMaIe8RInllZAJo7sTrNMoVjOQyt6R0eXBlo3BheQ=="
-
 unit_encoding :: Assertion
-unit_encoding =
-  pack (Canonical example) @?= fromStrict example_encoded
+unit_encoding = pack (Canonical example) @?= fromStrict expected
+  where
+    expected = decodeExpected
+      "iKNhbXTOABLWh6NmZWXNBNKiZnbNIyijZ2VuqXVuaXQtdGVzdKJnaMQgMf0h6zjkEIEZPtNM3zsrg+iHQFS0fZxhgr7w35I464OibHbNIzKjc25kxCD08Vm3jDjR95nXJnMaIe8RInllZAJo7sTrNMoVjOQyt6R0eXBlo3BheQ=="

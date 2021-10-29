@@ -36,14 +36,14 @@ data TealValue = TealValue
   -- ^ uint type.
   , tvType :: Word64
   -- ^ value type.
-  } deriving stock Show
+  } deriving stock (Show, Eq)
 $(deriveJSON algorandTrainOptions 'TealValue)
 
 -- | Represents a key-value pair in an application store.
 data TealKeyValue = TealKeyValue
   { tkeKey :: ByteString
   , tkeValue :: TealValue
-  } deriving stock Show
+  } deriving stock (Show, Eq)
 $(deriveJSON algorandTrainOptions 'TealKeyValue)
 
 -- | Represents a key-value store for use in an application.
@@ -51,10 +51,10 @@ type TealKeyValueStore = [TealKeyValue]
 
 newtype TealCode = TealCode
   { unTealCode :: ByteString
-  } deriving newtype (FromJSON, ToJSON)
+  } deriving newtype (Show, Eq, FromJSON, ToJSON)
 
 data TealCompilationResult = TealCompilationResult
   { tcrHash :: Address
   , tcrResult :: TealCode
-  }
+  } deriving (Show, Eq)
 $(deriveJSON algorandTrainOptions 'TealCompilationResult)

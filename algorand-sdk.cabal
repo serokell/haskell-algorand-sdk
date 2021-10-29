@@ -199,13 +199,16 @@ test-suite algorand-lib-test
   other-modules:
       Test.Crypto.Algorand.Signature
       Test.Data.Algorand.Address
-      Test.Data.Algorand.Program
       Test.Data.Algorand.Transaction
       Test.Data.Algorand.Transaction.AssetTransfer
       Test.Data.Algorand.Transaction.Examples
       Test.Data.Algorand.Transaction.Pay
       Test.Data.Algorand.Transaction.Signed
-      Test.Network.Algorand.Indexer.Golden
+      Test.Domain
+      Test.Gen
+      Test.Network.Algorand.Api.Indexer
+      Test.Network.Algorand.Api.Node
+      Test.Util
       Paths_algorand_sdk
   hs-source-dirs:
       test
@@ -259,6 +262,7 @@ test-suite algorand-lib-test
     , hedgehog
     , memory >=0.1 && <0.16
     , msgpack-binary
+    , servant-client-core
     , tasty
     , tasty-hedgehog
     , tasty-hunit

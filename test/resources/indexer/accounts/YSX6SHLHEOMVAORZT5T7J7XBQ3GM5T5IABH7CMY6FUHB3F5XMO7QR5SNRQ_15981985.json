@@ -1,0 +1,68 @@
+{
+  "account": {
+    "address": "YSX6SHLHEOMVAORZT5T7J7XBQ3GM5T5IABH7CMY6FUHB3F5XMO7QR5SNRQ",
+    "amount": 3463000,
+    "amount-without-pending-rewards": 3463000,
+    "apps-local-state": [
+      {
+        "deleted": false,
+        "id": 14713804,
+        "key-value": [
+          {
+            "key": "bQ==",
+            "value": {
+              "bytes": "",
+              "type": 2,
+              "uint": 24000000
+            }
+          },
+          {
+            "key": "cw==",
+            "value": {
+              "bytes": "",
+              "type": 2,
+              "uint": 1
+            }
+          },
+          {
+            "key": "dg==",
+            "value": {
+              "bytes": "3Tsms5sU2YbLwd5GesK2o5OGelHCM1wyFs4ejKUMFng=",
+              "type": 1,
+              "uint": 0
+            }
+          }
+        ],
+        "opted-in-at-round": 15267495,
+        "schema": {
+          "num-byte-slice": 2,
+          "num-uint": 3
+        }
+      }
+    ],
+    "apps-total-schema": {
+      "num-byte-slice": 2,
+      "num-uint": 3
+    },
+    "assets": [
+      {
+        "amount": 10669522,
+        "asset-id": 14704676,
+        "creator": "E7SGC4ULFOVGYICHG3OHHGA3KX7RMOCLB2OQTBUWT4GYXOL6D4OAKFMPJI",
+        "deleted": false,
+        "is-frozen": false,
+        "opted-in-at-round": 15267493
+      }
+    ],
+    "created-at-round": 15267474,
+    "deleted": false,
+    "min-balance": 485500,
+    "pending-rewards": 0,
+    "reward-base": 27521,
+    "rewards": 0,
+    "round": 15981985,
+    "sig-type": "sig",
+    "status": "Offline"
+  },
+  "current-round": 15981985
+}

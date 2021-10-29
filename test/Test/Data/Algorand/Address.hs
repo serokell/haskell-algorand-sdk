@@ -26,8 +26,7 @@ import Crypto.Algorand.Key (pkFromBytes)
 import Data.Algorand.Address (Address, fromBytes, fromContractCode, fromPublicKey, fromText,
                               toPublicKey, toText)
 
-import Test.Crypto.Algorand.Signature (genPublicKey)
-
+import Test.Gen (genPublicKey)
 
 -- Example from the documentation.
 exampleAddress :: Address

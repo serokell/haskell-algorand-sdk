@@ -124,7 +124,7 @@ data Asset = Asset
   , asIsFrozen :: Bool
   -- ^ Whether or not the holding is frozen.
   }
-  deriving stock Show
+  deriving stock (Show, Eq)
 $(deriveJSON algorandTrainOptions 'Asset)
 
 data LocalState = LocalState
@@ -132,7 +132,7 @@ data LocalState = LocalState
   -- ^ The application which this local state is for.
   , lsKeyValue :: Maybe TealKeyValueStore
   -- ^ Storage associated with the account and the application.
-  } deriving stock Show
+  } deriving stock (Show, Eq)
 $(deriveJSON algorandTrainOptions 'LocalState)
 
 data Account = Account
@@ -161,7 +161,7 @@ data Account = Account
   -- ^ the round for which this information is relevant.
   , aStatus :: Text
   -- ^ delegation status of the account's MicroAlgos
-  } deriving (Generic, Show)
+  } deriving (Generic, Show, Eq)
 $(deriveJSON algorandTrainOptions 'Account)
 
 data TransactionInfo = TransactionInfo
@@ -200,14 +200,14 @@ data NodeApi route = NodeApi
       :- "v2"
       :> "status"
       :> Get '[JSON] NodeStatus
-  , _block :: route
+  , _block :: route -- DEPRECATED
       :- "v2"
       :> "blocks"
       :> Capture "round" Round
       :> QueryParam "format" Text
       -- do not try passing format other than msgpack here
       :> Get '[MsgPack] BlockWrapped
-  , _account :: route
+  , _account :: route -- DEPRECATED
       :- "v2"
       :> "accounts"
       :> Capture "address" Address
