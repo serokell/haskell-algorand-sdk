@@ -200,14 +200,14 @@ data NodeApi route = NodeApi
       :- "v2"
       :> "status"
       :> Get '[JSON] NodeStatus
-  , _block :: route
+  , _block :: route -- DEPRECATED
       :- "v2"
       :> "blocks"
       :> Capture "round" Round
       :> QueryParam "format" Text
       -- do not try passing format other than msgpack here
       :> Get '[MsgPack] BlockWrapped
-  , _account :: route
+  , _account :: route -- DEPRECATED
       :- "v2"
       :> "accounts"
       :> Capture "address" Address

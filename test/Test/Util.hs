@@ -6,7 +6,9 @@ module Test.Util
   ( decodeExpected
   , goldenTest
   , genesisHashFromBytes
+
   , idxClient
+  , nodeClient
 
   , split
   ) where
@@ -26,7 +28,7 @@ import Test.Tasty.HUnit (Assertion, assertFailure, (@?=))
 import qualified Network.Algorand.Api as Api
 
 import Data.Algorand.Transaction (GenesisHash)
-import Network.Algorand.Client (AlgoIndexer (..), connectToIndexer)
+import Network.Algorand.Client (AlgoIndexer (..), AlgoNode (..), connectToIndexer, connectToNode)
 import Network.Algorand.Definitions (DefaultHost (..), Network (TestnetV1), getDefaultHost)
 
 -- | Compares result from location with expected one.
@@ -45,6 +47,12 @@ idxClient :: IO (Api.IndexerApi (AsClientT IO))
 idxClient = getAlgoIndexer . snd <$> connectToIndexer host TestnetV1
   where
     host = ahIndexer . fromJust $ getDefaultHost TestnetV1
+
+-- | Helper to call Node API in tests
+nodeClient :: IO (Api.NodeApi (AsClientT IO))
+nodeClient = getAlgoNode . snd <$> connectToNode host TestnetV1
+  where
+    host = ahNode . fromJust $ getDefaultHost TestnetV1
 
 -- | Splits string by delimiter
 split :: Char -> String -> (String, String)

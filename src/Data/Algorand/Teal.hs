@@ -51,10 +51,10 @@ type TealKeyValueStore = [TealKeyValue]
 
 newtype TealCode = TealCode
   { unTealCode :: ByteString
-  } deriving newtype (FromJSON, ToJSON)
+  } deriving newtype (Show, Eq, FromJSON, ToJSON)
 
 data TealCompilationResult = TealCompilationResult
   { tcrHash :: Address
   , tcrResult :: TealCode
-  }
+  } deriving (Show, Eq)
 $(deriveJSON algorandTrainOptions 'TealCompilationResult)

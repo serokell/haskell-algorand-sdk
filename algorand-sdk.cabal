@@ -207,6 +207,7 @@ test-suite algorand-lib-test
       Test.Domain
       Test.Gen
       Test.Network.Algorand.Api.Indexer
+      Test.Network.Algorand.Api.Node
       Test.Util
       Paths_algorand_sdk
   hs-source-dirs:

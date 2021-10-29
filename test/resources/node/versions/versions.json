@@ -1,0 +1,16 @@
+{
+  "versions": [
+    "v1",
+    "v2"
+  ],
+  "genesis_id": "testnet-v1.0",
+  "genesis_hash_b64": "SGO1GKSzyE7IEPItTxCByw9x8FmnrCDexi9/cOUJOiI=",
+  "build": {
+    "major": 3,
+    "minor": 0,
+    "build_number": 1,
+    "commit_hash": "b619b940",
+    "branch": "rel/stable",
+    "channel": "stable"
+  }
+}
