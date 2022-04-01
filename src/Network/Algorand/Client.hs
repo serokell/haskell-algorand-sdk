@@ -79,8 +79,9 @@ connectToIndexer host net = do
   let
     apiIdx2Client :: forall m' . MonadIO m' => IndexerApi (AsClientT m')
     apiIdx2Client = apiClient env
+  pure (net, AlgoIndexer apiIdx2Client)
 
-  Health{hGenesisId} <- _health apiIdx2Client
-  case hGenesisId == net of
-    True -> pure (net, AlgoIndexer apiIdx2Client)
-    False ->  throwM $ WrongNetwork net hGenesisId
+--   Health{hGenesisId} <- _health apiIdx2Client
+--   case hGenesisId == net of
+--     True -> pure (net, AlgoIndexer apiIdx2Client)
+--     False ->  throwM $ WrongNetwork net hGenesisId
