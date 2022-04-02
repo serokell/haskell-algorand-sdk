@@ -22,8 +22,7 @@ import qualified Network.Algorand.Api as Api
 
 import Data.Algorand.Address (fromText)
 import Data.Algorand.Round (Round (..))
-import Network.Algorand.Api.Indexer (BlockResp, Health (hGenesisId),
-                                     IdxAccountResponse (iarAccount))
+import Network.Algorand.Api.Indexer (BlockResp, Health (..), IdxAccountResponse (iarAccount))
 
 import Test.Util (goldenTest, idxClient, split)
 
@@ -65,4 +64,5 @@ test_HealthCall = listDirectory dir >>= mapM runTest
     dir = resourcesIndexer </> "health"
     runTest file = return . testCase (dir </> file) $ do
       api <- Api._health <$> idxClient
-      api >>= goldenTest @Health (dir </> file) hGenesisId
+      let constantFields Health{..} = (hDbAvailable, hVersion)
+      api >>= goldenTest @Health (dir </> file) constantFields

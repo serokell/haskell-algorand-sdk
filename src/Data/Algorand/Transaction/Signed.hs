@@ -39,6 +39,7 @@ import Data.Algorand.MessagePack (MessagePackObject (..), MessageUnpackObject (.
                                   (.=<))
 import Data.Algorand.MessagePack.Json (parseCanonicalJson, toCanonicalJson)
 import Data.Algorand.Transaction (GenesisHash, Transaction (..), serialiseTx)
+import Network.Algorand.Definitions (Network)
 
 -- | Types of transaction signatures.
 data TransactionSignature
@@ -232,8 +233,7 @@ toSignedTransaction
   :: Bool
   -- ^ Is genesis hash required (parameter of consensus protocol)
   -> GenesisHash
-  -> Text
-  -- ^ Genesis id
+  -> Network
   -> BlockTransaction
   -> SignedTransaction
 toSignedTransaction requireGH gh gid BlockTransaction{..} =

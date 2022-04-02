@@ -34,7 +34,7 @@ import Data.Algorand.Amount (Microalgos)
 import Data.Algorand.Block (BlockWrapped)
 import Data.Algorand.Round (Round)
 import Data.Algorand.Teal (TealCompilationResult, TealKeyValueStore)
-import Data.Algorand.Transaction (AppIndex, AssetIndex, GenesisHash)
+import Data.Algorand.Transaction (AppIndex, AssetIndex, GenesisHash, StateSchema)
 import Data.Algorand.Transaction.Signed (SignedTransaction)
 import Network.Algorand.Api.Content (Binary, MsgPack)
 import Network.Algorand.Api.Json (algorandCamelOptions, algorandSnakeOptions, algorandTrainOptions)
@@ -107,11 +107,6 @@ data NodeStatus = NodeStatus
   }
 $(deriveJSON algorandTrainOptions 'NodeStatus)
 
-newtype TransactionsRep = TransactionsRep
-  { trTxId :: Text
-  } deriving (Generic, Show)
-$(deriveJSON algorandCamelOptions 'TransactionsRep)
-
 data Asset = Asset
   { asAmount :: Microalgos
   -- ^ Number of units held.
@@ -123,6 +118,12 @@ data Asset = Asset
   -- also the address where unwanted asset units can be sent in the worst case.
   , asIsFrozen :: Bool
   -- ^ Whether or not the holding is frozen.
+  , asDeleted :: Maybe Bool
+  -- ^ Whether or not the asset holding is currently deleted from its account.
+  , asOptedInAtRound :: Maybe Round
+  -- ^ Round during which the account opted into this asset holding.
+  , asOptedOutAtRound :: Maybe Round
+  -- ^ Round during which the account opted out of this asset holding.
   }
   deriving stock (Show, Eq)
 $(deriveJSON algorandTrainOptions 'Asset)
@@ -130,6 +131,13 @@ $(deriveJSON algorandTrainOptions 'Asset)
 data LocalState = LocalState
   { lsId :: AppIndex
   -- ^ The application which this local state is for.
+  , lsDeleted :: Maybe Bool
+  -- ^ Whether or not the application local state is currently deleted from its account.
+  , lsOptedInAtRound :: Maybe Round
+  -- ^ Round when the account opted into the application.
+  , lsOptedOutAtRound :: Maybe Round
+  -- ^ Round when account closed out of the application.
+  , lsSchema :: StateSchema
   , lsKeyValue :: Maybe TealKeyValueStore
   -- ^ Storage associated with the account and the application.
   } deriving stock (Show, Eq)
@@ -144,12 +152,20 @@ data Account = Account
   -- ^ specifies the amount of MicroAlgos in the account, without the pending rewards.
   , aAppsLocalState :: Maybe [LocalState]
   -- ^ applications local data stored in this account.
+  , aAppsTotalExtraPages :: Maybe Word64
+  , aAppsTotalSchema :: Maybe StateSchema
   , aAssets :: Maybe [Asset]
   -- ^ assets held by this account.
   , aAuthAddr :: Maybe Address
   -- ^ the address against which signing should be checked.
   -- If empty, the address of the current account is used. This field can be
   -- updated in any transaction by setting the RekeyTo field.
+  , aClosedAtRound :: Maybe Round
+  -- ^ Round during which this account was most recently closed.
+  , aCreatedAtRound :: Maybe Round
+  -- ^ Round during which this account was most recently closed.
+  , aDeleted :: Maybe Bool
+  -- ^ whether or not this account is currently closed.
   , aPendingRewards :: Microalgos
   -- ^ amount of MicroAlgos of pending rewards in this account.
   , aRewardBase :: Maybe Microalgos
@@ -159,13 +175,21 @@ data Account = Account
   -- ^ total rewards of MicroAlgos the account has received, including pending rewards.
   , aRound :: Round
   -- ^ the round for which this information is relevant.
+  , aSigType :: Text
+  -- ^ indicates what type of signature is used by this account
   , aStatus :: Text
   -- ^ delegation status of the account's MicroAlgos
   } deriving (Generic, Show, Eq)
 $(deriveJSON algorandTrainOptions 'Account)
 
+newtype TransactionsRep = TransactionsRep
+  { trTxId :: Text
+  } deriving (Generic, Show)
+$(deriveJSON algorandCamelOptions 'TransactionsRep)
+
 data TransactionInfo = TransactionInfo
   { tiApplicationIndex :: Maybe AppIndex
+  , tiAssetClosingAmount :: Maybe Microalgos
   , tiAssetIndex :: Maybe AssetIndex
   , tiCloseRewards :: Maybe Microalgos
   , tiClosingAmount :: Maybe Microalgos
@@ -181,7 +205,7 @@ data SuggestedParams = SuggestedParams
   { spConsensusVersion :: Text
   , spFee :: Microalgos
   , spGenesisHash :: GenesisHash
-  , spGenesisId :: Text
+  , spGenesisId :: Network
   , spLastRound :: Round
   , spMinFee :: Microalgos
   }
@@ -200,6 +224,7 @@ data NodeApi route = NodeApi
       :- "v2"
       :> "status"
       :> Get '[JSON] NodeStatus
+    -- This works only for the last ~1000 blocks
   , _block :: route -- DEPRECATED
       :- "v2"
       :> "blocks"
@@ -207,11 +232,6 @@ data NodeApi route = NodeApi
       :> QueryParam "format" Text
       -- do not try passing format other than msgpack here
       :> Get '[MsgPack] BlockWrapped
-  , _account :: route -- DEPRECATED
-      :- "v2"
-      :> "accounts"
-      :> Capture "address" Address
-      :> Get '[JSON] Account
   , _transactions :: route
       :- "v2"
       :> "transactions"

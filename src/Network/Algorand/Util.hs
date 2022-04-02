@@ -8,7 +8,6 @@ module Network.Algorand.Util
   , transactionStatus
   , getBlock
   , getBlockAtRound
-  , getAccount
   , getAccountAtRound
   , lookupAssetBalance
   , lookupAppLocalState
@@ -77,15 +76,7 @@ getBlockAtRound
 getBlockAtRound api rnd = handle noEntityHandler $
   Just <$> Api._blockIdx api rnd
 
-{-# DEPRECATED getAccount "Use `getAccountAtRound` instead" #-}
---- | Helper to get account from node
-getAccount
-  :: MonadCatch m
-  => Api.NodeApi (AsClientT m) -> Address -> m (Maybe Api.Account)
-getAccount api addr = handle noEntityHandler $
-  Just <$> Api._account api addr
-
---- | Helper to get account at round from indexer
+-- | Helper to get account at round from indexer
 getAccountAtRound
   :: MonadCatch m
   => Api.IndexerApi (AsClientT m)

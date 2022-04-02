@@ -24,11 +24,13 @@ import Data.Map.Strict (Map)
 import Data.Text (Text)
 import GHC.Exts (IsString)
 
+import Data.Algorand.MessagePack
+
 -- | Supported networks.
 --
 -- Also referred as \"genesis id\".
 newtype Network = Network Text
-  deriving (Eq, Ord, IsString)
+  deriving (Eq, Ord, IsString, ToJSON, FromJSON)
 
 pattern MainnetV1, TestnetV1, BetanetV1 :: Network
 pattern MainnetV1 = Network "mainnet-v1.0"
@@ -38,11 +40,12 @@ pattern BetanetV1 = Network "betanet-v1.0"
 instance Show Network where
   show (Network t) = T.unpack t
 
-instance ToJSON Network where
-  toJSON (Network t) = toJSON t
+instance AlgoMessagePack Network where
+  toAlgoObject (Network t) = toAlgoObject t
+  fromAlgoObject o = Network <$> fromAlgoObject o
 
-instance FromJSON Network where
-  parseJSON o = Network <$> parseJSON o
+instance NonZeroValue Network where
+  isNonZero _ = True
 
 -- | URL of the node or indexer to connect to.
 type Host = Text
@@ -88,20 +91,20 @@ defaultHost :: Map Network DefaultHost
 defaultHost = Map.fromList
   [ ( MainnetV1
     , DefaultHost
-      { ahNode = "https://api.algoexplorer.io/"
-      , ahIndexer = "https://indexer.algoexplorerapi.io/"
+      { ahNode = "https://node.algoexplorerapi.io"
+      , ahIndexer = "https://algoindexer.algoexplorerapi.io"
       }
     )
   , ( TestnetV1
     , DefaultHost
-      { ahNode = "https://api.testnet.algoexplorer.io/"
-      , ahIndexer = "https://indexer.testnet.algoexplorerapi.io/"
+      { ahNode = "https://node.testnet.algoexplorerapi.io"
+      , ahIndexer = "https://algoindexer.testnet.algoexplorerapi.io"
       }
     )
   , ( BetanetV1
     , DefaultHost
-      { ahNode = "https://api.betanet.algoexplorer.io/"
-      , ahIndexer = "https://indexer.betanet.algoexplorerapi.io/"
+      { ahNode = "https://node.betanet.algoexplorerapi.io"
+      , ahIndexer = "https://algoindexer.betanet.algoexplorerapi.io"
       }
     )
   ]
