@@ -1,8 +1,8 @@
 {
   "account": {
     "address": "YSX6SHLHEOMVAORZT5T7J7XBQ3GM5T5IABH7CMY6FUHB3F5XMO7QR5SNRQ",
-    "amount": 3463000,
-    "amount-without-pending-rewards": 3463000,
+    "amount": 37187000,
+    "amount-without-pending-rewards": 37187000,
     "apps-local-state": [
       {
         "deleted": false,
@@ -46,9 +46,8 @@
     },
     "assets": [
       {
-        "amount": 10669522,
+        "amount": 1320780,
         "asset-id": 14704676,
-        "creator": "E7SGC4ULFOVGYICHG3OHHGA3KX7RMOCLB2OQTBUWT4GYXOL6D4OAKFMPJI",
         "deleted": false,
         "is-frozen": false,
         "opted-in-at-round": 15267493
@@ -56,13 +55,16 @@
     ],
     "created-at-round": 15267474,
     "deleted": false,
-    "min-balance": 485500,
     "pending-rewards": 0,
     "reward-base": 27521,
     "rewards": 0,
-    "round": 15981985,
+    "round": 20953774,
     "sig-type": "sig",
-    "status": "Offline"
+    "status": "Offline",
+    "total-apps-opted-in": 1,
+    "total-assets-opted-in": 1,
+    "total-created-apps": 0,
+    "total-created-assets": 0
   },
-  "current-round": 15981985
+  "current-round": 20953846
 }

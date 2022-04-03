@@ -1,8 +1,6 @@
 {
   "genesis-hash": "SGO1GKSzyE7IEPItTxCByw9x8FmnrCDexi9/cOUJOiI=",
   "genesis-id": "testnet-v1.0",
-  "hash": "DPCGNQFB3PZCIGUG6MBL6ASVM3RD33UXJX65XURCJL5WIIRUAJJQ",
-  "original-proposer": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAY5HFKQ",
   "previous-block-hash": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
   "rewards": {
     "fee-sink": "A7NMWS3NT3IUDMLVO26ULGXGIIOUQ3ND2TXSER6EBGRZNOBOUIQXHIBGDE",
@@ -16,20 +14,16 @@
   "seed": "SGO1GKSzyE7IEPItTxCByw9x8FmnrCDexi9/cOUJOiI=",
   "timestamp": 1560210455,
   "transactions": [],
-  "transactions-count": 0,
   "transactions-root": "J3hisbLS0SebtaGdDYdRj+cVAPEmuLozZ3W9NJoee3M=",
   "txn-counter": 0,
   "upgrade-state": {
     "current-protocol": "https://github.com/algorand/spec/tree/a26ed78ed8f834e2b9ccb6eb7d3ee9f629a6e622",
-    "next-protocol": "",
     "next-protocol-approvals": 0,
     "next-protocol-switch-on": 0,
     "next-protocol-vote-before": 0
   },
   "upgrade-vote": {
     "upgrade-approve": false,
-    "upgrade-delay": 0,
-    "upgrade-propose": ""
-  },
-  "voter-addresses": []
+    "upgrade-delay": 0
+  }
 }

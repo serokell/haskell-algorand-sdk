@@ -1,8 +1,8 @@
 {
-  "consensus-version": "https://github.com/algorandfoundation/specs/tree/bc36005dbd776e6d1eaf0c560619bb183215645c",
+  "consensus-version": "https://github.com/algorandfoundation/specs/tree/d5ac876d7ede07367dbaa26e149aa42589aac1f7",
   "fee": 0,
   "genesis-hash": "SGO1GKSzyE7IEPItTxCByw9x8FmnrCDexi9/cOUJOiI=",
   "genesis-id": "testnet-v1.0",
-  "last-round": 17563575,
+  "last-round": 20749242,
   "min-fee": 1000
 }

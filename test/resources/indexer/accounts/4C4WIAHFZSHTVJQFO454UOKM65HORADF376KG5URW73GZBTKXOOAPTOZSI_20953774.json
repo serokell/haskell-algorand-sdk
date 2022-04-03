@@ -1,0 +1,98 @@
+{
+  "account": {
+    "address": "4C4WIAHFZSHTVJQFO454UOKM65HORADF376KG5URW73GZBTKXOOAPTOZSI",
+    "amount": 232156004,
+    "amount-without-pending-rewards": 232156004,
+    "apps-local-state": [
+      {
+        "deleted": false,
+        "id": 21580889,
+        "key-value": [
+          {
+            "key": "KyhhX1m1V7mtjXUDmv6FXTrGLZZDAPZHrJA2uko3rXxlAAAAAAFQTEg=",
+            "value": {
+              "bytes": "",
+              "type": 2,
+              "uint": 10909456
+            }
+          },
+          {
+            "key": "KyhhX1m1V7mtjXUDmv6FXTrGLZZDAPZHrJA2uko3rXxlAAAAAAAAAAA=",
+            "value": {
+              "bytes": "",
+              "type": 2,
+              "uint": 41196935
+            }
+          },
+          {
+            "key": "KyhhX1m1V7mtjXUDmv6FXTrGLZZDAPZHrJA2uko3rXxlAAAAAACflz0=",
+            "value": {
+              "bytes": "",
+              "type": 2,
+              "uint": 3110331
+            }
+          }
+        ],
+        "opted-in-at-round": 17170171,
+        "schema": {
+          "num-byte-slice": 0,
+          "num-uint": 16
+        }
+      }
+    ],
+    "apps-total-schema": {
+      "num-byte-slice": 0,
+      "num-uint": 16
+    },
+    "assets": [
+      {
+        "amount": 63548331,
+        "asset-id": 10458941,
+        "deleted": false,
+        "is-frozen": false,
+        "opted-in-at-round": 17171176
+      },
+      {
+        "amount": 2728667502,
+        "asset-id": 22039624,
+        "deleted": false,
+        "is-frozen": false,
+        "opted-in-at-round": 17171225
+      },
+      {
+        "amount": 0,
+        "asset-id": 23156562,
+        "deleted": false,
+        "is-frozen": false,
+        "opted-in-at-round": 17338109
+      },
+      {
+        "amount": 0,
+        "asset-id": 15322902,
+        "deleted": false,
+        "is-frozen": false,
+        "opted-in-at-round": 17338013
+      },
+      {
+        "amount": 0,
+        "asset-id": 37074699,
+        "deleted": false,
+        "is-frozen": false,
+        "opted-in-at-round": 17338053
+      }
+    ],
+    "created-at-round": 17170160,
+    "deleted": false,
+    "pending-rewards": 0,
+    "reward-base": 27521,
+    "rewards": 0,
+    "round": 20953774,
+    "sig-type": "sig",
+    "status": "Offline",
+    "total-apps-opted-in": 1,
+    "total-assets-opted-in": 5,
+    "total-created-apps": 0,
+    "total-created-assets": 0
+  },
+  "current-round": 20953896
+}
