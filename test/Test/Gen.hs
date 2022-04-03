@@ -26,6 +26,7 @@ import Data.Algorand.Amount (microAlgos)
 import Data.Algorand.Round (Round (..))
 import Data.Algorand.Transaction (OnComplete (..), StateSchema (..), Transaction (..),
                                   TransactionType (..))
+import Network.Algorand.Definitions (Network (..))
 
 import Test.Domain (Signer (..))
 
