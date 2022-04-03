@@ -107,15 +107,12 @@ data NodeStatus = NodeStatus
   }
 $(deriveJSON algorandTrainOptions 'NodeStatus)
 
+-- @AssetHolding@ in swagger
 data Asset = Asset
   { asAmount :: Microalgos
   -- ^ Number of units held.
   , asAssetId :: AssetIndex
   -- ^ Asset ID of the holding.
-  , asCreator :: Address
-  -- ^ Address that created this asset.
-  -- This is the address where the parameters for this asset can be found, and
-  -- also the address where unwanted asset units can be sent in the worst case.
   , asIsFrozen :: Bool
   -- ^ Whether or not the holding is frozen.
   , asDeleted :: Maybe Bool

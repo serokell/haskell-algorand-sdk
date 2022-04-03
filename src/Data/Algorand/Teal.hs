@@ -6,17 +6,20 @@
 module Data.Algorand.Teal
   ( TealCode (..)
   , TealCompilationResult (..)
-  , TealKeyValue (..)
-  , TealKeyValueStore
+  , TealKeyValueStore (..)
   , TealValue (..)
 
   , tealValueBytesType
   , tealValueUintType
   ) where
 
-import Data.Aeson (FromJSON, ToJSON)
+import Control.Monad (liftM2)
+import Data.Aeson (FromJSON, ToJSON, object, withObject, (.:), (.=))
 import Data.Aeson.TH (deriveJSON)
+import qualified Data.Aeson.Types as A
 import Data.ByteString (ByteString)
+import Data.Map (Map)
+import qualified Data.Map as Map
 import Data.Word (Word64)
 
 import Data.Algorand.Address (Address)
@@ -39,15 +42,24 @@ data TealValue = TealValue
   } deriving stock (Show, Eq)
 $(deriveJSON algorandTrainOptions 'TealValue)
 
--- | Represents a key-value pair in an application store.
-data TealKeyValue = TealKeyValue
-  { tkeKey :: ByteString
-  , tkeValue :: TealValue
-  } deriving stock (Show, Eq)
-$(deriveJSON algorandTrainOptions 'TealKeyValue)
-
 -- | Represents a key-value store for use in an application.
-type TealKeyValueStore = [TealKeyValue]
+newtype TealKeyValueStore = TealKeyValueStore
+  { unTealKeyValueStore :: Map ByteString TealValue
+  } deriving newtype (Show, Eq)
+
+instance ToJSON TealKeyValueStore where
+  toJSON (TealKeyValueStore entries) =
+    A.listValue
+      (\(key, value) -> object ["key" .= key, "value" .= value])
+      (Map.toList entries)
+
+instance FromJSON TealKeyValueStore where
+  parseJSON v =
+    fmap (TealKeyValueStore . Map.fromList) $
+      A.listParser
+        ( withObject "key/value pair" $ \o ->
+            liftM2 (,) (o .: "key") (o .: "value")
+        ) v
 
 newtype TealCode = TealCode
   { unTealCode :: ByteString
