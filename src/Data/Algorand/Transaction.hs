@@ -22,11 +22,14 @@ module Data.Algorand.Transaction
   , serialiseTx
   , encodeUintAppArgument
   , decodeUintAppArgument
+
+  , splitTransactionsByGroup
   ) where
 
 import qualified Data.Text as T
 
 import Data.Aeson (FromJSON (..), ToJSON (..))
+import Data.Bifunctor (first, second)
 import Data.Binary (decodeOrFail, encode)
 import Data.ByteArray (Bytes)
 import Data.ByteArray.Sized (SizedByteArray, unSizedByteArray)
@@ -34,6 +37,9 @@ import Data.ByteString (ByteString)
 import Data.ByteString.Base32 (encodeBase32Unpadded)
 import Data.ByteString.Lazy (fromStrict, toStrict)
 import Data.Default.Class (Default (def))
+import Data.Map (Map)
+import qualified Data.Map as Map
+import Data.Maybe (fromMaybe)
 import Data.MessagePack (pack)
 import Data.String (IsString)
 import Data.Text (Text)
@@ -392,3 +398,15 @@ decodeUintAppArgument = either (const Nothing) (pure . i3)
 -- (this is reversed version of 'decodeUintAppArgument')
 encodeUintAppArgument :: Word64 -> ByteString
 encodeUintAppArgument = toStrict . encode
+
+----------------
+-- Utilities
+----------------
+
+-- | Split transactions into 1. transactions without group, 2. grouped transactions.
+splitTransactionsByGroup :: [Transaction] -> ([Transaction], Map TransactionGroupId [Transaction])
+splitTransactionsByGroup =
+  flip foldr ([], mempty) $ \tx ->
+    case tGroup tx of
+      Nothing -> first (tx :)
+      Just groupId -> second $ Map.alter (Just . (tx :) . fromMaybe []) groupId

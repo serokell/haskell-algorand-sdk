@@ -3,6 +3,9 @@
 -- SPDX-License-Identifier: MPL-2.0
 
 -- | Helpers for working with transaction groups.
+--
+-- NOTE: functions in this module are experimental and are not guaranteed
+-- to match the recent API.
 module Data.Algorand.Transaction.Group
   ( getGroupIdFor
   , makeGroup
@@ -22,6 +25,9 @@ import Data.Algorand.Transaction (Transaction (..), TransactionGroupId, transact
 --
 -- The order of transactions in the list matters!
 -- Make sure all transactions have all their fields filled in, including sender!
+--
+-- NB: this function works correctly only for supported transactions,
+-- see 'areSupportedTransactions'.
 getGroupIdFor :: [Transaction] -> TransactionGroupId
 getGroupIdFor =
     hash32 . ("TG" <>) . packGroup . map (transactionId' . setGroupId Nothing)
@@ -35,6 +41,9 @@ getGroupIdFor =
 -- and then overwrites the 'tGroup' field of each of the transactions with
 -- the computed value.
 -- Make sure all transactions have all their fields filled in, including sender!
+--
+-- NB: this function works correctly only for supported transactions,
+-- see 'areSupportedTransactions'.
 makeGroup :: [Transaction] -> [Transaction]
 makeGroup txs = map (setGroupId $ Just (getGroupIdFor txs)) txs
 
@@ -44,6 +53,9 @@ makeGroup txs = map (setGroupId $ Just (getGroupIdFor txs)) txs
 -- (have the same 'tGroup'), the group must be complete (i.e. the
 -- list must contain all transactions from the group), and the list
 -- must be in the right order.
+--
+-- NB: this function works correctly only for supported transactions,
+-- see 'areSupportedTransactions'.
 isValidGroup :: [Transaction] -> Bool
 isValidGroup txs =
   all (\Transaction{tGroup} -> tGroup == Just (getGroupIdFor txs)) txs
