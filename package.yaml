@@ -94,6 +94,7 @@ tests:
       - containers
       - directory
       - filepath
+      - fmt
       - msgpack-binary
       - memory >= 0.1 && < 0.16
       - servant-client-core

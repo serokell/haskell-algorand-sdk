@@ -21,8 +21,8 @@ import Data.MessagePack (pack, unpack)
 import Test.Tasty.HUnit (Assertion, assertFailure, (@?=))
 
 import Data.Algorand.MessagePack (Canonical (Canonical, unCanonical))
-import Data.Algorand.Transaction (OnComplete (..), StateSchema (..), Transaction (..),
-                                  TransactionType (..), transactionId)
+import Data.Algorand.Transaction (AppIndex (..), AssetIndex (..), OnComplete (..), StateSchema (..),
+                                  Transaction (..), TransactionType (..), transactionId)
 import Data.Algorand.Transaction.Signed (getUnverifiedTransaction, verifyTransaction)
 
 import Test.Domain (genesisHash, sender)
@@ -49,13 +49,13 @@ example_21 = Transaction
   , tGenesisHash = genesisHash
 
   , tTxType = ApplicationCallTransaction
-    { actApplicationId = 100
+    { actApplicationId = AppIndex 100
     , actOnComplete = OnCompleteNoOp
     , actAccounts = ["AAVDEAJ3NIYOG7XCRBKCJ3T5PUCVL2XASOP3NGX4NPPZ3UX6477PBG6E4Q", "AADQIC4PMKRTFMHAAXYAFSGAUULDI2ABBIYVQJ6GZ5JHY6DJPHTU2SPHYM"]
     , actApprovalProgram = Nothing
     , actAppArguments = ["test"]
     , actClearStateProgram = Nothing
-    , actForeignApps = [5555, 6666]
+    , actForeignApps = map AppIndex [5555, 6666]
     , actForeignAssets = []
     , actGlobalStateSchema = Just $ StateSchema 0 0
     , actLocalStateSchema = Just $ StateSchema 0 0
@@ -102,7 +102,7 @@ unit_example_22 = try_example example_22 expected
 example_23 :: Transaction
 example_23 = example_21
   { tTxType = (tTxType example_21)
-    { actForeignAssets = [7777, 8888]
+    { actForeignAssets = map AssetIndex [7777, 8888]
     }
   }
 

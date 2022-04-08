@@ -16,12 +16,11 @@ module Test.Data.Algorand.Transaction
 
 import Control.Monad (forM_)
 import Data.Aeson (fromJSON, toJSON)
-import qualified Data.ByteArray as BA
-import Data.ByteString.Base64 (decodeBase64, encodeBase64)
+import Data.ByteString.Base64 (decodeBase64)
 import Data.ByteString.Lazy (toStrict)
 import qualified Data.Map as Map
 import Data.MessagePack (pack, unpack)
-import qualified Data.Text.Encoding as T
+import Fmt ((+|), (|+))
 import Hedgehog (Property, forAll, property, tripping)
 import Test.Tasty (TestTree)
 import Test.Tasty.HUnit (Assertion, assertBool, testCaseSteps, (@?=))
@@ -103,8 +102,7 @@ test_transactions_group_validation =
           (trId txResp == transactionId tx)
 
       forM_ (Map.toList groupedTxs) $ \(groupId, txsInGroup) -> do
-        -- TODO: have normal newtype for group id with Buildable instance
-        step $ "Checking group " <> show (T.encodeUtf8 (encodeBase64 $ BA.convert groupId))
+        step $ "Checking group " +| groupId |+ ""
 
         assertBool "Group id is calculated incorrectly" $
           (getGroupIdFor txsInGroup == groupId)

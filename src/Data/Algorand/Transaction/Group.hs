@@ -19,7 +19,7 @@ import Data.Function ((&))
 
 import Crypto.Algorand.Hash (hash32)
 import Data.Algorand.MessagePack (pack, toAlgoObject, (.=))
-import Data.Algorand.Transaction (Transaction (..), TransactionGroupId, transactionId')
+import Data.Algorand.Transaction (Transaction (..), TransactionGroupId (..), transactionId')
 
 -- | Compute the group ID for a list of transactions.
 --
@@ -30,7 +30,7 @@ import Data.Algorand.Transaction (Transaction (..), TransactionGroupId, transact
 -- see 'areSupportedTransactions'.
 getGroupIdFor :: [Transaction] -> TransactionGroupId
 getGroupIdFor =
-    hash32 . ("TG" <>) . packGroup . map (transactionId' . setGroupId Nothing)
+    TransactionGroupId . hash32 . ("TG" <>) . packGroup . map (transactionId' . setGroupId Nothing)
   where
     packGroup :: [ByteString] -> ByteString
     packGroup txids = (BSL.toStrict . pack . toAlgoObject) $ mempty & "txlist" .= txids

@@ -27,7 +27,7 @@ import Test.Tasty.HUnit (Assertion, assertFailure, (@?=))
 
 import qualified Network.Algorand.Api as Api
 
-import Data.Algorand.Transaction (GenesisHash)
+import Data.Algorand.Transaction (GenesisHash (..))
 import Network.Algorand.Client (AlgoIndexer (..), AlgoNode (..), connectToIndexer, connectToNode)
 import Network.Algorand.Definitions (DefaultHost (..), Network (TestnetV1), getDefaultHost)
 
@@ -62,7 +62,7 @@ split c xs = second (drop 1) . break (== c) $ xs
 -- | Get 'GenesisHash' from 'ByteString'
 genesisHashFromBytes :: ByteString -> Maybe GenesisHash
 genesisHashFromBytes t = case decodeBase64 t of
-  Right bs -> sizedByteArray $ convert bs
+  Right bs -> GenesisHash <$> sizedByteArray (convert bs)
   Left _ -> Nothing
 
 -- | Decode base64 'ByteString'

@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 24898c9594d4047704ec2b68a99c0a1fb8239a100761ac00b7c4b23305de39d2
+-- hash: c710368a656e5ddf49539157f7d054738262678dd65039877ffd13d316420f97
 
 name:           algorand-sdk
 version:        0.1.0.0
@@ -163,6 +163,7 @@ test-suite algorand-lib-test
     , containers
     , directory
     , filepath
+    , fmt
     , hedgehog
     , memory >=0.1 && <0.16
     , msgpack-binary

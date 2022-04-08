@@ -9,37 +9,67 @@ module Data.Algorand.Block
   , UpgradeState (..)
   , UpgradeVote (..)
   , BlockWrapped (..)
-  , BlockHash
-  , TransactionsRoot
-  , Seed
+  , BlockHash (..)
+  , TransactionsRoot (..)
+  , Seed (..)
   ) where
 
+import Data.Aeson (FromJSON, ToJSON)
 import Data.ByteArray (Bytes)
+import qualified Data.ByteArray as BA
 import Data.ByteArray.Sized (SizedByteArray)
+import Data.ByteString.Base64 (encodeBase64)
 import Data.Text (Text)
 import Data.Time (UTCTime)
 import Data.Time.Clock.POSIX (posixSecondsToUTCTime)
 import Data.Word (Word64)
+import Fmt (Buildable (..))
 import GHC.Generics (Generic)
 
+import Data.Algorand.Address (Address)
 import Data.Algorand.Amount (Microalgos)
-import Data.Algorand.MessagePack (Canonical (..), MessageUnpackObject (..), (.:), (.:>), (.:?))
+import Data.Algorand.MessagePack (AlgoMessagePack (..), Canonical (..), MessageUnpackObject (..),
+                                  NonZeroValue, (.:), (.:>), (.:?))
 import Data.Algorand.Round (Round)
 import Data.Algorand.Transaction (GenesisHash)
 import Data.Algorand.Transaction.Signed (BlockTransaction)
 
-type BlockHash = SizedByteArray 32 Bytes
-type Seed = SizedByteArray 32 Bytes
-type TransactionsRoot = SizedByteArray 32 Bytes
-type Addr = SizedByteArray 32 Bytes
+-- | Block hash.
+newtype BlockHash = BlockHash { unBlockHash :: SizedByteArray 32 Bytes }
+  deriving (Show, Eq, Ord, ToJSON, FromJSON, NonZeroValue)
+
+instance Buildable BlockHash where
+  build = build . encodeBase64 . BA.convert . unBlockHash
+
+instance AlgoMessagePack BlockHash where
+  toAlgoObject = toAlgoObject . unBlockHash
+  fromAlgoObject = fmap BlockHash . fromAlgoObject
+
+-- | Block seed.
+newtype Seed = Seed { unSeed :: SizedByteArray 32 Bytes }
+  deriving (Show, Eq, Ord, ToJSON, FromJSON, NonZeroValue)
+instance Buildable Seed where
+  build = build . encodeBase64 . BA.convert . unSeed
+instance AlgoMessagePack Seed where
+  toAlgoObject = toAlgoObject . unSeed
+  fromAlgoObject = fmap Seed . fromAlgoObject
+
+-- | Root of merkle tree of block's transactions.
+newtype TransactionsRoot = TransactionsRoot { unTransactionsRoot :: SizedByteArray 32 Bytes }
+  deriving (Show, Eq, Ord, ToJSON, FromJSON, NonZeroValue)
+instance Buildable TransactionsRoot where
+  build = build . encodeBase64 . BA.convert . unTransactionsRoot
+instance AlgoMessagePack TransactionsRoot where
+  toAlgoObject = toAlgoObject . unTransactionsRoot
+  fromAlgoObject = fmap TransactionsRoot . fromAlgoObject
 
 data Rewards = Rewards
-  { bFeeSink :: Addr
+  { bFeeSink :: Address
   -- ^ [fees] accepts transaction fees, it can only spend to the incentive pool.
   , bRewardsLevel :: Maybe Microalgos
   -- ^ [earn] How many rewards, in MicroAlgos, have been distributed to each
   -- RewardUnit of MicroAlgos since genesis.
-  , bRewardsPool :: Addr
+  , bRewardsPool :: Address
   -- ^ [rwd] accepts periodic injections from the fee-sink and continually
   -- redistributes them as rewards.
   , bRewardsRate :: Maybe Microalgos

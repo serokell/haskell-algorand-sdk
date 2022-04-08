@@ -7,11 +7,11 @@ module Data.Algorand.Transaction
   ( Transaction (..)
   , TransactionType (..)
 
-  , AppIndex
-  , AssetIndex
-  , GenesisHash
-  , TransactionGroupId
-  , Lease
+  , AppIndex (..)
+  , AssetIndex (..)
+  , GenesisHash (..)
+  , TransactionGroupId (..)
+  , Lease (..)
   , StateSchema (..)
 
   , OnComplete (..)
@@ -32,9 +32,11 @@ import Data.Aeson (FromJSON (..), ToJSON (..))
 import Data.Bifunctor (first, second)
 import Data.Binary (decodeOrFail, encode)
 import Data.ByteArray (Bytes)
+import qualified Data.ByteArray as BA
 import Data.ByteArray.Sized (SizedByteArray, unSizedByteArray)
 import Data.ByteString (ByteString)
 import Data.ByteString.Base32 (encodeBase32Unpadded)
+import Data.ByteString.Base64 (encodeBase64)
 import Data.ByteString.Lazy (fromStrict, toStrict)
 import Data.Default.Class (Default (def))
 import Data.Map (Map)
@@ -44,6 +46,7 @@ import Data.MessagePack (pack)
 import Data.String (IsString)
 import Data.Text (Text)
 import Data.Word (Word64, Word8)
+import Fmt (Buildable (..))
 import GHC.Generics (Generic)
 import Text.Read (readMaybe)
 
@@ -57,15 +60,60 @@ import Data.Algorand.MessagePack (AlgoMessagePack (..), Canonical (Canonical), C
 import Data.Algorand.MessagePack.Json (parseCanonicalJson, toCanonicalJson)
 import Data.Algorand.Round (Round)
 
+-- | Application id.
+newtype AppIndex = AppIndex { unAppIndex :: Word64 }
+  deriving (Show, Eq, Ord, ToJSON, FromJSON, NonZeroValue, CanonicalZero)
 
-type AppIndex = Word64
-type AssetIndex = Word64
+instance Buildable AppIndex where
+  build (AppIndex i) = "app #" <> build i
 
-type GenesisHash = SizedByteArray 32 Bytes
+instance AlgoMessagePack AppIndex where
+  toAlgoObject = toAlgoObject . unAppIndex
+  fromAlgoObject = fmap AppIndex . fromAlgoObject
 
-type TransactionGroupId = SizedByteArray 32 Bytes
+-- | Asset id.
+newtype AssetIndex = AssetIndex { unAssetIndex :: Word64 }
+  deriving (Show, Eq, Ord, ToJSON, FromJSON, NonZeroValue, CanonicalZero)
 
-type Lease = SizedByteArray 32 Bytes
+instance Buildable AssetIndex where
+  build (AssetIndex i) = "asset #" <> build i
+
+instance AlgoMessagePack AssetIndex where
+  toAlgoObject = toAlgoObject . unAssetIndex
+  fromAlgoObject = fmap AssetIndex . fromAlgoObject
+
+-- | Network's genesis hash.
+newtype GenesisHash = GenesisHash { unGenesisHash :: SizedByteArray 32 Bytes }
+  deriving (Show, Eq, Ord, ToJSON, FromJSON, NonZeroValue)
+
+instance Buildable GenesisHash where
+  build = build . encodeBase64 . BA.convert . unGenesisHash
+
+instance AlgoMessagePack GenesisHash where
+  toAlgoObject = toAlgoObject . unGenesisHash
+  fromAlgoObject = fmap GenesisHash . fromAlgoObject
+
+-- | Transaction group id.
+newtype TransactionGroupId = TransactionGroupId
+  { unTransactionGroupId :: SizedByteArray 32 Bytes
+  } deriving (Show, Eq, Ord, ToJSON, FromJSON, NonZeroValue)
+
+instance Buildable TransactionGroupId where
+  build = build . encodeBase64 . BA.convert . unTransactionGroupId
+
+instance AlgoMessagePack TransactionGroupId where
+  toAlgoObject = toAlgoObject . unTransactionGroupId
+  fromAlgoObject = fmap TransactionGroupId . fromAlgoObject
+
+newtype Lease = Lease { unLease :: SizedByteArray 32 Bytes }
+  deriving (Show, Eq, Ord, ToJSON, FromJSON, NonZeroValue)
+
+instance Buildable Lease where
+  build = build . encodeBase64 . BA.convert . unLease
+
+instance AlgoMessagePack Lease where
+  toAlgoObject = toAlgoObject . unLease
+  fromAlgoObject = fmap Lease . fromAlgoObject
 
 -- | An Algorand transaction (only Header fields).
 data Transaction = Transaction
