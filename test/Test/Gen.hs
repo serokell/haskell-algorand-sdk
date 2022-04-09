@@ -24,8 +24,7 @@ import Crypto.Algorand.Key (PublicKey, pkFromBytes, pkSize, skFromBytes, skSize)
 import Data.Algorand.Address (Address, fromPublicKey)
 import Data.Algorand.Amount (microAlgos)
 import Data.Algorand.Round (Round (..))
-import Data.Algorand.Transaction (OnComplete (..), StateSchema (..), Transaction (..),
-                                  TransactionType (..))
+import Data.Algorand.Transaction
 
 import Test.Domain (Signer (..))
 
@@ -85,18 +84,18 @@ genTransactionType = G.choice
     <*> G.integral R.linearBounded
     <*> G.maybe genAddress
   , ApplicationCallTransaction
-    <$> G.word64 R.constantBounded
+    <$> (AppIndex <$> G.word64 R.constantBounded)
     <*> genOnComplete
     <*> G.list (R.linear 0 10) genAddress
     <*> G.maybe (G.bytes $ R.linear 1 100)  -- cannot be empty
     <*> G.list (R.linear 0 10) (G.bytes (R.linear 0 32))
     <*> G.maybe (G.bytes $ R.linear 1 100)  -- cannot be empty
-    <*> G.list (R.linear 0 10) (G.word64 (R.linear 0 10000))
-    <*> G.list (R.linear 0 10) (G.word64 (R.linear 0 10000))
+    <*> G.list (R.linear 0 10) (AppIndex <$> G.word64 (R.linear 0 10000))
+    <*> G.list (R.linear 0 10) (AssetIndex <$> G.word64 (R.linear 0 10000))
     <*> (Just <$> genStateSchema)
     <*> (Just <$> genStateSchema)
   , AssetTransferTransaction
-    <$> G.word64 R.constantBounded
+    <$> (AssetIndex <$> G.word64 R.constantBounded)
     <*> genAmount
     <*> G.maybe genAddress
     <*> genAddress
@@ -115,10 +114,10 @@ genTransaction =
   <*> genRound
   <*> G.maybe (G.bytes $ R.linear 1 100)  -- cannot be empty
   <*> G.maybe (G.text (R.singleton 44) G.unicode)
-  <*> G.maybe (genSizedBytes genBytes)
+  <*> G.maybe (GenesisHash <$> genSizedBytes genBytes)
   <*> genTransactionType
-  <*> G.maybe (genSizedBytes genBytes)
-  <*> G.maybe (genSizedBytes genBytes)
+  <*> G.maybe (TransactionGroupId <$> genSizedBytes genBytes)
+  <*> G.maybe (Lease <$> genSizedBytes genBytes)
   <*> G.maybe genAddress
   where
     genRound = Round <$> G.word64 R.constantBounded

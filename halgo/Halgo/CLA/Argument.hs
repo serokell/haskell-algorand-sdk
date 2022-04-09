@@ -22,7 +22,7 @@ import qualified Data.Algorand.Address as A
 
 import Data.Algorand.Address (Address)
 import Data.Algorand.Amount (Microalgos)
-import Data.Algorand.Transaction (AssetIndex)
+import Data.Algorand.Transaction (AssetIndex (..))
 import Data.Text (Text)
 
 argSecretFile :: Parser FilePath
@@ -69,4 +69,4 @@ argAmount = argument auto $ mconcat
   ]
 
 argAssetIndex :: Parser AssetIndex
-argAssetIndex = argument auto (metavar "<asset>" <> help "Index of the asset")
+argAssetIndex = argument (AssetIndex <$> auto) (metavar "<asset>" <> help "Index of the asset")

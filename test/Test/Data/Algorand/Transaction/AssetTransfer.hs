@@ -13,7 +13,7 @@ import Data.MessagePack (pack)
 import Test.Tasty.HUnit (Assertion, (@?=))
 
 import Data.Algorand.MessagePack (Canonical (Canonical))
-import Data.Algorand.Transaction (Transaction (..), TransactionType (..))
+import Data.Algorand.Transaction (AssetIndex (..), Transaction (..), TransactionType (..))
 
 import Test.Domain (genesisHash)
 import Test.Util (decodeExpected)
@@ -30,7 +30,7 @@ example = Transaction
   , tGenesisHash = genesisHash
 
   , tTxType = AssetTransferTransaction
-    { attXferAsset = 1234
+    { attXferAsset = AssetIndex 1234
     , attAssetAmount = 1234567
     , attAssetSender = Nothing
     , attAssetReceiver = "OKL27YOBRCNNVQDQQ6UFC6IX7Z4BJ7EPBS3TSSAZ6V54SKYTTCMKUFCOIA"
