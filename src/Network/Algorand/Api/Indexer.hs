@@ -8,6 +8,7 @@
 module Network.Algorand.Api.Indexer
   ( Health (..)
   , IndexerApi (..)
+  , Account (..)
   , IdxAccountResponse (..)
   , TransactionResp (..)
   , transactionRespToTransaction
@@ -16,7 +17,8 @@ module Network.Algorand.Api.Indexer
 
 import qualified Data.Text as T
 
-import Data.Aeson (FromJSON (..), KeyValue ((.=)), ToJSON (..), object, withObject, (.:), (.:?))
+import Data.Aeson (FromJSON (..), KeyValue ((.=)), ToJSON (..), Value, object, withObject, (.:),
+                   (.:?))
 import Data.Aeson.TH (deriveJSON)
 import Data.Aeson.Types (Object, Pair, Parser)
 import Data.ByteString (ByteString)
@@ -31,12 +33,12 @@ import Servant.API.Generic ((:-))
 import Crypto.Algorand.Signature (SignatureType (..))
 import Data.Algorand.Address (Address)
 import Data.Algorand.Amount (Microalgos)
-import Data.Algorand.Block (BlockHash, Seed, TransactionsRoot)
+import Data.Algorand.Block (BlockHash, Rewards, Seed, TransactionsRoot, UpgradeState, UpgradeVote)
 import Data.Algorand.Round (Round)
 import Data.Algorand.Transaction (GenesisHash, Lease, Transaction (..), TransactionGroupId,
                                   TransactionType (..))
 import Network.Algorand.Api.Json (algorandTrainOptions)
-import Network.Algorand.Api.Node (Account)
+import Network.Algorand.Api.Node (Account (..))
 import Network.Algorand.Definitions (Network)
 
 ----------------
@@ -235,7 +237,7 @@ instance FromJSON TransactionResp where
         attAssetCloseTo <- subObj .:? "close-to"
         return AssetTransferTransaction {..}
 
-transactionRespToTransaction :: Text -> GenesisHash -> TransactionResp -> Transaction
+transactionRespToTransaction :: Network -> GenesisHash -> TransactionResp -> Transaction
 transactionRespToTransaction gId gHash TransactionResp {..} = Transaction
   { tSender = trSender
   , tFee = trFee
@@ -254,19 +256,20 @@ transactionRespToTransaction gId gHash TransactionResp {..} = Transaction
 data BlockResp = BlockResp
   { brGenesisHash :: GenesisHash
   -- ^ [gh] hash to which this block belongs.
-  , brGenesisId :: Text
+  , brGenesisId :: Network
   -- ^ [gen] ID to which this block belongs.
   , brPreviousBlockHash :: BlockHash
   -- ^ [prev] hash of the previous block.
+  , brRewards :: Maybe Rewards
   , brRound :: Round
   -- ^ [rnd] Current round on which this block was appended to the chain.
   , brSeed :: Seed
   -- ^ [seed] Sortition seed.
   , brTimestamp :: POSIXTime
   -- ^ [ts] Block creation timestamp in seconds since epoch.
-  , brTransactions :: [TransactionResp]
+  , brTransactions :: Maybe [TransactionResp]
   -- ^ [txns] list of transactions corresponding to a given round.
-  , brTransactionsRoot :: Maybe TransactionsRoot
+  , brTransactionsRoot :: TransactionsRoot
   -- ^ [txn] TransactionsRoot authenticates the set of transactions appearing
   -- in the block. More specifically, it's the root of a merkle tree whose
   -- leaves are the block's Txids, in lexicographic order.
@@ -281,17 +284,19 @@ data BlockResp = BlockResp
   -- be committed after this block.
   -- It is 0 when no transactions have ever been committed (since counter
   -- started being supported).
+  , bUpgradeState :: Maybe UpgradeState
+  , bUpgradeVote :: Maybe UpgradeVote
   } deriving stock (Generic, Show, Eq)
 
 $(deriveJSON algorandTrainOptions 'IdxAccountResponse)
 $(deriveJSON algorandTrainOptions 'BlockResp)
 
 -- | Indexer health information.
--- From: https://indexer.testnet.algoexplorerapi.io/health
+-- From: https://algoindexer.testnet.algoexplorerapi.io/health
 data Health = Health
-  { hDbAvailable :: Bool
-  , hGenesisHash :: Text
-  , hGenesisId :: Network
+  { hData :: Maybe Value  -- exact format is unspecified, likely can change anytime
+  , hDbAvailable :: Bool
+  , hErrors :: Maybe [Text]
   , hIsMigrating :: Bool
   , hMessage :: Text
   , hRound :: Round

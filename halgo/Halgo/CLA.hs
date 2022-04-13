@@ -15,7 +15,7 @@ import qualified Data.Text as T
 import Options.Applicative (CommandFields, Mod, Parser, command, eitherReader, help, info, long,
                             metavar, option, progDesc, showDefault, value)
 
-import Network.Algorand.Definitions (InvalidNetwork (..), Network (..), networkParser)
+import Network.Algorand.Definitions (InvalidNetwork (..), Network (..), knownNetworkParser)
 
 import Halgo.CLA.Command.Account (accountOpts)
 import Halgo.CLA.Command.Contract (contractOpts)
@@ -33,7 +33,7 @@ globalOpts = GlobalOptions <$> option (eitherReader parser) (mconcat
   , showDefault
   ])
   where
-    parser a = case networkParser $ T.pack a of
+    parser a = case knownNetworkParser $ T.pack a of
       Right v -> Right v
       Left (InvalidNetwork e) -> Left e
 

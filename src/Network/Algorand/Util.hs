@@ -8,13 +8,11 @@ module Network.Algorand.Util
   , transactionStatus
   , getBlock
   , getBlockAtRound
-  , getAccount
   , getAccountAtRound
   , lookupAssetBalance
   , lookupAppLocalState
   ) where
 
-import qualified Data.Map as M
 import qualified Data.Text as T
 
 import Control.Exception.Safe (MonadCatch, MonadThrow, handle, throwM)
@@ -32,7 +30,8 @@ import qualified Network.Algorand.Api as Api
 import Data.Algorand.Address (Address)
 import Data.Algorand.Amount (Microalgos)
 import Data.Algorand.Round (Round)
-import Data.Algorand.Teal (TealKeyValue (..), TealValue (..), tealValueBytesType, tealValueUintType)
+import Data.Algorand.Teal (TealKeyValueStore (..), TealValue (..), tealValueBytesType,
+                           tealValueUintType)
 import Data.Algorand.Transaction (AppIndex, AssetIndex)
 import Network.Algorand.Api.Node (TransactionInfo (..))
 
@@ -77,15 +76,7 @@ getBlockAtRound
 getBlockAtRound api rnd = handle noEntityHandler $
   Just <$> Api._blockIdx api rnd
 
-{-# DEPRECATED getAccount "Use `getAccountAtRound` instead" #-}
---- | Helper to get account from node
-getAccount
-  :: MonadCatch m
-  => Api.NodeApi (AsClientT m) -> Address -> m (Maybe Api.Account)
-getAccount api addr = handle noEntityHandler $
-  Just <$> Api._account api addr
-
---- | Helper to get account at round from indexer
+-- | Helper to get account at round from indexer
 getAccountAtRound
   :: MonadCatch m
   => Api.IndexerApi (AsClientT m)
@@ -111,14 +102,14 @@ lookupAppLocalState
   -> Maybe (Map ByteString (Either ByteString Word64))
 lookupAppLocalState Api.Account{..} appId = do
   Api.LocalState{..} <- aAppsLocalState >>= lookup appId . map toPair
-  M.fromList . map toEntry <$> lsKeyValue
+  fmap getVal . unTealKeyValueStore <$> lsKeyValue
   where
     toPair a@Api.LocalState{..} = (lsId, a)
-    toEntry TealKeyValue{..}
-      | tvType tkeValue == tealValueBytesType
-      = (tkeKey, Left $ tvBytes tkeValue)
-      | tvType tkeValue == tealValueUintType
-      = (tkeKey, Right $ tvUint tkeValue)
+    getVal val
+      | tvType val == tealValueBytesType
+      = Left $ tvBytes val
+      | tvType val == tealValueUintType
+      = Right $ tvUint val
       | otherwise = error $
         "lookupAppLocalState: unknown teal value type "
-        <> show (tvType tkeValue)
+        <> show (tvType val)

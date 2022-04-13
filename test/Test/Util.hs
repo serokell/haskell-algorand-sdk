@@ -23,7 +23,7 @@ import Data.ByteString (ByteString)
 import Data.ByteString.Base64 (decodeBase64)
 import Data.Maybe (fromJust)
 import Servant.Client.Generic (AsClientT)
-import Test.Tasty.HUnit (Assertion, assertFailure, (@?=))
+import Test.Tasty.HUnit (Assertion, HasCallStack, assertFailure, (@?=))
 
 import qualified Network.Algorand.Api as Api
 
@@ -35,7 +35,7 @@ import Network.Algorand.Definitions (DefaultHost (..), Network (TestnetV1), getD
 -- Transform function must be provided, which applies to both values.
 -- In case you do not need transformation, provide `id`
 goldenTest
-  :: forall a b. (Show b, Eq b, FromJSON a)
+  :: forall a b. (Show b, Eq b, FromJSON a, HasCallStack)
   => FilePath -> (a -> b) -> a -> Assertion
 goldenTest location transform expected = do
   eitherDecodeFileStrict' @a location >>= \case

@@ -50,6 +50,7 @@ import Data.Algorand.MessagePack (AlgoMessagePack (..), Canonical (Canonical), C
                                   (&<>), (.:), (.:>), (.:?), (.=), (.=<))
 import Data.Algorand.MessagePack.Json (parseCanonicalJson, toCanonicalJson)
 import Data.Algorand.Round (Round)
+import Network.Algorand.Definitions (Network)
 
 
 type AppIndex = Word64
@@ -68,7 +69,7 @@ data Transaction = Transaction
   , tFirstValid :: Round
   , tLastValid :: Round
   , tNote :: Maybe ByteString
-  , tGenesisId :: Maybe Text
+  , tGenesisId :: Maybe Network
   , tGenesisHash :: Maybe GenesisHash
   , tTxType :: TransactionType
   , tGroup :: Maybe TransactionGroupId
@@ -159,6 +160,8 @@ instance FromJSON OnComplete where
 
 
 -- | The 'StateSchema' object.
+--
+-- Specifies maximums on the number of each type that may be stored.
 data StateSchema = StateSchema
   { ssNumUint :: Word64
   , ssNumByteSlice :: Word64

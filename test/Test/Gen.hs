@@ -26,6 +26,7 @@ import Data.Algorand.Amount (microAlgos)
 import Data.Algorand.Round (Round (..))
 import Data.Algorand.Transaction (OnComplete (..), StateSchema (..), Transaction (..),
                                   TransactionType (..))
+import Network.Algorand.Definitions (Network (..))
 
 import Test.Domain (Signer (..))
 
@@ -77,6 +78,18 @@ genStateSchema = StateSchema <$> G.word64 (R.linear 0 1000) <*> G.word64 (R.line
 genOnComplete :: MonadGen m => m OnComplete
 genOnComplete = G.enumBounded
 
+genNetwork :: MonadGen m => m Network
+genNetwork = G.frequency
+  [ (3, pure MainnetV1)
+  , (3, pure TestnetV1)
+  , (3, pure BetanetV1)
+
+  , let networkNameLen = 10
+        -- ↑ Using constant length because our decoding is fancy and
+        -- interprets any valid base64 sequence as bytes, thus not roundtripping
+    in (200, Network <$> G.text (R.singleton networkNameLen) G.ascii)
+  ]
+
 -- | Generate a random 'TransactionType'.
 genTransactionType :: MonadGen m => m TransactionType
 genTransactionType = G.choice
@@ -114,7 +127,7 @@ genTransaction =
   <*> genRound
   <*> genRound
   <*> G.maybe (G.bytes $ R.linear 1 100)  -- cannot be empty
-  <*> G.maybe (G.text (R.singleton 44) G.unicode)
+  <*> G.maybe genNetwork
   <*> G.maybe (genSizedBytes genBytes)
   <*> genTransactionType
   <*> G.maybe (genSizedBytes genBytes)

@@ -4,10 +4,11 @@
 
 -- | Definitions to work with Algo, grouped in this module for convenience.
 module Network.Algorand.Definitions
-  ( Network (..)
+  ( Network (.., MainnetV1, TestnetV1, BetanetV1)
   , NetworkError (..)
   , InvalidNetwork (..)
-  , networkParser
+  , isKnownNetwork
+  , knownNetworkParser
 
   , Host
   , DefaultHost (..)
@@ -19,43 +20,32 @@ import qualified Data.Text as T
 
 import Control.Exception.Safe (Exception (displayException))
 import Data.Aeson (FromJSON (..), ToJSON (..))
-import Data.Functor ((<&>))
 import Data.Map.Strict (Map)
 import Data.Text (Text)
+import GHC.Exts (IsString)
+
+import Data.Algorand.MessagePack
 
 -- | Supported networks.
-data Network
-  = MainnetV1
-  | TestnetV1
-  | BetanetV1
-  deriving (Eq, Ord)
+--
+-- Also referred as \"genesis id\".
+newtype Network = Network Text
+  deriving (Eq, Ord, IsString, ToJSON, FromJSON)
 
--- | Mapping from `Network` to it's name
-networkToName :: Network -> Text
-networkToName = \case
-  MainnetV1 -> "mainnet-v1.0"
-  TestnetV1 -> "testnet-v1.0"
-  BetanetV1 -> "betanet-v1.0"
-
-networkParser :: Text -> Either InvalidNetwork Network
-networkParser = \case
-  "mainnet-v1.0" -> Right MainnetV1
-  "testnet-v1.0" -> Right TestnetV1
-  "betanet-v1.0" -> Right BetanetV1
-  x -> Left . InvalidNetwork . T.unpack $ "Unmapped network name: " <> x
+pattern MainnetV1, TestnetV1, BetanetV1 :: Network
+pattern MainnetV1 = Network "mainnet-v1.0"
+pattern TestnetV1 = Network "testnet-v1.0"
+pattern BetanetV1 = Network "betanet-v1.0"
 
 instance Show Network where
-  show = T.unpack . networkToName
+  show (Network t) = T.unpack t
 
-instance ToJSON Network where
-  toJSON = toJSON . networkToName
+instance AlgoMessagePack Network where
+  toAlgoObject (Network t) = toAlgoObject t
+  fromAlgoObject o = Network <$> fromAlgoObject o
 
-instance FromJSON Network where
-  parseJSON o = do
-    value <- parseJSON o <&> networkParser
-    case value of
-      Right v -> pure v
-      Left (InvalidNetwork e) -> fail e
+instance NonZeroValue Network where
+  isNonZero _ = True
 
 -- | URL of the node or indexer to connect to.
 type Host = Text
@@ -80,6 +70,18 @@ newtype InvalidNetwork = InvalidNetwork String
 instance Exception InvalidNetwork where
   displayException (InvalidNetwork e) = "Invalid network: " <> e
 
+isKnownNetwork :: Network -> Bool
+isKnownNetwork =
+  flip elem
+  [ MainnetV1, TestnetV1, BetanetV1 ]
+
+knownNetworkParser :: Text -> Either InvalidNetwork Network
+knownNetworkParser t =
+  let res = Network t
+  in if isKnownNetwork res
+    then Right res
+    else Left . InvalidNetwork . T.unpack $ "Unknown network name: " <> t
+
 data DefaultHost = DefaultHost
   { ahNode :: Host
   , ahIndexer :: Host
@@ -89,20 +91,20 @@ defaultHost :: Map Network DefaultHost
 defaultHost = Map.fromList
   [ ( MainnetV1
     , DefaultHost
-      { ahNode = "https://api.algoexplorer.io/"
-      , ahIndexer = "https://indexer.algoexplorerapi.io/"
+      { ahNode = "https://node.algoexplorerapi.io"
+      , ahIndexer = "https://algoindexer.algoexplorerapi.io"
       }
     )
   , ( TestnetV1
     , DefaultHost
-      { ahNode = "https://api.testnet.algoexplorer.io/"
-      , ahIndexer = "https://indexer.testnet.algoexplorerapi.io/"
+      { ahNode = "https://node.testnet.algoexplorerapi.io"
+      , ahIndexer = "https://algoindexer.testnet.algoexplorerapi.io"
       }
     )
   , ( BetanetV1
     , DefaultHost
-      { ahNode = "https://api.betanet.algoexplorer.io/"
-      , ahIndexer = "https://indexer.betanet.algoexplorerapi.io/"
+      { ahNode = "https://node.betanet.algoexplorerapi.io"
+      , ahIndexer = "https://algoindexer.betanet.algoexplorerapi.io"
       }
     )
   ]

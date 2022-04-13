@@ -22,6 +22,7 @@ import Servant.API.Generic (AsApi, GenericServant, ToServant)
 import Servant.Client (Client, ClientEnv, ClientM, HasClient, mkClientEnv, parseBaseUrl, runClientM)
 import Servant.Client.Generic (AsClientT, genericClientHoist)
 
+import Data.Algorand.Round (Round (..))
 import qualified Network.Algorand.Api as Api
 
 import Network.Algorand.Api (Health (..), IndexerApi (..), NodeApi (..), Version (..))
@@ -80,7 +81,7 @@ connectToIndexer host net = do
     apiIdx2Client :: forall m' . MonadIO m' => IndexerApi (AsClientT m')
     apiIdx2Client = apiClient env
 
-  Health{hGenesisId} <- _health apiIdx2Client
-  case hGenesisId == net of
+  Api.BlockResp{brGenesisId = genesisId} <- _blockIdx apiIdx2Client (Round 0)
+  case genesisId == net of
     True -> pure (net, AlgoIndexer apiIdx2Client)
-    False ->  throwM $ WrongNetwork net hGenesisId
+    False ->  throwM $ WrongNetwork net genesisId
